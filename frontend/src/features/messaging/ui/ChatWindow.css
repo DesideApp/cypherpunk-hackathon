@@ -1,0 +1,104 @@
+/* =========================================
+   📦 CONTENEDOR PRINCIPAL DEL CHAT
+========================================= */
+.chat-window {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0; /* ✅ permite que el hijo scrollee dentro de un contenedor flex */
+  background-color: var(--window-background);
+}
+
+/* =========================================
+   🧩 BODY (Mensajes + Writing Panel)
+========================================= */
+.chat-window-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0; /* ✅ crítico para que el área de mensajes tenga scroll propio */
+  background-color: var(--background-color);
+  position: relative;
+}
+
+/* =========================================
+   💬 CONTENEDOR DE MENSAJES
+   👉 el scroll lo gestiona .chat-messages (hijo)
+========================================= */
+.chat-window-messages {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;  /* ✅ sin esto, el hijo no puede scrollear en flex */
+  overflow: hidden; /* el hijo hace scroll */
+  padding: 0;
+  gap: 10px;
+}
+
+.chat-window-messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-window-messages::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+}
+
+/* Loader de historial */
+.loading-history {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: var(--font-caption-size);
+  padding: 10px 0;
+}
+
+/* Hint de estado del DataChannel (opcional, discreto) */
+.dc-status-hint {
+  align-self: center;
+  margin: 4px 0 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* =========================================
+   📭 ESTADO VACÍO
+========================================= */
+.chat-empty-state {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-empty-content {
+  max-width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: center;
+}
+
+.chat-empty-content h2 {
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: var(--text-on-window);
+}
+
+.chat-empty-content p {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+/* =========================================
+   ✅ Responsive
+========================================= */
+@media (max-width: 768px) {
+  .chat-empty-content h2 {
+    font-size: 1.05rem;
+  }
+
+  .chat-empty-content p {
+    font-size: 0.8rem;
+  }
+}

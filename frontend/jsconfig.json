@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "baseUrl": "src",
+    "paths": {
+      "@features/*": ["features/*"],
+      "@adapters/*": ["adapters/*"],
+      "@shared/*": ["shared/*"],
+      "@wallet-adapter/*": ["adapters/wallet/*"],
+      "@components/*": ["components/*"],
+      "@pages/*": ["pages/*"],
+      "@main": ["main"],
+      "@Layout": ["Layout"]
+    }
+  },
+  "include": ["src/**/*"]
+}

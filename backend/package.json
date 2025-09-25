@@ -1,0 +1,56 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "Realtime messaging backend",
+  "main": "server.js",
+  "type": "module",
+  "imports": {
+    "#apps/*": "./src/apps/*",
+    "#root/*": "./src/*",
+    "#modules/*": "./src/modules/*",
+    "#middleware/*": "./src/middleware/*",
+    "#config/*": "./src/config/*",
+    "#jobs/*": "./src/jobs/*",
+    "#routes/*": "./src/routes/*",
+    "#shared/*": "./src/shared/*",
+    "#utils/*": "./src/utils/*"
+  },
+  "scripts": {
+    "start": "node --require dotenv/config server.js",
+    "dev": "NODE_OPTIONS='--trace-uncaught' nodemon dev-bootstrap.mjs",
+    "endpoints": "node scripts/list-endpoints.js",
+    "docs": "node scripts/list-endpoints.js --docs",
+    "indexes:sync": "node scripts/ops/ensure-indexes.mjs",
+    "indexes:verify": "node scripts/ops/verify-indexes.mjs",
+    "ttl:update": "node scripts/ops/update-ttl.mjs"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "compression": "^1.7.5",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "envalid": "^8.1.0",
+    "express": "^4.21.1",
+    "express-rate-limit": "^7.5.0",
+    "geoip-lite": "^1.4.10",
+    "helmet": "^8.0.0",
+    "json2csv": "^5.0.7",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.9.0",
+    "node-cache": "^5.1.2",
+    "node-cron": "^3.0.3",
+    "node-fetch": "^3.3.2",
+    "simple-peer": "^9.11.1",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
+    "tweetnacl": "^1.0.3",
+    "typescript": "^5.9.2",
+    "winston": "^3.17.0",
+    "winston-daily-rotate-file": "^5.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}

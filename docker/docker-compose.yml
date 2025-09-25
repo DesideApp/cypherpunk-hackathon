@@ -1,0 +1,13 @@
+version: '3.9'
+
+services:
+  mongo:
+    image: mongo:6
+    container_name: deside-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - ../docker-data/mongo:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: deside

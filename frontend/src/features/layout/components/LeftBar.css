@@ -1,0 +1,133 @@
+/* =========================================================
+   Rail estático (desktop) y drawer overlay (tablet/móvil).
+   Iconos homogéneos SIEMPRE: sin labels en ningún breakpoint.
+========================================================= */
+
+.leftbar {
+  grid-area: leftbar;
+  width: var(--leftbar-width, 72px);
+  background: var(--window-background);
+  border-right: 1px solid var(--border-color);
+  position: relative;
+  z-index: 650; /* por encima del gate */
+  display: flex;
+  flex-direction: column;
+}
+
+.leftbar-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  padding-block: 8px;
+}
+
+/* Logo decorativo (sin interacción) */
+.leftbar-logo {
+  width: 100%;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  cursor: default;
+}
+.leftbar-logo-icon { width: 40px; height: 40px; }
+
+/* Secciones */
+.leftbar-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+.leftbar-free { flex: 1; width: 100%; }
+
+.bottom-section {
+  margin-top: auto;
+  padding-bottom: 10px;
+}
+
+/* Botón base (solo icono) */
+.leftbar-button {
+  -webkit-tap-highlight-color: transparent;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+
+  width: var(--rail-hit, 44px);
+  height: var(--rail-hit, 44px);
+  margin: 2px auto;
+  padding: 0;
+
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  color: var(--text-on-window);
+  transition: background-color 0.15s ease;
+}
+
+.leftbar-button:hover { background: var(--hover-overlay); }
+.leftbar-button.active {
+  background: var(--active-overlay);
+  color: var(--text-primary);
+}
+
+/* 🔇 Quitar outline nativo en botones del rail */
+.leftbar-button:focus { outline: none; }
+.leftbar-button:focus-visible { outline: none; }
+.leftbar-button::-moz-focus-inner { border: 0; } /* Firefox */
+
+/* Icono dentro del botón → tamaño homogéneo */
+.icon-container {
+  width: 22px;   /* contenedor un pelín mayor para respirar */
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Fuerza de seguridad: si algún SVG trae size inline, lo homogeneizamos */
+.leftbar-button svg { width: 20px !important; height: 20px !important; }
+
+/* Nada de labels en ningún tamaño */
+.label-container,
+.leftbar-label { display: none !important; }
+
+/* Theme pocket centrado */
+.leftbar-theme-pocket {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-top: 4px;
+  padding-bottom: 12px;
+}
+
+/* Drawer (tablet/móvil) — seguimos sólo con iconos */
+@media (max-width: 768px) {
+  .leftbar {
+    position: absolute;
+    top: 0; left: 0; height: 100%;
+    width: var(--leftbar-expanded-width, 270px);
+    transform: translateX(-100%);
+    transition: transform 0.28s ease;
+    box-shadow: 2px 0 5px rgba(0,0,0,.12);
+    background: var(--window-background);
+    z-index: 700;
+  }
+  .leftbar.expanded { transform: translateX(0); }
+
+  .leftbar-section { align-items: center; }
+  .leftbar-button {
+    width: var(--rail-hit, 44px);
+    height: var(--rail-hit, 44px);
+    margin: 6px auto;
+    padding: 0;
+  }
+  .icon-container { width: 22px; height: 22px; }
+}
+
+/* Limpieza: restos antiguos */
+.user-status-dot { display: none !important; }

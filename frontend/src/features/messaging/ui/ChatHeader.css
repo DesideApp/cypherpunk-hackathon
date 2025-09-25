@@ -1,0 +1,132 @@
+/* =========================================
+   📋 HEADER DEL CHAT
+========================================= */
+.chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 60px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--window-background);
+}
+
+/* IZQUIERDA (avatar + info) */
+.chat-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Avatar unificado (igual UnifiedList) */
+.chat-avatar-circle {
+  width: 36px;
+  height: 36px;
+  background: var(--hover-overlay);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
+
+.chat-avatar-text {
+  font-family: var(--font-ui-family);
+  font-size: var(--font-ui-size);
+  font-weight: var(--font-ui-weight);
+  color: var(--text-on-window);
+}
+
+.chat-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.chat-contact-name {
+  font-family: var(--font-ui-family);
+  font-size: var(--font-ui-size);
+  font-weight: var(--font-ui-weight);
+  color: var(--text-on-window);
+}
+
+/* Estado unificado */
+.status-row { display: inline-flex; align-items: center; gap: 8px; }
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-family: var(--font-caption-family);
+  font-size: var(--font-caption-size);
+  font-weight: var(--font-caption-weight);
+  border: 1px solid transparent;
+}
+.status-pill.variant-ok { background: rgba(16,185,129,.14); color: rgb(16,185,129); border-color: rgba(16,185,129,.35); }
+.status-pill.variant-ok-soft { background: rgba(34,197,94,.14); color: rgb(34,197,94); border-color: rgba(34,197,94,.35); }
+.status-pill.variant-warn { background: rgba(234,179,8,.14); color: rgb(234,179,8); border-color: rgba(234,179,8,.35); }
+.status-pill.variant-muted { background: rgba(107,114,128,.12); color: rgb(107,114,128); border-color: rgba(107,114,128,.35); }
+
+.typing-hint { 
+  font-family: var(--font-caption-family); 
+  font-size: var(--font-caption-size); 
+  color: #2563eb; 
+  opacity: .9;
+  animation: typingPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes typingPulse {
+  0% { opacity: .35; }
+  50% { opacity: .95; }
+  100% { opacity: .35; }
+}
+
+/* DERECHA (acciones) */
+.chat-header-actions {
+  display: flex;
+  align-items: center;
+}
+
+.chat-header-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-on-window);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+}
+.chat-header-btn:hover { background-color: var(--hover-overlay); }
+.chat-header-btn:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .chat-header { height: 52px; padding: 0 12px; }
+  .chat-header-left { gap: 8px; }
+  .chat-avatar-circle { width: 32px; height: 32px; }
+  .chat-contact-name { font-size: 0.9rem; }
+  .connection-status { font-size: 0.75rem; }
+}
+@media (max-width: 768px) {
+  .chat-header { height: 50px; padding: 0 10px; }
+  .chat-header-left { gap: 6px; }
+  .chat-avatar-circle { width: 30px; height: 30px; }
+  .chat-info { gap: 0; }
+  .chat-contact-name { font-size: 0.85rem; }
+  .connection-status { font-size: 0.7rem; }
+  .chat-header-btn { padding: 4px; }
+}

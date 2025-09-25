@@ -1,0 +1,77 @@
+# Node.js dependencies and caches
+node_modules/
+**/node_modules/
+bower_components/
+
+# Package managers / installers
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-store/
+
+# Environment files
+.env
+.env.*
+backend/.env
+frontend/.env
+frontend/.env.*
+
+# Build and output artifacts
+backend/dist/
+backend/build/
+backend/coverage/
+backend/logs/
+frontend/dist/
+frontend/.vite/
+frontend/coverage/
+coverage/
+
+# Framework/tooling caches
+.vite/
+.eslintcache
+.stylelintcache
+.nyc_output
+.parcel-cache
+.next/
+.nuxt/
+.svelte-kit/
+.angular/
+.storybook/
+.vscode-test/
+
+# OS & editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Misc runtime artifacts
+*.log
+logs/
+*.pid
+*.seed
+*.tgz
+*.tar.gz
+dump.rdb
+pids/
+tmp/
+
+# Testing
+jest-test-results.json
+junit.xml
+
+# Docker / local tooling
+.docker/
+.dockerignore
+Dockerfile.local
+
+# Custom project directories
+backend/tmp/
+frontend/tmp/
+backend/keys/
+docker-data/

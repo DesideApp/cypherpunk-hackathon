@@ -1,0 +1,82 @@
+/* Base */
+.themetoggle {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-on-window);
+  display: inline-flex;
+  align-items: center;
+}
+
+/* ===============================
+   🔸 Variant: switch (pill 28x14)
+================================= */
+.themetoggle--switch {
+  width: 28px;
+  height: 14px;
+  padding: 0;
+  position: relative;
+}
+
+.themetoggle--switch .themetoggle__track {
+  position: absolute;
+  inset: 0;
+  background-color: var(--text-primary);
+  border-radius: 14px;
+  transition: background-color 0.2s ease;
+}
+
+.themetoggle--switch .themetoggle__thumb {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  left: 2px;
+  bottom: 2px;
+  background-color: var(--window-background);
+  border-radius: 50%;
+  transition: transform 0.2s ease;
+}
+
+.themetoggle--switch.is-dark .themetoggle__thumb {
+  transform: translateX(14px);
+}
+
+.themetoggle--switch:focus-visible {
+  outline: 2px solid var(--highlight-color);
+  outline-offset: 2px;
+}
+
+/* Hover sutil */
+.themetoggle--switch:hover .themetoggle__track {
+  filter: brightness(0.95);
+}
+
+/* ===============================
+   🔸 Variant: button (icon + label)
+================================= */
+
+
+.themetoggle__icon {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+}
+
+.themetoggle__label {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ===============================
+   🔸 Variant: icon (solo icono)
+================================= */
+.themetoggle--icon {
+  width: 28px;
+  height: 28px;
+  justify-content: center;
+  border-radius: 8px;
+}
+
+.themetoggle--icon:hover {
+  background: var(--hover-overlay, rgba(0,0,0,.06));
+}

@@ -1,0 +1,203 @@
+:root {
+  /* Title (Grandes títulos, header, panel titles) */
+  --font-title-family: 'Montserrat', sans-serif;
+  --font-title-size: 18px;
+  --font-title-weight: 600;
+
+ /* 🔸 Subtitle → Para subtítulos, encabezados suaves de secciones */
+  --font-subtitle-family: 'Montserrat', sans-serif;
+  --font-subtitle-size: 16px;
+  --font-subtitle-weight: 550;
+
+  /* 🔹 UI Text → Para etiquetas, botones, cabeceras internas */
+  --font-ui-family: 'Montserrat', sans-serif;
+  --font-ui-size: 14px;
+  --font-ui-weight: 450;
+
+  /* Body (texto normal, chat, párrafos) */
+  --font-body-family: 'Roboto', sans-serif;
+  --font-body-size: 16px;
+  --font-body-weight: 500;
+  --line-height: 1.45;
+
+  /* Navigation (leftbar, wallet menu) */
+  --font-navigation-family: 'IBM Plex Sans', sans-serif;
+  --font-navigation-size: 14px;
+  --font-navigation-weight: 400;
+  --font-navigation-transform: uppercase;
+
+  /* Data (Cifras, direcciones, valores crudos, técnicos) */
+  --font-data-family: 'IBM Plex Mono', monospace;
+  --font-data-size: 13px;
+  --font-data-weight: 450;
+  --font-data-transform: none;
+
+  /* Caption (tooltips, microtext, etiquetas muy pequeñas) */
+  --font-caption-family: 'Inter', sans-serif;
+  --font-caption-size: 11px;
+  --font-caption-weight: 400;
+  --font-caption-transform: uppercase;
+}
+
+/* ==============================
+   ✅ ESTILOS GLOBALES
+============================== */
+
+body {
+  font-family: var(--font-body-family);
+  font-size: var(--font-body-size);
+  font-weight: var(--font-body-weight);
+  background-color: var(--background-color);
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+/* ============================================
+   ✅ Títulos y texto estructural (semántico)
+============================================ */
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-title-family);
+  font-weight: var(--font-title-weight);
+  color: var(--text-on-window);
+  margin: 0;
+}
+
+/* Subtítulo tipo sección */
+.subtitle {
+  font-family: var(--font-subtitle-family);
+  font-size: var(--font-subtitle-size);
+  font-weight: var(--font-subtitle-weight);
+  color: var(--text-secondary);
+}
+
+/* Microtextos o etiquetas pequeñas */
+.caption {
+  font-family: var(--font-caption-family);
+  font-size: var(--font-caption-size);
+  font-weight: var(--font-caption-weight);
+  text-transform: var(--font-caption-transform);
+  color: var(--text-secondary);
+}
+
+/* ============================================
+   ✅ Botones (estándar visual)
+============================================ */
+
+button {
+  font-family: var(--font-ui-family);
+  font-size: var(--font-ui-size);
+  font-weight: var(--font-ui-weight);
+  background-color: transparent;
+  color: var(--text-on-surface);
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+button:hover {
+  background-color: var(--hover-overlay); /* NUEVO */
+}
+
+/* ============================================
+   ✅ Inputs globales (unificados)
+============================================ */
+
+.input-base {
+  width: 100%;
+  font-family: var(--font-body-family);
+  font-size: var(--font-body-size);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--background-color);
+  outline: none;
+  padding: 10px 14px;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.input-base::placeholder {
+  color: var(--text-secondary);
+  font-family: var(--font-body-family);
+  font-size: var(--font-body-size);
+}
+
+/* Variantes de tamaño */
+.input-sm {
+  height: 40px;
+  font-size: 0.9rem;
+}
+
+.input-md {
+  height: 42px;
+}
+
+.input-lg {
+  min-height: 46px;
+  line-height: var(--line-height);
+  resize: none;
+}
+
+/* ============================================
+   ✅ Contenedor base para páginas
+============================================ */
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* ============================================
+   ✅ Hover unificado universal
+============================================ */
+
+.hover-overlay:hover {
+  background-color: var(--hover-overlay);
+}
+
+/* ============================================
+   ✅ Hover y Active globales
+============================================ */
+
+/* Hover universal */
+.hoverable {
+  transition: background-color var(--transition-speed) var(--transition-easing);
+}
+
+.hoverable:hover {
+  background-color: var(--hover-overlay);
+}
+
+/* Active universal */
+.active {
+  background-color: var(--active-overlay);
+}
+
+/* ===== Scrollbar global ===== */
+
+/* 🌐 Scrollbars globales estilo Deside */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--border-color);
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--hover-color);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) transparent;
+}

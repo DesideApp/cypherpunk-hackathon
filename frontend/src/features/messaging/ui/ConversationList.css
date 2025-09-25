@@ -1,0 +1,199 @@
+/* ✅ Container transparent */
+.conversation-list-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 500px;
+  padding: 10px;
+  background: transparent;
+}
+
+/* ✅ Search Bar */
+.search-bar {
+  display: flex;
+  align-items: center;
+  background-color: var(--window-background);
+  border: 2px solid rgba(128, 128, 128, 0.25);
+  border-radius: 15px;
+  padding: 8px 12px;
+  margin-bottom: 16px;
+}
+
+.search-bar input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 14px;
+  color: var(--text-color);
+  flex-grow: 1;
+}
+
+.search-icon {
+  font-size: 14px;
+  color: rgba(128, 128, 128, 0.85);
+  margin-right: 8px;
+}
+
+/* ✅ Conversation List */
+.conversation-list {
+  list-style: none;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ✅ Conversation Item */
+.conversation-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: var(--bubble-background);
+  border: 2px solid rgba(128, 128, 128, 0.15);
+  border-radius: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out, filter 0.2s ease-in-out;
+}
+
+.conversation-item:hover {
+  background-color: var(--bubble-background);
+  filter: brightness(1.1);
+}
+
+.conversation-item.active {
+  border-color: #fc554f;
+  background-color: var(--bubble-background);
+  filter: brightness(1.2);
+}
+
+/* ✅ UNREAD State */
+.conversation-item.unread {
+  border-color: #fc554f;
+  background-color: var(--bubble-background);
+  filter: brightness(1.1);
+}
+
+.conversation-name.bold,
+.conversation-last-message.bold {
+  font-weight: bold;
+  color: var(--text-color);
+}
+
+/* ✅ Avatar */
+.conversation-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* ✅ Info */
+.conversation-info {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.conversation-name {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.95rem;
+  color: var(--text-color);
+}
+
+.conversation-last-message {
+  font-size: 0.85rem;
+  color: var(--secondary-text);
+}
+
+.conversation-time {
+  font-size: 0.8rem;
+  color: var(--secondary-text);
+}
+
+/* ✅ Unread Badge */
+.conversation-unread-badge {
+  background-color: #FF304F;
+  color: #fff;
+  border-radius: 50%;
+  min-width: 18px;
+  height: 18px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  padding: 0 5px;
+  margin-left: 8px;
+  box-shadow: 0 0 5px rgba(255, 48, 79, 0.5);
+  animation: pulse 1.5s infinite;
+}
+
+/* ✅ Pulse Animation */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 5px rgba(255, 48, 79, 0.5);
+  }
+  50% {
+    transform: scale(1.2);
+    box-shadow: 0 0 10px rgba(255, 48, 79, 0.8);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 5px rgba(255, 48, 79, 0.5);
+  }
+}
+
+/* ✅ Notifications Panel (existing) */
+.notifications-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.notification-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: var(--window-background);
+  border: 2px solid rgba(128, 128, 128, 0.15);
+  border-radius: 12px;
+  padding: 10px 14px;
+  transition: background-color 0.2s ease-in-out;
+  cursor: pointer;
+}
+
+.notification-item:hover {
+  background-color: rgba(240, 240, 240, 0.5);
+}
+
+.notification-nickname {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.95rem;
+  color: var(--text-color);
+}
+
+.notification-wallet {
+  font-size: 0.85rem;
+  color: var(--secondary-text);
+}
+
+.notification-actions button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  margin-left: 8px;
+  font-size: 1.1rem;
+  color: var(--text-color);
+}
+
+.notification-actions button:hover {
+  color: #007bff;
+}
