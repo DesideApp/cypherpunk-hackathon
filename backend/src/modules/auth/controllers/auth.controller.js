@@ -102,6 +102,15 @@ const {
   csrfToken: CSRF_COOKIE_NAME,
 } = COOKIE_NAMES;
 
+const LEGACY_COOKIE_NAMES = ['accessToken', 'refreshToken', 'csrfToken'];
+const ALL_COOKIE_NAMES = [ACCESS_COOKIE_NAME, REFRESH_COOKIE_NAME, CSRF_COOKIE_NAME, ...LEGACY_COOKIE_NAMES];
+
+const clearAllCookies = (res, opts) => {
+  for (const name of ALL_COOKIE_NAMES) {
+    try { res.clearCookie(name, opts); } catch {}
+  }
+};
+
 export const generateNonce = (req, res) => {
   purgeNonces();
   const nonce = crypto.randomBytes(16).toString('hex');
@@ -204,9 +213,7 @@ export const refreshToken = async (req, res) => {
 
     if (user.banned || user.isBanned) {
       const clearOptions = buildClearCookieOptions();
-      res.clearCookie(ACCESS_COOKIE_NAME, clearOptions);
-      res.clearCookie(REFRESH_COOKIE_NAME, clearOptions);
-      res.clearCookie(CSRF_COOKIE_NAME, clearOptions);
+      clearAllCookies(res, clearOptions);
       return res.status(403).json({ error: 'ACCOUNT_BANNED', nextStep: 'CONTACT_SUPPORT' });
     }
 
@@ -269,9 +276,7 @@ export const checkAuthStatus = async (req, res) => {
 export const logoutUser = async (req, res) => {
   try {
     const clearOptions = buildClearCookieOptions();
-    res.clearCookie(ACCESS_COOKIE_NAME, clearOptions);
-    res.clearCookie(REFRESH_COOKIE_NAME, clearOptions);
-    res.clearCookie(CSRF_COOKIE_NAME, clearOptions);
+    clearAllCookies(res, clearOptions);
     return res.status(200).json({ message: '✅ Sesión cerrada correctamente.', nextStep: 'LOGOUT_SUCCESS' });
   } catch (error) {
     console.error('❌ Error al cerrar sesión:', error);

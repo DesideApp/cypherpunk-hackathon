@@ -22,6 +22,15 @@ const {
   csrfToken: CSRF_COOKIE_NAME,
 } = COOKIE_NAMES;
 
+const LEGACY_COOKIE_NAMES = ['accessToken', 'refreshToken', 'csrfToken'];
+const ALL_COOKIE_NAMES = [ACCESS_COOKIE_NAME, COOKIE_NAMES.refreshToken, CSRF_COOKIE_NAME, ...LEGACY_COOKIE_NAMES];
+
+const clearAllCookies = (res, opts) => {
+  for (const name of ALL_COOKIE_NAMES) {
+    try { res.clearCookie(name, opts); } catch {}
+  }
+};
+
 const PUBLIC_ROUTES = new Set([
   '/api/health',
 ]);
@@ -149,7 +158,7 @@ export const protectRoute = async (req, res, next) => {
     return next();
   } catch (error) {
     console.error('❌ Auth Middleware Error:', error.message);
-    if (req.cookies?.[ACCESS_COOKIE_NAME]) res.clearCookie(ACCESS_COOKIE_NAME, { path: '/' });
+    clearAllCookies(res, { path: '/' });
     return sendCorsError(res, req, 403, 'Invalid authentication or CSRF token', 'REAUTHENTICATE');
   }
 };

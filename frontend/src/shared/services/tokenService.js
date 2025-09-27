@@ -172,7 +172,19 @@ export function clearSession(reason = "manual") {
     localStorage.removeItem(CSRF_STORAGE_KEY);
     sessionStorage.removeItem(CSRF_STORAGE_KEY);
     try { localStorage.removeItem('csrfToken'); sessionStorage.removeItem('csrfToken'); } catch {}
-    document.cookie = `${CSRF_COOKIE_NAME}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+    const cookieNames = [
+      ACCESS_TOKEN_COOKIE,
+      REFRESH_TOKEN_COOKIE,
+      CSRF_COOKIE_NAME,
+      'accessToken',
+      'refreshToken',
+      'csrfToken',
+    ];
+    cookieNames.forEach((name) => {
+      try {
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+      } catch {}
+    });
     DEBUG("clearSession:", reason);
   } catch (error) {
     console.error("❌ clearSession error:", error.message);

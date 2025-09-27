@@ -38,6 +38,16 @@ npm run dev
 **Dev Mode:** Requires `.env` with real API keys (MongoDB, Twilio, etc.)  
 **Ports:** Backend on `:3001`, Frontend on `:3000`
 
+### 🔐 E2EE Grade-1 Configuration
+
+The app requires a shared static key for the current encryption tier. Define it in your frontend env (or root `.env`) before running:
+
+```bash
+VITE_E2E_SHARED_KEY_BASE64=$(openssl rand -base64 32)
+```
+
+If the variable is missing the UI shows the conversations but sending text or media returns `e2e-key-missing` and nothing leaves the browser. The same key must be present in every client instance taking part in the demo.
+
 ### Optional: Persistent Database
 
 For persistent data between restarts:

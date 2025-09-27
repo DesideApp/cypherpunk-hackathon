@@ -1,0 +1,259 @@
+===============================================================================
+                            GUÍA COMPLETA DE GIT PROFESIONAL
+===============================================================================
+
+🎯 CONCEPTOS FUNDAMENTALES
+═════════════════════════
+
+Working Directory ──→ Staging Area ──→ Repository ──→ GitHub
+   (tu disco)          (git add)      (git commit)    (git push)
+
+
+🛠️ COMANDOS PASO A PASO
+══════════════════════
+
+1. git add - "Prepara archivos para commit"
+───────────────────────────────────────────
+¿Qué hace? Mueve archivos del Working Directory → Staging Area
+¿Cuándo usarlo? Después de editar archivos, antes de commit
+
+git add archivo.js          # Un archivo específico
+git add src/                # Una carpeta completa  
+git add .                   # TODO lo modificado
+git add *.js               # Todos los .js
+
+Visualización:
+Working Directory:    archivo.js (modificado) ❌
+Staging Area:         archivo.js (preparado)  ✅ ← git add
+Repository:           (vacío)
+
+
+2. git commit - "Guarda una foto del proyecto"
+─────────────────────────────────────────────
+¿Qué hace? Mueve archivos del Staging Area → Repository
+¿Cuándo usarlo? Cuando tienes un conjunto lógico de cambios listos
+
+git commit -m "feat: add encryption to messages"
+git commit -m "fix: resolve token validation bug"  
+git commit -m "docs: update README with new API"
+
+Visualización:
+Working Directory:    (limpio)
+Staging Area:         (vacío)  
+Repository:           commit abc123 ✅ ← git commit
+
+
+3. git push - "Sube commits a GitHub"
+───────────────────────────────────
+¿Qué hace? Repository local → Repository remoto (GitHub)
+¿Cuándo usarlo? Para compartir/respaldar tu trabajo
+
+git push                                    # Sube la rama actual
+git push -u origin feature/encryption      # Primera vez (establece tracking)
+
+Visualización:
+Local Repository:     commit abc123 ✅
+GitHub Repository:    commit abc123 ✅ ← git push
+
+
+🌊 FLUJO COMPLETO DE TRABAJO
+═══════════════════════════
+
+Ejemplo práctico paso a paso:
+
+# 1. Confirma en qué rama estás
+git branch  # debe mostrar: * feature/encryption
+
+# 2. Editas archivos (VS Code, etc.)
+# - modificas: src/encryption/messageEncryption.js
+# - creas: src/encryption/keyManager.js
+
+# 3. Revisa qué cambió
+git status  # muestra archivos modificados/nuevos
+
+# 4. Prepara los archivos específicos
+git add src/encryption/messageEncryption.js
+git add src/encryption/keyManager.js
+# o todo junto: git add src/encryption/
+
+# 5. Verifica qué va en el commit
+git status  # muestra "Changes to be committed"
+
+# 6. Crea el commit con mensaje descriptivo
+git commit -m "feat: implement end-to-end message encryption"
+
+# 7. Sube a GitHub
+git push  # (o git push -u origin feature/encryption la primera vez)
+
+
+📊 ESTADOS DE ARCHIVOS
+═════════════════════
+
+Cuando ejecutas: git status
+
+Te puede mostrar:
+
+Untracked files: (archivos nuevos que Git no conoce)
+    new-file.js
+
+Changes not staged for commit: (modificados, no preparados)  
+    modified: existing-file.js
+
+Changes to be committed: (preparados para commit)
+    modified: ready-file.js
+
+
+💡 TIPS PROFESIONALES
+════════════════════
+
+COMMITS PEQUEÑOS Y FRECUENTES:
+
+❌ MAL - Un commit gigante:
+git add .
+git commit -m "fix everything"
+
+✅ BIEN - Commits específicos:
+git add src/auth/
+git commit -m "feat: add wallet authentication"
+
+git add src/encryption/
+git commit -m "security: implement message encryption" 
+
+git add README.md
+git commit -m "docs: update setup instructions"
+
+
+MENSAJES DE COMMIT PROFESIONALES:
+feat: add new feature
+fix: resolve bug  
+docs: update documentation
+style: formatting changes
+refactor: code improvements
+test: add tests
+security: security improvements
+config: configuration changes
+
+
+🔀 MERGE DESDE GITHUB (Pull Request)
+═══════════════════════════════════
+
+¿Por qué desde GitHub?
+✅ Revisión visual de cambios
+✅ Discusión con el equipo  
+✅ CI/CD automático
+✅ Historial limpio
+
+Proceso:
+1. Trabajas en tu rama (feature/encryption)
+2. Haces push regularmente (git push)
+3. Cuando termines: vas a GitHub.com
+4. "Create Pull Request" entre feature/encryption → main
+5. Revisas los cambios, escribes descripción
+6. "Merge Pull Request" 
+7. Borras la rama (ya no la necesitas)
+
+
+🚀 COMANDOS ÚTILES ADICIONALES
+═════════════════════════════
+
+# Ver el historial de commits
+git log --oneline -10
+
+# Ver qué cambios tienes pendientes
+git status
+
+# Ver diferencias específicas
+git diff                    # cambios no preparados
+git diff --staged           # cambios preparados para commit
+
+# Deshacer cambios (CUIDADO)
+git checkout -- archivo.js  # descarta cambios de un archivo
+git reset HEAD archivo.js   # quita archivo del staging
+git reset --soft HEAD~1     # deshace último commit (mantiene cambios)
+
+# Cambiar de rama
+git checkout main
+git checkout feature/encryption
+
+# Crear nueva rama
+git checkout -b nueva-rama
+
+# Ver todas las ramas
+git branch -a
+
+
+🌳 ESTRUCTURA ACTUAL DE TU PROYECTO
+══════════════════════════════════
+
+main (estable)
+├── hackathon-setup (setup completo - ya pusheado)
+└── feature/encryption (tu rama de trabajo actual)
+
+
+Estás aquí: feature/encryption ✅
+Listo para trabajar en cifrado ✅
+
+
+🚨 SÚPER IMPORTANTE: COMMITEAR A OTRAS RAMAS
+═══════════════════════════════════════════
+
+❌ ESTO NO EXISTE:
+git commit -m "mensaje" --to-branch=main  # NO funciona
+
+✅ PARA COMMITEAR A OTRA RAMA:
+
+OPCIÓN 1: Cambiar de rama y commitear
+───────────────────────────────────
+git checkout main              # ir a main
+git add archivo.js             # preparar archivos  
+git commit -m "mensaje"        # commitear EN main
+git checkout feature/encryption # volver a tu rama
+
+OPCIÓN 2: Stash (guardar cambios temporalmente)
+─────────────────────────────────────────────
+git stash                      # guarda cambios temporalmente
+git checkout main              # ir a main
+git stash pop                  # recupera los cambios
+git add archivo.js             # preparar archivos
+git commit -m "mensaje"        # commitear EN main
+git checkout feature/encryption # volver
+
+OPCIÓN 3: Cherry-pick (copiar commit después)
+────────────────────────────────────────────
+# Commiteas en tu rama actual
+git commit -m "mensaje"        # va a feature/encryption
+
+# Después lo copias a main
+git checkout main
+git cherry-pick feature/encryption  # copia el commit
+git checkout feature/encryption
+git reset --hard HEAD~1        # borra de la rama incorrecta
+
+🎯 REGLA DE ORO:
+git commit SIEMPRE va a la rama donde estés parado
+
+Para saber en qué rama estás:
+git branch  # la que tiene * es la actual
+
+
+🔧 CUÁNDO USAR CADA OPCIÓN
+═════════════════════════
+
+Cambios de CONFIGURACIÓN GENERAL → main o hackathon-setup
+- .gitignore
+- package.json 
+- README.md
+- .env.example
+
+Cambios de FUNCIONALIDAD ESPECÍFICA → feature/encryption
+- archivos de cifrado
+- mejoras de seguridad específicas
+- nuevas características
+
+ANTES DE HACER COMMIT PREGÚNTATE:
+¿Este cambio es específico de mi funcionalidad o es general del proyecto?
+
+
+===============================================================================
+                         ¡GUARDA ESTE ARCHIVO COMO REFERENCIA!
+===============================================================================

@@ -50,6 +50,8 @@ const COOKIE_NAMES = {
   csrfToken: `csrfToken${COOKIE_SUFFIX}`,
 };
 
+const E2E_SHARED_KEY_BASE64 = readEnv('VITE_E2E_SHARED_KEY_BASE64', '');
+
 // --- bases (con alias compatibles) ---
 const API_BASE_URL = trimRightSlash(
   readFirst(['VITE_API_BASE_URL', 'VITE_BACKEND_URL'], 'http://localhost:10000')
@@ -132,10 +134,10 @@ export function apiUrl(path) {
 }
 
 // Named exports (útiles si quieres importar sin ENV)
-export { API_BASE_URL, WS_URL, ENDPOINTS, RTC_CONFIG, MESSAGING, IS_DEMO, STORAGE_NS, CACHE_NS, COOKIE_NAMES };
+export { API_BASE_URL, WS_URL, ENDPOINTS, RTC_CONFIG, MESSAGING, IS_DEMO, STORAGE_NS, CACHE_NS, COOKIE_NAMES, E2E_SHARED_KEY_BASE64 };
 
 // Default aggregate
-export const ENV = { API_BASE_URL, WS_URL, ENDPOINTS, RTC_CONFIG, MESSAGING, IS_DEMO, STORAGE_NS, CACHE_NS, COOKIE_NAMES };
+export const ENV = { API_BASE_URL, WS_URL, ENDPOINTS, RTC_CONFIG, MESSAGING, IS_DEMO, STORAGE_NS, CACHE_NS, COOKIE_NAMES, E2E_SHARED_KEY_BASE64 };
 export default ENV;
 
 // Debug visible SOLO en dev

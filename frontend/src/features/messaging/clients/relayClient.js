@@ -3,10 +3,7 @@
 
 import { ENDPOINTS as CONF } from "@shared/config/env.js";
 import { authedFetchJson as fetchJson } from "@features/messaging/clients/fetcher.js";
-import { encryptText } from "@features/messaging/e2e/e2e.js";
 import { getWalletSignature } from "@shared/services/tokenService.js";
-import { utf8ToBase64 } from "@shared/utils/base64.js";
-import { canonicalConvId } from "@features/messaging/domain/id.js"; // 👈 suave: sólo para construir AAD
 
 const ENDPOINTS = Object.freeze({
   SEND: CONF?.RELAY?.SEND,
@@ -111,11 +108,7 @@ export async function enqueue({ to, box, iv = null, msgId, mime, meta, force } =
   }
 }
 
-/**
- * sendText({ toWallet, clientId, text, key, meta })
- * Suave: AAD determinista SIEMPRE (convId|from|to), aunque meta no traiga convId.
- */
-export async function sendText({ toWallet, clientId, text, key, meta, force } = {}) {
+export async function sendEnvelope({ toWallet, clientId, envelope, meta, mime, force } = {}) {
   if (!toWallet) {
     const e = new Error("missing-to");
     e.status = 400;
@@ -123,31 +116,26 @@ export async function sendText({ toWallet, clientId, text, key, meta, force } = 
     throw e;
   }
 
-  if (key) {
-    const from = meta?.from;
-    const to = meta?.to || toWallet;
-    // 👇 Si convId no viene, lo derivamos para que AAD nunca sea undefined
-    const convId = meta?.convId || (from && to ? canonicalConvId(from, to) : undefined);
-    const aad = (convId && from && to) ? `cid:${convId}|from:${from}|to:${to}|v:1` : `to:${toWallet}|v:1`;
-    const env = await encryptText(text || "", key, aad); // ← AAD siempre presente
-
-    return enqueue({
-      to: toWallet,
-      box: env.cipher,
-      iv: env.iv || null,
-      msgId: clientId,
-      meta: { ...(meta || {}), kind: 'text', convId }, // no cambia al back legacy
-      ...(typeof force === 'boolean' ? { force } : {}),
-    });
+  const cipher = envelope?.cipher;
+  if (!cipher) {
+    const e = new Error("missing-envelope");
+    e.status = 400;
+    e.code = "bad-request";
+    throw e;
   }
 
-  const b64 = utf8ToBase64(text || "");
+  const metaPayload = {
+    ...(meta || {}),
+    ...(envelope?.aad && !meta?.aad ? { aad: envelope.aad } : {}),
+  };
+
   return enqueue({
     to: toWallet,
-    box: b64,
-    iv: null,
+    box: cipher,
+    iv: envelope?.iv || null,
     msgId: clientId,
-    meta: { ...(meta || {}), kind: 'text' },
+    mime,
+    meta: metaPayload,
     ...(typeof force === 'boolean' ? { force } : {}),
   });
 }

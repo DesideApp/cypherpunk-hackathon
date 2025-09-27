@@ -10,6 +10,7 @@ import { useAuthManager } from "@features/auth/hooks/useAuthManager.js";
 import { loadContactsCache } from "@features/contacts/services/contactsCache.js";
 import { DEMO_PREVIEWS, DEMO_CONTACTS_STATE } from "@features/contacts/services/demoContacts.js";
 import { IS_DEMO } from "@shared/config/env.js";
+import { wipeModeData } from "@shared/utils/cleanup.js";
 import "./LeftPanel.css";
 
 const LeftPanel = ({ onSelectContact }) => {
@@ -129,6 +130,11 @@ const LeftPanel = ({ onSelectContact }) => {
     }
   }, [activeSocial, ensureReady, loadContacts]);
 
+  const handleDemoReset = useCallback((event) => {
+    if (event) event.stopPropagation();
+    wipeModeData();
+  }, []);
+
   return (
     <div className="left-panel">
       {/* Header */}
@@ -166,6 +172,18 @@ const LeftPanel = ({ onSelectContact }) => {
               )}
             </div>
           </button>
+
+          {IS_DEMO && (
+            <button
+              className="social-button"
+              onClick={handleDemoReset}
+              aria-label="Reset Demo Data"
+              type="button"
+              title="Reset demo data"
+            >
+              ⟲
+            </button>
+          )}
         </div>
       </div>
 

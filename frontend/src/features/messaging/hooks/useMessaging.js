@@ -14,6 +14,7 @@ import {
 import { MESSAGING } from "@shared/config/env.js";
 import { trackMessageSent } from "../utils/rtcTelemetry.js";
 import { createDebugLogger } from "@shared/utils/debug.js";
+import { buildAAD } from "@shared/e2e/aad.js";
 // 🔧 REMOVED: import { fetchIceServers } from "@features/messaging/clients/iceApi.js"; // no existe
 
 // ---- pequeña ayuda para suscribirse al store (con cleanup correcto)
@@ -137,10 +138,12 @@ export default function useMessaging({
       return { ok: false, reason: "e2e-key-missing" };
     }
 
-    let envelope = null, aad = null;
+    let envelope = null;
+    let aad = null;
     try {
-      aad = `cid:${convId}|from:${selfWallet}|to:${peerWallet}`;
+      aad = buildAAD({ convId, from: selfWallet, to: peerWallet, isMedia: false });
       envelope = await encryptText(text, cryptoKey, aad);
+      try { debugE2EE('send-text', { convId, aad, len: text?.length || 0 }); } catch {}
     } catch (e) {
       console.warn("[msg] sendText FAIL", { reason: e?.message || e, status: e?.status });
       return { ok: false, reason: "encrypt-failed" };
@@ -148,8 +151,17 @@ export default function useMessaging({
 
     // 🔧 Añadir kind para UI/normalizador
     actions.upsertMessage?.(convId, {
-      clientId, from: selfWallet, to: peerWallet, kind: "text", type: "text", sender: "me",
-      status: "pending", sentAt: Date.now(), text,
+      clientId,
+      from: selfWallet,
+      to: peerWallet,
+      kind: "text",
+      type: "text",
+      sender: "me",
+      status: "pending",
+      sentAt: Date.now(),
+      text,
+      envelope,
+      aad,
     });
 
     try {
@@ -181,10 +193,17 @@ export default function useMessaging({
         if (rtcClient) {
           const opened = await rtcClient.waitForChatOpen(openTimeoutMs);
           if (opened) {
-            const payload = { kind: "text", envelope, from: selfWallet, to: peerWallet };
+            const payload = {
+              kind: "text",
+              envelope: { ...envelope, aad },
+              from: selfWallet,
+              to: peerWallet,
+              convId,
+              aad,
+            };
             const ok = rtcClient.sendChat(payload);
             if (ok) {
-              actions.upsertMessage?.(convId, { clientId, status: "sent", via: "rtc" });
+              actions.upsertMessage?.(convId, { clientId, status: "sent", via: "rtc", aad });
               trackMessageSent(convId, "rtc");
               debugMsg('sendText:success', { via: 'rtc', clientId });
               return { ok: true, via: "rtc", clientId };
@@ -205,12 +224,11 @@ export default function useMessaging({
 
       debugMsg('rtc:fallback', { peer: peerWallet, reason: 'rtc-failed-or-skipped' });
 
-      const res = await relay.sendText({
+      const res = await relay.sendEnvelope({
         toWallet: peerWallet,
         clientId,
-        text,
-        key: cryptoKey,
-        meta: { kind: "text", convId, from: selfWallet, to: peerWallet },
+        envelope,
+        meta: { kind: "text", convId, from: selfWallet, to: peerWallet, aad },
         force: true,
       });
 
@@ -221,7 +239,8 @@ export default function useMessaging({
         deliveredAt: res.deliveredAt || null,
         via: "relay",
         forced: true,
-        warning: res.warning || null
+        warning: res.warning || null,
+        aad,
       });
 
       trackMessageSent(convId, "relay");
@@ -248,33 +267,56 @@ export default function useMessaging({
       return { ok: false, reason: "e2e-key-missing" };
     }
 
+    const mediaAad = buildAAD({ convId, from: selfWallet, to: peerWallet, isMedia: true });
+    let cipher = null;
+    let iv = null;
     try {
-      let box = base64, iv = null;
-      if (cryptoKey) {
-        const aad = `cid:${convId}|from:${selfWallet}|to:${peerWallet}|media`;
-        const env = await encryptPayload({ type: 'bin', binBase64: base64 }, cryptoKey, aad);
-        box = env.cipher; iv = env.iv;
-      }
+      const env = await encryptPayload({ type: 'bin', binBase64: base64 }, cryptoKey, mediaAad);
+      cipher = env.cipher;
+      iv = env.iv;
+      try { debugE2EE('send-media', { convId, aad: mediaAad, mime }); } catch {}
+    } catch (err) {
+      console.warn('[msg] sendAttachment encrypt FAIL', { reason: err?.message || err });
+      return { ok: false, reason: "encrypt-failed" };
+    }
 
+    try {
       actions.upsertMessage?.(convId, {
-        clientId: localId, from: selfWallet, to: peerWallet,
-        kind: kind || "media-inline", type: "file", status: "pending", sentAt: Date.now(),
-        base64, mime, w, h, durMs,
+        clientId: localId,
+        from: selfWallet,
+        to: peerWallet,
+        kind: kind || "media-inline",
+        type: "file",
+        status: "pending",
+        sentAt: Date.now(),
+        base64,
+        mime,
+        w,
+        h,
+        durMs,
+        envelope: { iv, cipher, aad: mediaAad },
+        aad: mediaAad,
       });
 
       const res = await relay.enqueue({
         to: peerWallet,
-        box,
+        box: cipher,
         iv,
         msgId: localId,
         mime,
-        meta: { kind: "media", w, h, durMs, convId },
+        meta: { kind: "media", w, h, durMs, convId, from: selfWallet, to: peerWallet, aad: mediaAad },
         force: presence && forceRelayIfOnline,
       });
 
       actions.upsertMessage?.(convId, {
-        clientId: localId, id: res.id || res.serverId, status: "sent", deliveredAt: res.deliveredAt || null, via: "relay",
-        forced: !!res.forced, warning: res.warning || null
+        clientId: localId,
+        id: res.id || res.serverId,
+        status: "sent",
+        deliveredAt: res.deliveredAt || null,
+        via: "relay",
+        forced: !!res.forced,
+        warning: res.warning || null,
+        aad: mediaAad,
       });
       return { ok: true, via: "relay", serverId: res.id || res.serverId, deliveredAt: res.deliveredAt || null, forced: !!res.forced, warning: res.warning };
 
@@ -283,46 +325,30 @@ export default function useMessaging({
         const rtcClient = getRtc(peerWallet);
         const opened = await rtcClient?.waitForChatOpen?.(1500);
         if (opened) {
-          let ok = false;
-          if (cryptoKey) {
-            let box = base64, iv = null;
-            try {
-              const aad = `cid:${convId}|from:${selfWallet}|to:${peerWallet}|media`;
-              const env = await encryptPayload({ type: 'bin', binBase64: base64 }, cryptoKey, aad);
-              box = env.cipher; iv = env.iv;
-            } catch {}
-            ok = rtcClient.sendChat({
-              kind: kind || "media-inline",
-              envelope: { iv, cipher: box, aad: `cid:${convId}|from:${selfWallet}|to:${peerWallet}|media` },
-              mime, w, h, durMs,
-              meta: { convId },
-              from: selfWallet,
-              to: peerWallet,
-            });
-          } else {
-            ok = rtcClient.sendChat({
-              kind: kind || "media-inline",
-              mime,
-              base64,
-              w, h, durMs,
-              meta: { convId },
-              from: selfWallet,
-              to: peerWallet,
-            });
-          }
+          const ok = rtcClient.sendChat({
+            kind: kind || "media-inline",
+            envelope: { iv, cipher, aad: mediaAad },
+            mime,
+            w,
+            h,
+            durMs,
+            meta: { convId },
+            from: selfWallet,
+            to: peerWallet,
+          });
           if (ok) {
-            actions.upsertMessage?.(convId, { clientId: localId, status: "sent", via: "rtc-fallback" });
+            actions.upsertMessage?.(convId, { clientId: localId, status: "sent", via: "rtc-fallback", aad: mediaAad });
             return { ok: true, via: "rtc-fallback" };
           }
         }
         try {
           const forced = await relay.enqueue({
             to: peerWallet,
-            box: base64,
-            iv: null,
+            box: cipher,
+            iv,
             msgId: localId,
             mime,
-            meta: { kind: "media", w, h, durMs, convId },
+            meta: { kind: "media", w, h, durMs, convId, from: selfWallet, to: peerWallet, aad: mediaAad },
             force: true,
           });
           actions.upsertMessage?.(convId, {
@@ -371,73 +397,67 @@ export default function useMessaging({
   const [decMessages, setDecMessages] = useState(messages);
   useEffect(() => {
     (async () => {
-      const cryptoKey = convKey;
-      if (!cryptoKey || !Array.isArray(messages) || !messages.length) {
-        setDecMessages(messages); return;
+      if (!convKey || !Array.isArray(messages) || messages.length === 0) {
+        setDecMessages(messages);
+        return;
       }
-      const out = [];
-      for (const m of messages) {
-        let mm = { ...m };
-        const env = (m?.envelope && (m.envelope.iv && m.envelope.cipher)) ? m.envelope : m;
+
+      const processed = [];
+      for (const msg of messages) {
+        const mm = { ...msg };
+        const env = (msg?.envelope && msg.envelope.iv && msg.envelope.cipher) ? msg.envelope : msg;
+
         if (env?.iv && env?.cipher) {
-          const candidates = [];
-          const hasMediaHint = !!(m?.mime || m?.kind === 'media' || m?.kind === 'media-inline' || env?.aad?.includes('|media'));
-          const storedAad = env?.aad || (typeof m?.aad === 'string' ? m.aad : null);
-          if (storedAad) candidates.push(storedAad);
+          const cid = msg?.convId || convId;
+          const isMedia = !!(msg?.mime || msg?.kind === 'media' || msg?.kind === 'media-inline');
+          let aad = typeof msg?.aad === 'string' ? msg.aad : (typeof env?.aad === 'string' ? env.aad : null);
 
-          const cid = m?.convId || convId;
-          const fromW = m?.from || null;
-          const toW   = m?.to   || null;
-          if (cid && fromW && toW) {
-            const base = `cid:${cid}|from:${fromW}|to:${toW}`;
-            if (hasMediaHint) candidates.push(`${base}|media`);
-            candidates.push(`${base}|v:1`);
-            candidates.push(base);
-          }
-          candidates.push(undefined);
-
-          let decrypted = null;
-          let lastError = null;
-          const seen = new Set();
-          for (const candidate of candidates) {
-            if (seen.has(candidate)) continue;
-            seen.add(candidate);
-            const aadCandidate = typeof candidate === 'string' ? candidate : undefined;
+          if (!aad && cid) {
             try {
-              const obj = await decryptPayload({ iv: env.iv, cipher: env.cipher, aad: aadCandidate }, cryptoKey);
-              decrypted = obj;
-              break;
-            } catch (e) {
-              lastError = e;
+              if (msg?.from && msg?.to) {
+                aad = buildAAD({ convId: cid, from: msg.from, to: msg.to, isMedia });
+              } else if (peerWallet && selfWallet) {
+                const senderIsMe = msg?.sender === 'me' || msg?.from === selfWallet;
+                const fromHint = senderIsMe ? selfWallet : peerWallet;
+                const toHint = senderIsMe ? (msg?.to || peerWallet) : selfWallet;
+                aad = buildAAD({ convId: cid, from: fromHint, to: toHint, isMedia });
+              }
+            } catch {
+              aad = null;
             }
           }
 
-          if (decrypted?.type === 'text') mm.text = decrypted.text;
-          if (decrypted?.type === 'bin')  mm.base64 = decrypted.binBase64;
-
-          if (!decrypted && lastError) {
+          if (aad) {
             try {
-              const warnKey = `${m?.id || m?.clientId || m?.serverId || 'no-id'}:${m?.timestamp || m?.sentAt || ''}`;
+              const payload = await decryptPayload({ iv: env.iv, cipher: env.cipher, aad }, convKey);
+              if (payload?.type === 'text') mm.text = payload.text;
+              if (payload?.type === 'bin') mm.base64 = payload.binBase64;
+              mm.aad = aad;
+            } catch (error) {
+              const warnKey = `${msg?.id || msg?.clientId || msg?.serverId || 'no-id'}:${msg?.timestamp || msg?.sentAt || ''}`;
               if (!decryptWarnedRef.current.has(warnKey)) {
                 decryptWarnedRef.current.add(warnKey);
                 const details = {
-                  convId: m?.convId || convId,
-                  kind: m?.kind,
-                  hasAad: !!storedAad,
-                  aadCandidates: candidates.filter(Boolean),
-                  from: m?.from || null,
-                  to: m?.to || null,
-                  err: lastError?.message || String(lastError),
+                  convId: cid,
+                  kind: msg?.kind,
+                  from: msg?.from || null,
+                  to: msg?.to || null,
+                  err: error?.message || String(error),
                 };
                 if (debugE2EE.enabled) debugE2EE('decrypt failed', details);
                 else console.warn('[E2EE] decrypt failed', details);
               }
-            } catch {}
+              mm.isEncrypted = true;
+            }
+          } else {
+            mm.isEncrypted = true;
           }
         }
-        out.push(mm);
+
+        processed.push(mm);
       }
-      setDecMessages(out);
+
+      setDecMessages(processed);
     })();
   }, [messages, convId, convKey, selfWallet, peerWallet, debugE2EE]);
 

@@ -94,6 +94,6 @@ describe('tokenService', () => {
     document.cookie = `${CSRF_COOKIE_NAME}=foo; path=/;`;
     clearSession('logout');
     expect(localStorage.removeItem).toHaveBeenCalledWith(CSRF_STORAGE_KEY);
-    expect(document.cookie).toBe(`${CSRF_COOKIE_NAME}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`);
+    expect(document.cookie).toContain('csrfToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;');
   });
 });
