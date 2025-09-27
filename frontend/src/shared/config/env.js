@@ -40,6 +40,16 @@ function toNum(v, def) {
   return Number.isFinite(n) ? n : def;
 }
 
+const IS_DEMO = toBool(readEnv('VITE_DEMO_MODE', ''), false);
+const STORAGE_NS = IS_DEMO ? 'deside_demo' : 'deside_dev';
+const CACHE_NS = IS_DEMO ? 'demo' : 'dev';
+const COOKIE_SUFFIX = IS_DEMO ? '_demo' : '';
+const COOKIE_NAMES = {
+  accessToken: `accessToken${COOKIE_SUFFIX}`,
+  refreshToken: `refreshToken${COOKIE_SUFFIX}`,
+  csrfToken: `csrfToken${COOKIE_SUFFIX}`,
+};
+
 // --- bases (con alias compatibles) ---
 const API_BASE_URL = trimRightSlash(
   readFirst(['VITE_API_BASE_URL', 'VITE_BACKEND_URL'], 'http://localhost:10000')
@@ -87,7 +97,9 @@ const ENDPOINTS = {
 };
 
 // --- WebRTC (STUN/TURN por JSON en env si lo necesitas) ---
-let rtcServers = [{ urls: 'stun:stun.l.google.com:19302' }];
+let rtcServers = IS_DEMO
+  ? [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun.cloudflare.com:3478'] }]
+  : [{ urls: 'stun:stun.l.google.com:19302' }];
 try {
   const raw = readEnv('VITE_TURN_JSON', '');
   if (raw) {
@@ -101,8 +113,8 @@ const RTC_CONFIG = { iceServers: rtcServers };
 
 // --- políticas de cliente/toggles ---
 const MESSAGING = {
-  FORCE_RELAY:         toBool(readEnv('VITE_FORCE_RELAY', 'false'), false),
-  USE_WEBRTC_FOR_TEXT: toBool(readEnv('VITE_USE_WEBRTC_FOR_TEXT', 'true'), true),
+  FORCE_RELAY:         toBool(readEnv('VITE_FORCE_RELAY', IS_DEMO ? 'true' : 'false'), IS_DEMO),
+  USE_WEBRTC_FOR_TEXT: toBool(readEnv('VITE_USE_WEBRTC_FOR_TEXT', IS_DEMO ? 'false' : 'true'), !IS_DEMO),
   TEXT_MAX_BYTES:      toNum(readEnv('VITE_TEXT_MAX_BYTES',   `${32 * 1024}`),        32 * 1024),
   // TTL para considerar a un peer "online" basado en última actividad/presencia (ms)
   PRESENCE_TTL_MS:     toNum(readEnv('VITE_PRESENCE_TTL_MS', `${45 * 1000}`), 45 * 1000),
@@ -120,10 +132,10 @@ export function apiUrl(path) {
 }
 
 // Named exports (útiles si quieres importar sin ENV)
-export { API_BASE_URL, WS_URL, ENDPOINTS, RTC_CONFIG, MESSAGING };
+export { API_BASE_URL, WS_URL, ENDPOINTS, RTC_CONFIG, MESSAGING, IS_DEMO, STORAGE_NS, CACHE_NS, COOKIE_NAMES };
 
 // Default aggregate
-export const ENV = { API_BASE_URL, WS_URL, ENDPOINTS, RTC_CONFIG, MESSAGING };
+export const ENV = { API_BASE_URL, WS_URL, ENDPOINTS, RTC_CONFIG, MESSAGING, IS_DEMO, STORAGE_NS, CACHE_NS, COOKIE_NAMES };
 export default ENV;
 
 // Debug visible SOLO en dev
