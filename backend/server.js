@@ -12,6 +12,7 @@ import { fileURLToPath } from 'url';
 import { detectCountry } from '#middleware/geoMiddleware.js';
 
 // ── Config / validación (carga .env dentro)
+import '#config/demoMode.js';
 import logger from '#config/logger.js';
 import { env } from '#config/env.js';         // valida/envía defaults al cargar
 import config from '#config/appConfig.js';    // configuración central (tiers, etc.)

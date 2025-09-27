@@ -3,11 +3,12 @@
 // presencia/typing y errores. API: subscribe, getState, actions.*
 
 import { canonicalConvId } from "../domain/id.js";
+import { STORAGE_NS } from "@shared/config/env.js";
 
 // ✅ ConvId determinista y ÚNICO: "A:B"
 export { canonicalConvId as convId };
 
-const LS_PREFIX = "deside_msgs_v1:";
+const LS_PREFIX = `${STORAGE_NS}:msgs_v2:`;
 
 // --- LS helpers (cotas simples)
 function load(conv) {
@@ -125,10 +126,33 @@ function normalizeIncoming(raw) {
   };
 
   const payload = raw?.payload ? raw.payload : raw;
+  const from = raw?.from ?? payload?.from ?? raw?.meta?.from ?? null;
+  const to = raw?.to ?? payload?.to ?? raw?.meta?.to ?? null;
+  const convId = raw?.convId ?? payload?.convId ?? raw?.meta?.convId ?? null;
+  const aad = raw?.aad ?? payload?.aad ?? null;
+  const mime = raw?.mime ?? payload?.mime ?? raw?.meta?.mime ?? null;
+  const messageKind = raw?.messageType || payload?.kind || raw?.meta?.kind || null;
+
+  const envelopeFromPayload = payload?.envelope && payload.envelope.iv && payload.envelope.cipher
+    ? { iv: payload.envelope.iv, cipher: payload.envelope.cipher, aad: payload.envelope.aad || payload.envelope.aadB64 || null }
+    : null;
+
+  const envelopeFromLegacy = (!envelopeFromPayload && raw?.box)
+    ? { iv: raw?.iv || payload?.iv || null, cipher: raw.box, aad }
+    : null;
 
   // Texto
   if (payload?.kind === "text" || typeof payload?.text === "string") {
-    return { ...base, kind: "text", text: payload.text ?? String(payload?.body ?? "") };
+    return {
+      ...base,
+      kind: "text",
+      text: payload.text ?? String(payload?.body ?? ""),
+      from,
+      to,
+      convId,
+      aad,
+      envelope: envelopeFromPayload || envelopeFromLegacy || null,
+    };
   }
 
   // Media (binarios)
@@ -136,10 +160,31 @@ function normalizeIncoming(raw) {
   if (payload?.envelope && payload?.kind === "text") {
     const env = payload.envelope && typeof payload.envelope === 'object' ? payload.envelope : {};
     // Mantener aad si venía fuera para no romper descifrado
-    return { ...base, kind: "text", envelope: { ...env, ...(env?.aad || env?.aadB64 ? {} : (payload?.aad || payload?.aadB64 ? { aad: payload.aad, aadB64: payload.aadB64 } : {})) } };
+    return {
+      ...base,
+      kind: "text",
+      envelope: {
+        ...env,
+        ...(env?.aad || env?.aadB64 ? {} : (payload?.aad || payload?.aadB64 ? { aad: payload.aad, aadB64: payload.aadB64 } : {})),
+      },
+      from,
+      to,
+      convId,
+      aad,
+    };
   }
   // Fallback
-  return { ...base, kind: "text", text: String(payload ?? "") };
+  return {
+    ...base,
+    kind: messageKind || payload?.kind || "text",
+    text: typeof payload === 'string' ? payload : String(payload ?? ""),
+    mime,
+    from,
+    to,
+    convId,
+    aad,
+    envelope: envelopeFromPayload || envelopeFromLegacy || null,
+  };
 }
 
 // --- API de acciones

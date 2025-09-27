@@ -5,6 +5,7 @@ import User from '#modules/users/models/user.model.js';
 import Notification from '#modules/users/models/notification.model.js';
 import { verifySignature } from '#utils/solanaUtils.js';
 import { getPrivateKey, getPublicKey } from '#shared/services/keyManager.js';
+import { COOKIE_NAMES } from '#config/cookies.js';
 
 const {
   REFRESH_SECRET,
@@ -95,6 +96,12 @@ const buildClearCookieOptions = () => {
   return options;
 };
 
+const {
+  accessToken: ACCESS_COOKIE_NAME,
+  refreshToken: REFRESH_COOKIE_NAME,
+  csrfToken: CSRF_COOKIE_NAME,
+} = COOKIE_NAMES;
+
 export const generateNonce = (req, res) => {
   purgeNonces();
   const nonce = crypto.randomBytes(16).toString('hex');
@@ -162,9 +169,9 @@ export const loginUser = async (req, res) => {
     const cookieOptions = buildCookieOptions();
 
     return res
-      .cookie('accessToken', accessToken, { ...cookieOptions, maxAge: 15 * 60 * 1000 })
-      .cookie('refreshToken', refreshToken, { ...cookieOptions, maxAge: 7 * 24 * 60 * 60 * 1000 })
-      .cookie('csrfToken', csrfToken, { ...cookieOptions, httpOnly: false })
+      .cookie(ACCESS_COOKIE_NAME, accessToken, { ...cookieOptions, maxAge: 15 * 60 * 1000 })
+      .cookie(REFRESH_COOKIE_NAME, refreshToken, { ...cookieOptions, maxAge: 7 * 24 * 60 * 60 * 1000 })
+      .cookie(CSRF_COOKIE_NAME, csrfToken, { ...cookieOptions, httpOnly: false })
       .header('x-csrf-token', csrfToken)
       .status(200)
       .json({
@@ -184,7 +191,7 @@ export const loginUser = async (req, res) => {
 
 export const refreshToken = async (req, res) => {
   try {
-    const refreshTokenCookie = req.cookies.refreshToken;
+    const refreshTokenCookie = req.cookies[REFRESH_COOKIE_NAME];
     if (!refreshTokenCookie) {
       return res.status(403).json({ error: 'No refresh token provided', nextStep: 'REAUTHENTICATE' });
     }
@@ -197,9 +204,9 @@ export const refreshToken = async (req, res) => {
 
     if (user.banned || user.isBanned) {
       const clearOptions = buildClearCookieOptions();
-      res.clearCookie('accessToken', clearOptions);
-      res.clearCookie('refreshToken', clearOptions);
-      res.clearCookie('csrfToken', clearOptions);
+      res.clearCookie(ACCESS_COOKIE_NAME, clearOptions);
+      res.clearCookie(REFRESH_COOKIE_NAME, clearOptions);
+      res.clearCookie(CSRF_COOKIE_NAME, clearOptions);
       return res.status(403).json({ error: 'ACCOUNT_BANNED', nextStep: 'CONTACT_SUPPORT' });
     }
 
@@ -211,8 +218,8 @@ export const refreshToken = async (req, res) => {
     const cookieOptions = buildCookieOptions();
 
     return res
-      .cookie('accessToken', newAccessToken, { ...cookieOptions, maxAge: 15 * 60 * 1000 })
-      .cookie('csrfToken', newCSRFToken, { ...cookieOptions, httpOnly: false, maxAge: 15 * 60 * 1000 })
+      .cookie(ACCESS_COOKIE_NAME, newAccessToken, { ...cookieOptions, maxAge: 15 * 60 * 1000 })
+      .cookie(CSRF_COOKIE_NAME, newCSRFToken, { ...cookieOptions, httpOnly: false, maxAge: 15 * 60 * 1000 })
       .header('x-csrf-token', newCSRFToken)
       .status(200)
       .json({ message: '✅ Access Token & CSRF refreshed', nextStep: 'ACCESS_GRANTED', csrfToken: newCSRFToken });
@@ -224,7 +231,7 @@ export const refreshToken = async (req, res) => {
 
 export const checkAuthStatus = async (req, res) => {
   try {
-    const token = req.cookies.accessToken;
+    const token = req.cookies[ACCESS_COOKIE_NAME];
     if (!token) {
       return res.status(401).json({ isAuthenticated: false, nextStep: 'SIGN_IN' });
     }
@@ -262,9 +269,9 @@ export const checkAuthStatus = async (req, res) => {
 export const logoutUser = async (req, res) => {
   try {
     const clearOptions = buildClearCookieOptions();
-    res.clearCookie('accessToken', clearOptions);
-    res.clearCookie('refreshToken', clearOptions);
-    res.clearCookie('csrfToken', clearOptions);
+    res.clearCookie(ACCESS_COOKIE_NAME, clearOptions);
+    res.clearCookie(REFRESH_COOKIE_NAME, clearOptions);
+    res.clearCookie(CSRF_COOKIE_NAME, clearOptions);
     return res.status(200).json({ message: '✅ Sesión cerrada correctamente.', nextStep: 'LOGOUT_SUCCESS' });
   } catch (error) {
     console.error('❌ Error al cerrar sesión:', error);

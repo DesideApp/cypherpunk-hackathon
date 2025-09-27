@@ -1,5 +1,8 @@
 // src/modules/rtc/controllers/ice.controller.js
 import crypto from 'node:crypto';
+
+const truthy = new Set(['1', 'true', 'yes', 'on']);
+const isDemoMode = truthy.has((process.env.DEMO_MODE || '').toLowerCase().trim());
 export async function getIceServers(req, res) {
   try {
     // Provider: 'twilio' (default) o 'coturn'
@@ -17,6 +20,22 @@ export async function getIceServers(req, res) {
         res.setHeader('Cache-Control', 'private, no-store');
       }
     };
+
+    if (isDemoMode) {
+      const iceServers = [
+        { urls: ['stun:stun.l.google.com:19302', 'stun:stun.cloudflare.com:3478'] },
+      ];
+
+      setCache();
+      return res.status(200).json({
+        iceServers,
+        ttl,
+        provider: 'demo',
+        serverTime: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + ttl * 1000).toISOString(),
+        issuedAt: now,
+      });
+    }
 
     if (provider === 'coturn') {
       const TURN_SECRET = process.env.TURN_SECRET;

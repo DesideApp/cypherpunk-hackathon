@@ -7,6 +7,9 @@ import AddContactForm from "@features/messaging/ui/AddContactForm";
 import UnifiedList from "@features/messaging/ui/UnifiedList";
 import { useSocket } from "@shared/socket/index.jsx";
 import { useAuthManager } from "@features/auth/hooks/useAuthManager.js";
+import { loadContactsCache } from "@features/contacts/services/contactsCache.js";
+import { DEMO_PREVIEWS, DEMO_CONTACTS_STATE } from "@features/contacts/services/demoContacts.js";
+import { IS_DEMO } from "@shared/config/env.js";
 import "./LeftPanel.css";
 
 const LeftPanel = ({ onSelectContact }) => {
@@ -20,7 +23,25 @@ const LeftPanel = ({ onSelectContact }) => {
   } = useContactManager();
 
   const { conversations = [], loading: conversationsLoading } = useConversationManager();
-  const localPreviews = useMemo(() => [], []);
+
+  // 🔐 Estado de auth (NO llamamos ensureReady en bucles de efecto)
+  const { isAuthenticated, ensureReady } = useAuthManager();
+
+  const localPreviews = useMemo(() => {
+    if (!IS_DEMO || isAuthenticated) return [];
+    const cached = loadContactsCache();
+    const source = cached?.confirmed?.length
+      ? cached.confirmed
+      : DEMO_CONTACTS_STATE.confirmed;
+    if (!Array.isArray(source) || source.length === 0) return DEMO_PREVIEWS;
+    return source.map((entry, idx) => ({
+      chatId: entry.wallet,
+      displayName: entry.nickname ?? entry.wallet,
+      lastMessageText: DEMO_PREVIEWS[idx]?.lastMessageText ?? "Start a secure chat",
+      lastMessageTimestamp:
+        DEMO_PREVIEWS[idx]?.lastMessageTimestamp ?? Date.now() - idx * 45_000,
+    }));
+  }, [isAuthenticated]);
 
   const [selectedContactWallet, setSelectedContactWallet] = useState(null);
   const [selectedConversationPubkey, setSelectedConversationPubkey] = useState(null);
@@ -28,9 +49,6 @@ const LeftPanel = ({ onSelectContact }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const isLoading = !!conversationsLoading;
-
-  // 🔐 Estado de auth (NO llamamos ensureReady en bucles de efecto)
-  const { isAuthenticated, ensureReady } = useAuthManager();
 
   // 🟢 Presencia (socket)
   const { onPresence } = useSocket();

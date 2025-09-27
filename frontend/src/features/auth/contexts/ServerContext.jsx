@@ -8,6 +8,7 @@ import React, {
   useRef,
 } from "react";
 import { checkAuthStatus } from "@shared/services/apiService.js";
+import { hasSessionTokens } from "@shared/services/tokenService.js";
 
 const ServerContext = createContext();
 
@@ -82,14 +83,7 @@ export const ServerProvider = ({ children }) => {
    * 🔹 Check inicial al montar la app
    */
   useEffect(() => {
-    const hasCookie =
-      document.cookie.includes("accessToken") ||
-      document.cookie.includes("refreshToken");
-    const hasClientCSRF =
-      !!localStorage.getItem("csrfToken") || !!localStorage.getItem("csrf_token");
-    const hasSession = hasCookie || hasClientCSRF;
-
-    if (hasSession) {
+    if (hasSessionTokens()) {
       syncAuthStatus(true);
     } else {
       setIsReady(true);

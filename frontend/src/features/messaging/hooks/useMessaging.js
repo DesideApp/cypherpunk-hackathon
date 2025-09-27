@@ -95,8 +95,10 @@ export default function useMessaging({
   }, [convId]);
 
   const dataChannelReady = isRtcReady(peerWallet);
+  const shouldPrepareRtc = MESSAGING.USE_WEBRTC_FOR_TEXT && !MESSAGING.FORCE_RELAY;
 
   useEffect(() => {
+    if (!shouldPrepareRtc) return;
     if (!authReady || !peerWallet || !selfWallet) return;
     // Pre-dial
     ensureRtc(peerWallet).catch(error => {
@@ -104,7 +106,7 @@ export default function useMessaging({
     });
     // 🔧 Suprimimos el temporizador de restart ICE basado en TTL (dependía de un import que no existe)
     return () => {};
-  }, [authReady, peerWallet, selfWallet, ensureRtc]);
+  }, [authReady, peerWallet, selfWallet, ensureRtc, shouldPrepareRtc]);
 
   useEffect(() => {
     if (!selfWallet || !peerWallet || !convId) return;
@@ -378,19 +380,42 @@ export default function useMessaging({
         let mm = { ...m };
         const env = (m?.envelope && (m.envelope.iv && m.envelope.cipher)) ? m.envelope : m;
         if (env?.iv && env?.cipher) {
-          try {
-            let aadStr = env?.aad ?? (typeof m?.aad === 'string' && m.aad ? m.aad : null);
-            if (!aadStr) {
-              const cid = m?.convId || convId;
-              const fromW = m?.from || null;
-              const toW   = m?.to   || null;
-              const isMedia = !!(m?.mime || m?.kind === 'media');
-              if (cid && fromW && toW) aadStr = `cid:${cid}|from:${fromW}|to:${toW}${isMedia ? '|media' : ''}`;
+          const candidates = [];
+          const hasMediaHint = !!(m?.mime || m?.kind === 'media' || m?.kind === 'media-inline' || env?.aad?.includes('|media'));
+          const storedAad = env?.aad || (typeof m?.aad === 'string' ? m.aad : null);
+          if (storedAad) candidates.push(storedAad);
+
+          const cid = m?.convId || convId;
+          const fromW = m?.from || null;
+          const toW   = m?.to   || null;
+          if (cid && fromW && toW) {
+            const base = `cid:${cid}|from:${fromW}|to:${toW}`;
+            if (hasMediaHint) candidates.push(`${base}|media`);
+            candidates.push(`${base}|v:1`);
+            candidates.push(base);
+          }
+          candidates.push(undefined);
+
+          let decrypted = null;
+          let lastError = null;
+          const seen = new Set();
+          for (const candidate of candidates) {
+            if (seen.has(candidate)) continue;
+            seen.add(candidate);
+            const aadCandidate = typeof candidate === 'string' ? candidate : undefined;
+            try {
+              const obj = await decryptPayload({ iv: env.iv, cipher: env.cipher, aad: aadCandidate }, cryptoKey);
+              decrypted = obj;
+              break;
+            } catch (e) {
+              lastError = e;
             }
-            const obj = await decryptPayload({ iv: env.iv, cipher: env.cipher, aad: aadStr || undefined }, cryptoKey);
-            if (obj?.type === 'text') mm.text = obj.text;
-            if (obj?.type === 'bin')  mm.base64 = obj.binBase64;
-          } catch (e) {
+          }
+
+          if (decrypted?.type === 'text') mm.text = decrypted.text;
+          if (decrypted?.type === 'bin')  mm.base64 = decrypted.binBase64;
+
+          if (!decrypted && lastError) {
             try {
               const warnKey = `${m?.id || m?.clientId || m?.serverId || 'no-id'}:${m?.timestamp || m?.sentAt || ''}`;
               if (!decryptWarnedRef.current.has(warnKey)) {
@@ -398,11 +423,11 @@ export default function useMessaging({
                 const details = {
                   convId: m?.convId || convId,
                   kind: m?.kind,
-                  hasAad: !!((env && env.aad) || m?.aad),
-                  aadRebuilt: !((env && env.aad) || m?.aad),
+                  hasAad: !!storedAad,
+                  aadCandidates: candidates.filter(Boolean),
                   from: m?.from || null,
                   to: m?.to || null,
-                  err: e?.message || String(e),
+                  err: lastError?.message || String(lastError),
                 };
                 if (debugE2EE.enabled) debugE2EE('decrypt failed', details);
                 else console.warn('[E2EE] decrypt failed', details);

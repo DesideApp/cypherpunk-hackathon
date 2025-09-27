@@ -2,6 +2,7 @@ import { createRequire } from 'module';
 import crypto from 'crypto';
 import User from '#modules/users/models/user.model.js';
 import { getPublicKey } from '#shared/services/keyManager.js';
+import { COOKIE_NAMES } from '#config/cookies.js';
 
 const require = createRequire(import.meta.url);
 const jwt = require('jsonwebtoken');
@@ -15,6 +16,11 @@ const {
   JWT_ISSUER,                 // opcional: verifica "iss"
   JWT_AUDIENCE                // opcional: verifica "aud"
 } = process.env;
+
+const {
+  accessToken: ACCESS_COOKIE_NAME,
+  csrfToken: CSRF_COOKIE_NAME,
+} = COOKIE_NAMES;
 
 const PUBLIC_ROUTES = new Set([
   '/api/health',
@@ -81,7 +87,7 @@ export const protectRoute = async (req, res, next) => {
       }
     }
 
-    const tokenFromCookie = req.cookies?.accessToken || null;
+    const tokenFromCookie = req.cookies?.[ACCESS_COOKIE_NAME] || null;
     const token = tokenFromHeader || tokenFromCookie;
     const tokenSource = tokenFromHeader ? 'header' : 'cookie';
 
@@ -128,7 +134,7 @@ export const protectRoute = async (req, res, next) => {
     // 🔒 CSRF CHECK cuando el token proviene por cookie
     if (tokenSource === 'cookie') {
       const csrfHeader = req.get('x-csrf-token') || '';
-      const csrfCookie = req.cookies?.csrfToken || '';
+      const csrfCookie = req.cookies?.[CSRF_COOKIE_NAME] || '';
       const csrfStored = user.csrfToken || '';
       const valid = csrfHeader && (csrfHeader === csrfStored || csrfHeader === csrfCookie);
       if (!valid) {
@@ -143,7 +149,7 @@ export const protectRoute = async (req, res, next) => {
     return next();
   } catch (error) {
     console.error('❌ Auth Middleware Error:', error.message);
-    if (req.cookies?.accessToken) res.clearCookie('accessToken', { path: '/' });
+    if (req.cookies?.[ACCESS_COOKIE_NAME]) res.clearCookie(ACCESS_COOKIE_NAME, { path: '/' });
     return sendCorsError(res, req, 403, 'Invalid authentication or CSRF token', 'REAUTHENTICATE');
   }
 };
@@ -154,7 +160,7 @@ export const protectRoute = async (req, res, next) => {
 export const rotateCSRFToken = (req, res, next) => {
   try {
     const newCSRFToken = crypto.randomBytes(64).toString('hex');
-    res.cookie('csrfToken', newCSRFToken, {
+    res.cookie(CSRF_COOKIE_NAME, newCSRFToken, {
       httpOnly: false,
       secure: NODE_ENV === 'production',
       sameSite: 'None',
