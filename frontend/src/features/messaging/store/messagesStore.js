@@ -8,7 +8,7 @@ import { STORAGE_NS } from "@shared/config/env.js";
 // ✅ ConvId determinista y ÚNICO: "A:B"
 export { canonicalConvId as convId };
 
-const LS_PREFIX = `${STORAGE_NS}:msgs_v2:`;
+const LS_PREFIX = "deside_msgs_v1:";
 
 // --- LS helpers (cotas simples)
 function load(conv) {
@@ -27,6 +27,8 @@ function save(conv, msgs) {
 const state = new Map();          // convId -> Array<msg>
 const subs = new Map();           // convId -> Set<fn(list)>
 const globalSubs = new Set();     // Set<fn(fullState)>
+const presence = new Map();       // wallet -> boolean
+const typing = new Map();         // convId -> boolean (remoto)
 let lastError = null;
 
 // --- Notificación
@@ -49,6 +51,8 @@ export function getState() {
   const byConversation = Object.fromEntries(state.entries());
   return {
     byConversation,
+    presence: Object.fromEntries(presence.entries()),
+    typing: Object.fromEntries(typing.entries()),
     lastError,
   };
 }
@@ -249,4 +253,34 @@ export const actions = {
 
   // Estados auxiliares
   setError(err) { lastError = err; notifyAll(); },
+
+  setPresence(wallet, online) {
+    if (!wallet) return;
+    const bool = !!online;
+    if (bool) {
+      const prev = presence.get(wallet);
+      if (prev === bool) return;
+      presence.set(wallet, true);
+    } else if (presence.has(wallet)) {
+      presence.delete(wallet);
+    } else {
+      return;
+    }
+    notifyAll();
+  },
+
+  setTyping(conv, flag) {
+    if (!conv) return;
+    const bool = !!flag;
+    if (bool) {
+      const prev = typing.get(conv);
+      if (prev === bool) return;
+      typing.set(conv, true);
+    } else if (typing.has(conv)) {
+      typing.delete(conv);
+    } else {
+      return;
+    }
+    notifyAll();
+  },
 };

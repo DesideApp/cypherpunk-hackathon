@@ -183,7 +183,7 @@ export function createInboxService({
   async function tryAck(ids) {
     if (!ids?.length) return;
     try {
-      await relay.ackDelivered({ ackIds: ids, wallet: selfWallet });
+      await relay.ackDelivered({ ackIds: ids });
       ids.forEach(id => ackBacklog.delete(id));
     } catch {
       ids.forEach(id => ackBacklog.add(id));
@@ -201,7 +201,7 @@ export function createInboxService({
         await tryAck(Array.from(ackBacklog));
       }
 
-      const { messages = [], cursor: next } = await relay.pullPending({ cursor, limit: DEFAULTS.maxBatch, wallet: selfWallet });
+      const { messages = [], cursor: next } = await relay.pullPending({ cursor, limit: DEFAULTS.maxBatch });
 
       if (Array.isArray(messages) && messages.length && !firstSampleLogged) {
         const sample = messages[0] || {};
