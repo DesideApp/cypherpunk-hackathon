@@ -36,6 +36,7 @@ export function createInboxService({
   let firstSampleLogged = false;
 
   const DEBUG = createDebugLogger("inbox", { envKey: "VITE_DEBUG_INBOX_LOGS" });
+  const DEBUG_TRANSPORT = createDebugLogger("transport", { envKey: "VITE_DEBUG_TRANSPORT_LOGS" });
 
   // --- utils
   const safeTs = (ts) => {
@@ -217,7 +218,22 @@ export function createInboxService({
       let normalized = [];
       if (Array.isArray(messages) && messages.length) {
         normalized = messages
-          .map(normalize)
+          .map((msg) => {
+            const norm = normalize(msg);
+            if (norm) {
+              if (!norm.via) norm.via = 'relay';
+              try {
+                DEBUG_TRANSPORT('incoming-relay', {
+                  direction: 'incoming',
+                  transport: 'relay',
+                  convId: norm.convId,
+                  serverId: norm.serverId,
+                  hasEnvelope: !!norm.envelope,
+                });
+              } catch {}
+            }
+            return norm;
+          })
           .filter(Boolean)
           .filter(m => {
             const sid = m.id || m.serverId;

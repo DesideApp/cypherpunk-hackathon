@@ -123,6 +123,7 @@ function normalizeIncoming(raw) {
     createdAt: raw?.createdAt || Date.now(),
     sender: raw?.sender || "other",
     status: raw?.status || "sent",
+    via: raw?.via || null,
   };
 
   const payload = raw?.payload ? raw.payload : raw;
@@ -152,6 +153,7 @@ function normalizeIncoming(raw) {
       convId,
       aad,
       envelope: envelopeFromPayload || envelopeFromLegacy || null,
+      via: raw?.via || payload?.via || raw?.transport || raw?.meta?.via || base.via || null,
     };
   }
 
@@ -184,6 +186,7 @@ function normalizeIncoming(raw) {
     convId,
     aad,
     envelope: envelopeFromPayload || envelopeFromLegacy || null,
+    via: raw?.via || payload?.via || raw?.transport || raw?.meta?.via || base.via || null,
   };
 }
 

@@ -59,6 +59,10 @@ export default function useMessaging({
     () => createDebugLogger("msg", { envKey: "VITE_DEBUG_MSG_LOGS" }),
     []
   );
+  const debugTransport = useMemo(
+    () => createDebugLogger("transport", { envKey: "VITE_DEBUG_TRANSPORT_LOGS" }),
+    []
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -201,13 +205,21 @@ export default function useMessaging({
               convId,
               aad,
             };
-            const ok = rtcClient.sendChat(payload);
-            if (ok) {
-              actions.upsertMessage?.(convId, { clientId, status: "sent", via: "rtc", aad });
-              trackMessageSent(convId, "rtc");
+              const ok = rtcClient.sendChat(payload);
+              if (ok) {
+                actions.upsertMessage?.(convId, { clientId, status: "sent", via: "rtc", aad });
+                trackMessageSent(convId, "rtc");
               debugMsg('sendText:success', { via: 'rtc', clientId });
-              return { ok: true, via: "rtc", clientId };
-            }
+              try {
+                debugTransport('sent-text', {
+                  direction: 'outgoing',
+                  transport: 'rtc',
+                  convId,
+                  clientId,
+                });
+              } catch {}
+                return { ok: true, via: "rtc", clientId };
+              }
           } else {
             debugMsg('rtc:skip', { peer: peerWallet, reason: 'dc-timeout', timeoutMs: openTimeoutMs });
           }
@@ -245,6 +257,15 @@ export default function useMessaging({
 
       trackMessageSent(convId, "relay");
       debugMsg('sendText:success', { via: 'relay', clientId, forced: true });
+      try {
+        debugTransport('sent-text', {
+          direction: 'outgoing',
+          transport: 'relay',
+          convId,
+          clientId,
+          forced: true,
+        });
+      } catch {}
       return {
         ok: true,
         via: "relay",
@@ -318,6 +339,15 @@ export default function useMessaging({
         warning: res.warning || null,
         aad: mediaAad,
       });
+      try {
+        debugTransport('sent-media', {
+          direction: 'outgoing',
+          transport: 'relay',
+          convId,
+          clientId: localId,
+          forced: !!res.forced,
+        });
+      } catch {}
       return { ok: true, via: "relay", serverId: res.id || res.serverId, deliveredAt: res.deliveredAt || null, forced: !!res.forced, warning: res.warning };
 
     } catch (e) {
@@ -338,6 +368,15 @@ export default function useMessaging({
           });
           if (ok) {
             actions.upsertMessage?.(convId, { clientId: localId, status: "sent", via: "rtc-fallback", aad: mediaAad });
+            try {
+              debugTransport('sent-media', {
+                direction: 'outgoing',
+                transport: 'rtc',
+                convId,
+                clientId: localId,
+                note: 'fallback-rtc',
+              });
+            } catch {}
             return { ok: true, via: "rtc-fallback" };
           }
         }
@@ -355,6 +394,16 @@ export default function useMessaging({
             clientId: localId, id: forced.id || forced.serverId, status: "sent", deliveredAt: forced.deliveredAt || null, via: "relay",
             forced: true, warning: forced.warning || null
           });
+          try {
+            debugTransport('sent-media', {
+              direction: 'outgoing',
+              transport: 'relay',
+              convId,
+              clientId: localId,
+              forced: true,
+              note: 'rtc-409-forced',
+            });
+          } catch {}
           return { ok: true, via: "relay", serverId: forced.id || forced.serverId, deliveredAt: forced.deliveredAt || null, forced: true, warning: forced.warning };
         } catch (e2) {
           actions.markFailed?.(convId, localId, e2.message || e.message || "send-failed");
