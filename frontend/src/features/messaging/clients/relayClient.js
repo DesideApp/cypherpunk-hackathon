@@ -92,11 +92,11 @@ export async function enqueue({ to, box, iv = null, msgId, mime, meta, force } =
 
   try {
     const res = await postJSON(ENDPOINTS.SEND, payload);
+    const identifier = res?.id || res?.serverId || res?.messageId || null;
     return {
-      id: res?.id || res?.serverId || res?.messageId || null,
+      id: identifier,
+      serverId: identifier,
       deliveredAt: res?.deliveredAt || null,
-      serverAt: res?.serverAt || null,
-      transport: res?.transport || 'relay',
       forced: !!res?.forced,
       warning: res?.warning || null,
       details: res?.details || null,
@@ -140,9 +140,12 @@ export async function sendEnvelope({ toWallet, clientId, envelope, meta, mime, f
   });
 }
 
-export async function pullPending() {
+export async function pullPending({ cursor, limit } = {}) {
+  const query = {};
+  if (cursor) query.cursor = cursor;
+  if (typeof limit === 'number') query.limit = String(limit);
   const base = ENDPOINTS.PULL.replace(/\/$/, '');
-  const res = await getJSON(base, undefined);
+  const res = await getJSON(base, Object.keys(query).length ? query : undefined);
   const messages = Array.isArray(res?.messages)
     ? res.messages
     : Array.isArray(res?.data?.messages)
@@ -157,4 +160,8 @@ export async function ackDelivered({ ackIds } = {}) {
   if (!ids.length) return { ok: true };
   await postJSON(ENDPOINTS.ACK, { ids, ackIds: ids });
   return { ok: true };
+}
+
+export function sendText() {
+  throw new Error('relayClient.sendText is deprecated. Use sendEnvelope().');
 }
