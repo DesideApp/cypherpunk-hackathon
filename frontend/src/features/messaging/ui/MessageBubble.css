@@ -12,15 +12,14 @@
 
 /* Caja interna */
 .message-content {
-  padding: 10px 36px 18px 14px; /* reserva a la derecha para hora/estado */
+  padding: 12px 16px 14px 14px;
   border-radius: 16px;
   font-size: 14px;
   line-height: 1.4;
   position: relative;
-  overflow-wrap: anywhere; /* mejor wrap para URLs/cadenas largas */
+  overflow-wrap: anywhere;
 }
 
-/* Colores ENVIADOS (fijo) */
 .message-bubble.sent .message-content {
   background: var(--sent-bubble, var(--sent-message));
   color: var(--sent-text, var(--text-on-window));
@@ -29,10 +28,9 @@
   font-weight: var(--font-body-weight);
 }
 
-/* Colores RECIBIDOS (theme) */
 .message-bubble.received .message-content {
-  background: var(--received-bubble, #F3F4F6);
-  color: var(--received-text, #111827);
+  background: var(--bubble-received, #F3F4F6);
+  color: var(--text-on-surface, #111827);
   font-family: var(--font-body-family);
   font-size: var(--font-body-size);
   font-weight: var(--font-body-weight);
@@ -44,85 +42,58 @@
   font-style: italic;
 }
 
-/* Timestamp en esquina */
+/* Timestamp + transporte */
 .message-timestamp {
-  position: absolute;
-  bottom: 4px;
-  right: 8px;
-  font-size: 10px;
-  opacity: 0.7;
+  font-size: 11px;
+  opacity: 0.72;
   pointer-events: none;
 }
 
-/* Indicador de transporte minimal junto a la hora */
 .transport-dot {
-  position: absolute;
-  bottom: 6px;
-  right: 28px; /* a la izquierda del timestamp */
-  width: var(--transport-dot-size);
-  height: var(--transport-dot-size);
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  opacity: 0.8;
   pointer-events: none;
+  opacity: 0.85;
+  flex-shrink: 0;
 }
-.transport-dot.relay { background: currentColor; opacity: var(--transport-dot-opacity-relay); }
-.transport-dot.rtc   { box-shadow: 0 0 0 1.5px currentColor inset; background: transparent; opacity: var(--transport-dot-opacity-rtc); }
 
-/* Flags/estado (candado, ✓) */
+.transport-dot.rtc {
+  background: var(--transport-rtc-color, #10b981);
+}
+
+.transport-dot.relay {
+  background: transparent;
+  border: 1.6px solid var(--transport-relay-color, #6b7280);
+}
+
+.message-bubble.sent .transport-dot.rtc {
+  background: var(--transport-rtc-color-sent, var(--text-on-window));
+}
+
+.message-bubble.sent .transport-dot.relay {
+  border: 1.6px solid var(--transport-relay-color-sent, var(--text-on-window));
+}
+
+/* Flags/estado (candado, firmado, backup) */
 .message-flags {
-  position: absolute;
-  bottom: 4px;
-  left: 8px;
-  display: flex;
+  display: inline-flex;
   gap: 4px;
   font-size: 12px;
   opacity: 0.85;
-}
-
-/* Estado de envío para mensajes propios */
-.message-status {
-  position: absolute;
-  bottom: 4px;
-  right: 52px; /* deja sitio al timestamp + transport */
-  font-size: 11px;
-  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  opacity: .9;
-  }
-.message-status.read { color: var(--accent-color, #2563eb); }
-
-/* Estado "sent" como un punto pequeño, sin texto suelto */
-.message-status.sent { color: var(--text-secondary); }
-.message-status.sent .dot {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: .7;
 }
 
-/* Tiny (1 carácter): caja mínima y centrado visual */
-.message-text.tiny {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 2.1rem;
-  min-height: 2.1rem;
-}
-
-/* Agrupación RECIBIDOS */
+/* Agrupación recibidos */
 .message-bubble.received.first  .message-content { border-top-left-radius: 16px; border-bottom-left-radius: 4px; }
 .message-bubble.received.middle .message-content { border-top-left-radius: 4px;  border-bottom-left-radius: 4px; }
 .message-bubble.received.last   .message-content { border-top-left-radius: 4px;   border-bottom-left-radius: 16px; }
 
-/* Agrupación ENVIADOS */
+/* Agrupación enviados */
 .message-bubble.sent.first  .message-content { border-top-right-radius: 16px; border-bottom-right-radius: 4px; }
 .message-bubble.sent.middle .message-content { border-top-right-radius: 4px;  border-bottom-right-radius: 4px; }
 .message-bubble.sent.last   .message-content { border-top-right-radius: 4px;   border-bottom-right-radius: 16px; }
 
-/* Compactación de grupo: separaciones sutiles al estilo apps comunes */
 .message-bubble.middle { margin-bottom: 2px; }
 .message-bubble.first  { margin-bottom: 2px; }
 .message-bubble.last   { margin-bottom: 8px; }
@@ -131,18 +102,9 @@
 .message-bubble.image .message-content,
 .message-bubble.video .message-content { padding: 4px 4px 20px; }
 
-/* Contenedor para overlay en media */
-.media-box { position: relative; display: inline-block; }
-.message-footer.overlay {
-  position: absolute;
-  bottom: 6px;
-  right: 6px;
-  background: rgba(0,0,0,0.45);
-  color: #fff;
-  padding: 2px 6px;
-  border-radius: 10px;
-  font-size: 12px;
-  pointer-events: none;
+.media-box {
+  position: relative;
+  display: inline-block;
 }
 
 .message-media.image,
@@ -157,7 +119,6 @@
 .message-bubble.audio .message-content { padding: 8px 12px 20px; }
 .message-media.audio { width: min(320px, 80%); }
 
-/* Caption debajo de la media */
 .message-caption {
   margin: 6px 8px 0;
   font-size: 13px;
@@ -166,24 +127,54 @@
   word-break: break-word;
 }
 
-/* Animación sutil al pasar de sent→delivered→read */
-@keyframes pop {
-  0% { transform: scale(.95); opacity: .6; }
-  100% { transform: scale(1); opacity: 1; }
-}
-.message-bubble[data-status="delivered"] .message-status,
-.message-bubble[data-status="read"] .message-status {
-  animation: pop .12s ease-out;
+/* Footer */
+.message-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  gap: 12px;
 }
 
-/* Responsive */
+.meta-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+}
+
+.message-bubble.sent .meta-left,
+.message-bubble.sent .message-flags {
+  color: var(--text-on-window);
+}
+
+.message-footer.overlay {
+  position: absolute;
+  bottom: 6px;
+  left: 8px;
+  right: 8px;
+  margin-top: 0;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.message-footer.overlay .meta-left,
+.message-footer.overlay .message-flags {
+  color: inherit;
+}
+
 @media (max-width: 768px) {
   .message-bubble { max-width: 85%; }
-:root {
-  --transport-dot-size: 6px;
-  --transport-dot-opacity-relay: .42;
-  --transport-dot-opacity-rtc: .55;
-}
   .message-media.image,
   .message-media.video { max-width: 100%; }
+}
+
+/* Animación para entregado/leer (si se reactiva el estado) */
+@keyframes pop {
+  0% { transform: scale(0.95); opacity: 0.6; }
+  100% { transform: scale(1); opacity: 1; }
 }

@@ -12,6 +12,7 @@ import { MESSAGING } from "@shared/config/env.js";
 import WebRTCClient from "@features/messaging/transports/webrtc/WebRTCClient.js";
 import { getIceServersSafe } from "@features/messaging/transports/webrtc/iceSupervisor.js";
 import { useRtcDialer } from "@features/messaging/hooks/useRtcDialer.js";
+import { createDebugLogger } from "@shared/utils/debug.js";
 
 const MessagingContext = createContext({
   isRunning: false,
@@ -26,6 +27,10 @@ export function MessagingProvider({ children, pollMs = 4000 }) {
   const inboxRef = useRef(null);
   const [isRunning, setRunning] = useState(false);
   const [lastFetchAt, setLastFetchAt] = useState(null);
+  const transportLog = useMemo(
+    () => createDebugLogger("transport", { envKey: "VITE_DEBUG_TRANSPORT_LOGS" }),
+    []
+  );
 
   // Typing listener global (idempotente)
   useEffect(() => {
@@ -201,7 +206,24 @@ function RtcAutoAnswerBridge() {
             }
           },
           onChatMessage: (payload) => {
-            try { actions.addIncoming?.(mkConvId(myWallet, remoteId), payload); } catch {}
+            try {
+              import('@features/messaging/store/messagesStore.js').then(({ actions, convId: mkConvId }) => {
+                const convId = mkConvId(myWallet, remoteId);
+                const tagged = payload && typeof payload === 'object'
+                  ? { ...payload, via: payload?.via || 'rtc' }
+                  : { via: 'rtc' };
+                try {
+                  transportLog('incoming-rtc', {
+                    direction: 'incoming',
+                    transport: 'rtc',
+                    convId,
+                    peer: remoteId,
+                    hasEnvelope: !!tagged?.envelope,
+                  });
+                } catch {}
+                actions.addIncoming?.(convId, tagged);
+              });
+            } catch {}
           },
           onTyping: ({ typing }) => {
             try {

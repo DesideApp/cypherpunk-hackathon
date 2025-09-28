@@ -10,6 +10,7 @@ import { ContactStatus } from '#modules/contacts/contact.constants.js';
 import User from '#modules/users/models/user.model.js';
 import RelayMessage from '#modules/relay/models/relayMessage.model.js';
 import { getPublicKey } from '#shared/services/keyManager.js';
+import { COOKIE_NAMES } from '#config/cookies.js';
 
 dotenv.config();
 const require = createRequire(import.meta.url);
@@ -23,6 +24,7 @@ const PRESENCE_LEGACY_EMIT = String(process.env.PRESENCE_LEGACY_EMIT ?? 'false')
 const PRESENCE_TTL_MS = parseInt(process.env.PRESENCE_TTL_MS || '45000', 10);
 
 let io;
+const ACCESS_COOKIE_NAME = COOKIE_NAMES.accessToken;
 
 // === presencia: wallet -> Set<socketId> ===
 const connectionsByWallet = new Map();
@@ -197,7 +199,7 @@ function getTokenFromHandshake(headers) {
     return { token: auth.slice(7).trim(), source: 'header' };
   }
   const cookies = parseCookies(headers?.cookie || headers?.Cookie);
-  if (cookies?.accessToken) return { token: cookies.accessToken, source: 'cookie' };
+  if (cookies?.[ACCESS_COOKIE_NAME]) return { token: cookies[ACCESS_COOKIE_NAME], source: 'cookie' };
   return { token: null, source: null };
 }
 

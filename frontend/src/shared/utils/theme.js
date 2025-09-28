@@ -32,6 +32,11 @@ const THEMES = {
     "--header-title-offset-collapsed": "0px",
     "--header-title-offset-expanded": "220px",
 
+    "--transport-rtc-color": "var(--text-secondary)",
+    "--transport-relay-color": "var(--border-color-active)",
+    "--transport-rtc-color-sent": "var(--highlight-color)",
+    "--transport-relay-color-sent": "var(--surface-color)",
+
     // ====== JUPITER PLUGIN (LIGHT) ======
     // Valores de la página de Jupiter (ya en R,G,B):
     "--jupiter-plugin-primary": "184, 168, 255",      // #B8A8FF (tu connect)
@@ -76,6 +81,11 @@ const THEMES = {
     "--active-overlay": "rgba(224,222,217,0.16)",
     "--header-title-offset-collapsed": "0px",
     "--header-title-offset-expanded": "220px",
+
+    "--transport-rtc-color": "var(--text-secondary)",
+    "--transport-relay-color": "var(--border-color-active)",
+    "--transport-rtc-color-sent": "var(--highlight-color)",
+    "--transport-relay-color-sent": "var(--text-secondary)",
 
     // ====== JUPITER PLUGIN (DARK) ======
     // Convertido a R,G,B (sin comillas, sin rgb()):

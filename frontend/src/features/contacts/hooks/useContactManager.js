@@ -3,21 +3,47 @@ import { sendContactRequest, approveContact, rejectContact } from "../services/c
 import { notify } from "@shared/services/notificationService.js";
 import { useAuthManager } from "@features/auth/hooks/useAuthManager.js";
 import { getUpdatedContacts } from "../services/contactsUpdater.js";
+import {
+  loadContactsCache,
+  saveContactsCache,
+  clearContactsCache,
+} from "@features/contacts/services/contactsCache.js";
+import { DEMO_CONTACTS_STATE } from "@features/contacts/services/demoContacts.js";
+import { IS_DEMO } from "@shared/config/env.js";
+
+const EMPTY_CONTACTS = { confirmed: [], pending: [], incoming: [] };
+
+const getInitialState = () => {
+  if (!IS_DEMO) return EMPTY_CONTACTS;
+  const cached = loadContactsCache();
+  if (cached) return cached;
+  return DEMO_CONTACTS_STATE;
+};
 
 export default function useContactManager() {
-  const [confirmedContacts, setConfirmedContacts] = useState([]);
-  const [pendingRequests, setPendingRequests] = useState([]);
-  const [receivedRequests, setReceivedRequests] = useState([]);
+  const initialState = getInitialState();
+  const [confirmedContacts, setConfirmedContacts] = useState(initialState.confirmed);
+  const [pendingRequests, setPendingRequests] = useState(initialState.pending);
+  const [receivedRequests, setReceivedRequests] = useState(initialState.incoming);
 
   const { ensureReady, isAuthenticated, isLoading: authLoading } = useAuthManager();
   const isUpdating = useRef(false);
 
+  const applyContactsState = useCallback((nextState, persist = true) => {
+    const { confirmed = [], pending = [], incoming = [] } = nextState || EMPTY_CONTACTS;
+    setConfirmedContacts(confirmed);
+    setPendingRequests(pending);
+    setReceivedRequests(incoming);
+    if (persist && IS_DEMO) {
+      saveContactsCache({ confirmed, pending, incoming });
+    }
+  }, []);
+
   // 🔹 Resetear el estado completo
   const resetContactsState = useCallback(() => {
-    setConfirmedContacts([]);
-    setPendingRequests([]);
-    setReceivedRequests([]);
-  }, []);
+    applyContactsState(IS_DEMO ? DEMO_CONTACTS_STATE : EMPTY_CONTACTS, IS_DEMO);
+    if (IS_DEMO) clearContactsCache();
+  }, [applyContactsState]);
 
   // 🔹 Cargar contactos desde backend (sin ensureReady)
   const updateContactsState = useCallback(async () => {
@@ -25,36 +51,50 @@ export default function useContactManager() {
     isUpdating.current = true;
 
     try {
-      const { confirmed, pending, incoming } = await getUpdatedContacts();
-      setConfirmedContacts(confirmed || []);
-      setPendingRequests(pending || []);
-      setReceivedRequests(incoming || []);
+      const { confirmed = [], pending = [], incoming = [] } = await getUpdatedContacts();
+      applyContactsState({ confirmed, pending, incoming }, true);
     } catch (error) {
       console.error("❌ Error al actualizar contactos:", error);
       notify("❌ Error al actualizar contactos.", "error");
     } finally {
       isUpdating.current = false;
     }
-  }, []);
+  }, [applyContactsState]);
 
   // 🔹 Carga inicial solo si está autenticado (sin pedir firma)
   useEffect(() => {
-    if (isAuthenticated && !authLoading) {
-      updateContactsState(); // 🔹 No usamos ensureReady
-    } else if (!isAuthenticated) {
-      resetContactsState();
+    if (authLoading) return;
+
+    if (isAuthenticated) {
+      updateContactsState();
+      return;
     }
-  }, [isAuthenticated, authLoading, updateContactsState, resetContactsState]);
+
+    if (!IS_DEMO) {
+      applyContactsState(EMPTY_CONTACTS, false);
+      return;
+    }
+
+    const cached = loadContactsCache();
+    if (cached) {
+      applyContactsState(cached, false);
+      return;
+    }
+
+    applyContactsState(DEMO_CONTACTS_STATE, false);
+  }, [isAuthenticated, authLoading, updateContactsState, applyContactsState]);
 
   // 🔹 Carga manual protegida (cuando el usuario lo pide)
   const loadContacts = useCallback(async () => {
     try {
       const ok = await ensureReady(updateContactsState);
-      if (!ok) resetContactsState();
+      if (!ok) {
+        applyContactsState(IS_DEMO ? DEMO_CONTACTS_STATE : EMPTY_CONTACTS, false);
+      }
     } catch {
-      resetContactsState();
+      applyContactsState(IS_DEMO ? DEMO_CONTACTS_STATE : EMPTY_CONTACTS, false);
     }
-  }, [ensureReady, updateContactsState, resetContactsState]);
+  }, [ensureReady, updateContactsState, applyContactsState]);
 
   // 🔹 Agregar contacto
   const handleAddContact = useCallback(

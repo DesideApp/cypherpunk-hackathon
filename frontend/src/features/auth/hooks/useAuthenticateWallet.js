@@ -1,7 +1,7 @@
 // src/hooks/useAuthenticateWallet.js
 import { useWallet } from "@wallet-adapter/core/contexts/WalletProvider";
 import { authenticateWithServer, getNonceFromServer } from "@shared/services/apiService";
-import { storeCSRFToken, storeWalletSignature } from "@shared/services/tokenService";
+import { storeCSRFToken, storeWalletSignature, readCookie, CSRF_COOKIE_NAME } from "@shared/services/tokenService";
 import bs58 from "bs58";
 
 export const useAuthenticateWallet = () => {
@@ -75,8 +75,8 @@ export const useAuthenticateWallet = () => {
       }
 
       // 7) Persistencia CSRF si aparece en cookie
-      const csrfMatch = document.cookie.match(/csrfToken=([^;]+)/);
-      if (csrfMatch) storeCSRFToken(csrfMatch[1]);
+      const csrfMatch = readCookie(CSRF_COOKIE_NAME);
+      if (csrfMatch) storeCSRFToken(csrfMatch);
 
       try {
         window.dispatchEvent(new Event('sessionEstablished'));

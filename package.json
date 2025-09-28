@@ -10,6 +10,7 @@
   "scripts": {
     "install:all": "npm install --workspaces",
     "dev": "concurrently \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "demo": "node scripts/run-demo.mjs",
     "dev:backend": "npm run dev --workspace backend",
     "dev:frontend": "npm run dev --workspace frontend",
     "build": "npm run build --workspace frontend",

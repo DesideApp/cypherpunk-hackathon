@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useLayoutEffect } from "react";
 import { getPreferredTheme, applyTheme } from "@shared/utils/theme.js";
 
 const LayoutContext = createContext({
@@ -37,8 +37,7 @@ export const LayoutProvider = ({ children }) => {
     applyTheme(newTheme);
   };
 
-  useEffect(() => {
-    // ✅ Apply theme on initial mount
+  useLayoutEffect(() => {
     applyTheme(theme);
   }, [theme]);
 
