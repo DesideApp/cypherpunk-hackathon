@@ -1,3 +1,4 @@
+import { addRecent } from "@features/messaging/utils/recentConversations.js";
 // src/features/messaging/services/inboxService.js
 // Pull (Relay) → normalizar → persistir en store → ACK (después de persistir)
 // Idempotente por serverId con memoria en proceso; integra flush (socket) con debounce.
@@ -253,6 +254,14 @@ export function createInboxService({
           }
           for (const [conv, list] of byConv.entries()) {
             actions.upsertBatch?.(conv, list);
+            try {
+              const last = list && list.length ? list[list.length - 1] : null;
+              const peer = last ? (last.from === selfWallet ? last.to : last.from) : null;
+              if (peer) {
+                const previewText = last?.text || (last?.kind && last.kind.startsWith("media") ? "Attachment" : "");
+                addRecent({ chatId: peer, lastMessageText: previewText, lastMessageTimestamp: last?.createdAt || Date.now() });
+              }
+            } catch {}
           }
         } else if (messages.length) {
           console.warn("[inbox] received messages but none normalized");

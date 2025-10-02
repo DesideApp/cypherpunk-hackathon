@@ -68,6 +68,7 @@
 .unified-avatar-circle {
   width: 36px;
   height: 36px;
+  min-width: 36px;
   border-radius: 50%;
   background-color: #ddd;
   margin-right: 10px;

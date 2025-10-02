@@ -38,6 +38,7 @@ let cachedPublicKey = null;
 
 export const getPrivateKey = () => {
   if (cachedPrivateKey) return cachedPrivateKey;
+  // Preferir archivo primero; si no existe, caer a variable inline
   cachedPrivateKey =
     readKeyFromFile('JWT_PRIVATE_KEY_PATH', 'PRIVATE_KEY') ||
     readKeyFromEnv('JWT_PRIVATE_KEY', 'PRIVATE_KEY');
@@ -46,6 +47,7 @@ export const getPrivateKey = () => {
 
 export const getPublicKey = () => {
   if (cachedPublicKey) return cachedPublicKey;
+  // Preferir archivo primero; si no existe, caer a variable inline
   cachedPublicKey =
     readKeyFromFile('JWT_PUBLIC_KEY_PATH', 'PUBLIC_KEY') ||
     readKeyFromEnv('JWT_PUBLIC_KEY', 'PUBLIC_KEY');

@@ -2,7 +2,9 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useAuthManager } from "@features/auth/hooks/useAuthManager.js";
 import { useSocket } from "@shared/socket";
+import { useRtcDialer } from "@features/messaging/hooks/useRtcDialer.js";
 import { createInboxService } from "@features/messaging/services/inboxService.js";
+import { addRecent } from "@features/messaging/utils/recentConversations.js";
 import { attachTypingSocketListener } from "@features/messaging/services/typingService.js";
 import { actions, convId as mkConvId } from "@features/messaging/store/messagesStore.js";
 import socketClient from "@features/messaging/clients/socketClient.js";
@@ -11,7 +13,6 @@ import { setFeature } from "@shared/config/featureFlags.js";
 import { MESSAGING } from "@shared/config/env.js";
 import WebRTCClient from "@features/messaging/transports/webrtc/WebRTCClient.js";
 import { getIceServersSafe } from "@features/messaging/transports/webrtc/iceSupervisor.js";
-import { useRtcDialer } from "@features/messaging/hooks/useRtcDialer.js";
 import { createDebugLogger } from "@shared/utils/debug.js";
 
 const MessagingContext = createContext({
@@ -23,6 +24,7 @@ const MessagingContext = createContext({
 export function MessagingProvider({ children, pollMs = 4000 }) {
   const { isAuthenticated, pubkey: myWallet, ensureReady } = useAuthManager();
   const { isConnected, registerWallet, onRelayFlush, onPresence } = useSocket();
+  const { closeRtc } = useRtcDialer();
 
   const inboxRef = useRef(null);
   const [isRunning, setRunning] = useState(false);
@@ -42,10 +44,15 @@ export function MessagingProvider({ children, pollMs = 4000 }) {
     const off = onPresence?.((ev) => {
       const wallet = ev?.wallet || ev?.pubkey || ev?.id || null;
       const online = !!ev?.online;
-      if (wallet) { try { actions?.setPresence?.(wallet, online); } catch {} }
+      if (wallet && wallet !== myWallet) {
+        try { actions?.setPresence?.(wallet, online); } catch {}
+        if (online === false) {
+          try { closeRtc?.(wallet); } catch {}
+        }
+      }
     });
     return () => { try { off?.(); } catch {} };
-  }, [onPresence]);
+  }, [onPresence, myWallet, closeRtc]);
 
   // Delivered → marca mensajes como entregados
   useEffect(() => {
@@ -222,6 +229,20 @@ function RtcAutoAnswerBridge() {
                   });
                 } catch {}
                 actions.addIncoming?.(convId, tagged);
+                try {
+                  const previewText = typeof tagged?.text === 'string'
+                    ? tagged.text
+                    : typeof tagged?.payload?.text === 'string'
+                      ? tagged.payload.text
+                      : (tagged?.kind && String(tagged.kind).startsWith('media'))
+                        ? 'Attachment'
+                        : '';
+                  addRecent({
+                    chatId: remoteId,
+                    lastMessageText: previewText,
+                    lastMessageTimestamp: tagged?.createdAt || tagged?.timestamp || Date.now(),
+                  });
+                } catch {}
               });
             } catch {}
           },

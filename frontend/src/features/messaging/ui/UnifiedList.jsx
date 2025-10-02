@@ -1,7 +1,6 @@
 // src/features/messaging/ui/UnifiedList.jsx
-import React, { useState, memo, useMemo, useCallback, useEffect, useRef } from "react";
+import React, { useState, memo, useMemo, useCallback } from "react";
 import { FaSearch } from "react-icons/fa";
-import { useSocket } from "@shared/socket/index.jsx";
 import { useAuthManager } from "@features/auth/hooks/useAuthManager.js";
 import useConversationsPreview from "@features/messaging/hooks/useConversationsPreview.js";
 import "./UnifiedList.css";
@@ -18,30 +17,13 @@ const UnifiedList = ({
   onSelectConversation,
   onSelectContact,
   fixtures = [], // elementos visuales no clicables
-  presence = {}, // opcional: mapa inicial { wallet: boolean }
+  presence = {}, // mapa { wallet: boolean }
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
-  const { onPresence } = useSocket();
   const { pubkey: selfWallet } = useAuthManager();
   const storePreviews = useConversationsPreview(selfWallet);
 
-  // ====== presencia (en tiempo real) ======
-  const presenceRef = useRef(new Map(Object.entries(presence || {})));
-  const [, force] = useState(0);
-
-  useEffect(() => {
-    const off = onPresence?.(({ wallet, online }) => {
-      if (!wallet) return;
-      presenceRef.current.set(wallet, !!online);
-      force(n => (n + 1) % 1000);
-    });
-    return () => { try { off?.(); } catch {} };
-  }, [onPresence]);
-
-  const isOnline = useCallback((key) => {
-    if (!key) return false;
-    return !!presenceRef.current.get(key);
-  }, []);
+  const isOnline = useCallback((key) => !!(presence && presence[key]), [presence]);
 
   // ====== unificación conversaciones + contactos + previews ======
   const mergedList = useMemo(() => {
@@ -74,6 +56,8 @@ const UnifiedList = ({
         pubkey: key,
         lastMessageText: p.lastMessageText,
         lastMessageTimestamp: p.lastMessageTimestamp,
+        nickname: p.nickname || p.displayName || null,
+        avatar: p.avatar || null,
         type: "preview",
       });
     }
@@ -206,7 +190,7 @@ const UnifiedList = ({
               {/* Punto presencia */}
               <span aria-hidden="true" style={dot(online)} />
 
-              <div className="unified-avatar-circle" aria-hidden="true">
+              <div className="unified-avatar-circle" aria-hidden="true" data-letter={item.nickname?.[0] || item.pubkey?.[0] || '?'}>
                 {item.avatar ? (
                   <img src={item.avatar} alt="" className="unified-avatar" />
                 ) : (

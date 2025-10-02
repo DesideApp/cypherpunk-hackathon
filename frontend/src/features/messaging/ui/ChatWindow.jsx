@@ -1,14 +1,15 @@
 // src/features/messaging/ui/ChatWindow.jsx
-import React, { useMemo, useCallback, useEffect } from "react";
+import React, { useMemo, useCallback, useEffect, useState, useRef } from "react";
 import ChatHeader from "./ChatHeader";
 import WritingPanel from "./WritingPanel";
 import ChatMessages from "./ChatMessages";
 
 import useMessaging from "@features/messaging/hooks/useMessaging";
 import { ENV, MESSAGING } from "@shared/config/env.js";
-import { useSocket } from "@shared/socket";
 import { useAuthManager } from "@features/auth/hooks/useAuthManager.js";
+import { useRtcDialer } from "@features/messaging/hooks/useRtcDialer.js";
 import { base64ToUtf8 } from "@shared/utils/base64.js";
+import { subscribe, getState, convId as canonicalConvId } from "@features/messaging/store/messagesStore.js";
 import "./ChatWindow.css";
 
 /* -------------------- helpers -------------------- */
@@ -100,12 +101,16 @@ function toUiMessage(m, myWallet) {
 /* ===================== Componente ===================== */
 
 export default function ChatWindow({ selectedContact, activePanel, setActivePanel }) {
-  const { isConnected, isConnecting } = useSocket();
   const { pubkey: myWallet } = useAuthManager();
+  const { closeRtc } = useRtcDialer();
 
   // Contacto activo
   const selected = useMemo(() => normalizeSelected(selectedContact), [selectedContact]);
   const peerWallet = selected.pubkey || null;
+  const convId = useMemo(
+    () => (peerWallet && myWallet ? canonicalConvId(myWallet, peerWallet) : null),
+    [peerWallet, myWallet]
+  );
 
   // Registro de wallet lo gestiona MessagingProvider (evita duplicar aquí)
 
@@ -142,6 +147,57 @@ export default function ChatWindow({ selectedContact, activePanel, setActivePane
     [rawMessages, myWallet]
   );
 
+  // Presencia/typing del peer (desde store global)
+  const [peerOnline, setPeerOnline] = useState(() => {
+    if (!peerWallet) return false;
+    try {
+      const snap = getState();
+      return !!snap?.presence?.[peerWallet];
+    } catch {
+      return false;
+    }
+  });
+  const [isTypingRemote, setIsTypingRemote] = useState(() => {
+    if (!convId) return false;
+    try {
+      const snap = getState();
+      return !!snap?.typing?.[convId];
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      const snap = getState();
+      setPeerOnline(peerWallet ? !!snap?.presence?.[peerWallet] : false);
+      setIsTypingRemote(convId ? !!snap?.typing?.[convId] : false);
+    } catch {}
+
+    if (!peerWallet && !convId) return undefined;
+
+    const off = subscribe((snap) => {
+      try {
+        setPeerOnline(peerWallet ? !!snap?.presence?.[peerWallet] : false);
+        setIsTypingRemote(convId ? !!snap?.typing?.[convId] : false);
+      } catch {}
+    });
+    return () => { try { off?.(); } catch {} };
+  }, [peerWallet, convId]);
+
+  const prevPeerRef = useRef(null);
+
+  useEffect(() => {
+    const previousPeer = prevPeerRef.current;
+    prevPeerRef.current = peerWallet;
+
+    return () => {
+      if (previousPeer) {
+        try { closeRtc?.(previousPeer); } catch {}
+      }
+    };
+  }, [peerWallet, closeRtc]);
+
   /* ---- envío (sin inserción aquí; la hace useMessaging) ---- */
   const onSendText = useCallback(
     async (plain) =>
@@ -160,8 +216,8 @@ export default function ChatWindow({ selectedContact, activePanel, setActivePane
     <div className="chat-window">
       <ChatHeader
         selectedContact={selected}
-        isConnected={isConnected}
-        isConnecting={isConnecting}
+        peerOnline={peerOnline}
+        isTyping={isTypingRemote}
       />
 
       <div className="chat-window-body">
