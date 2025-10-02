@@ -75,3 +75,6 @@ backend/tmp/
 frontend/tmp/
 backend/keys/
 docker-data/
+
+# Personal guide files
+GIT_GUIDE.txt

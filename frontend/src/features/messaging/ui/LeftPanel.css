@@ -163,12 +163,6 @@
 /* 📱 Responsive */
 @media (max-width: 1024px) {
   .left-panel-container {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    width: 360px;
-    z-index: 200;
-    background: var(--window-background);
-    left: 0;
+    width: 300px;
   }
 }

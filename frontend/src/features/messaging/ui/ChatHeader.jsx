@@ -13,7 +13,7 @@ function normalizeContact(sel) {
   };
 }
 
-const ChatHeader = ({ selectedContact, isConnected, isConnecting, onOpenInfo }) => {
+const ChatHeader = ({ selectedContact, peerOnline = false, isTyping = false, onOpenInfo }) => {
   const contact = useMemo(() => normalizeContact(selectedContact), [selectedContact]);
 
   const getDisplayName = () => {
@@ -22,15 +22,15 @@ const ChatHeader = ({ selectedContact, isConnected, isConnecting, onOpenInfo }) 
     return "No contact selected";
   };
 
-  let statusLabel = "Offline";
-  let statusVariant = "muted";
-  if (isConnected) {
-    statusLabel = "Connected";
-    statusVariant = "ok";
-  } else if (isConnecting) {
-    statusLabel = "Connecting…";
-    statusVariant = "warn";
-  }
+  const presenceLabel = contact.pubkey
+    ? (isTyping ? "Typing…" : peerOnline ? "Online" : "Offline")
+    : null;
+
+  const presenceVariant = isTyping
+    ? "variant-ok"
+    : peerOnline
+    ? "variant-ok-soft"
+    : "variant-muted";
 
   return (
     <div className="chat-header" role="banner" aria-label="Chat header">
@@ -57,14 +57,16 @@ const ChatHeader = ({ selectedContact, isConnected, isConnecting, onOpenInfo }) 
             {getDisplayName()}
           </span>
 
-          {contact.pubkey && (
-            <span
-              className={`status-pill variant-${statusVariant}`}
-              title={statusLabel}
-              aria-live="polite"
-              aria-atomic="true"
-            >
-              {statusLabel}
+          {presenceLabel && (
+            <span className="status-row">
+              <span
+                className={`status-pill ${presenceVariant}`}
+                title={presenceLabel}
+                aria-live="polite"
+                aria-atomic="true"
+              >
+                {presenceLabel}
+              </span>
             </span>
           )}
         </div>

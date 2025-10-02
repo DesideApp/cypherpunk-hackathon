@@ -33,14 +33,53 @@ const WritingPanel = React.memo(function WritingPanel({
   const emojiBtnRef = useRef(null);
 
   // Typing timers/refs
-  const typingDebounceRef = useRef(null);
-  const typingInactivityRef = useRef(null);
-  const typingStateRef = useRef({ active: false, lastSentTrueAt: 0 });
+  const typingActiveRef = useRef(false);
+  const typingIntervalRef = useRef(null);
+  const lastTypingValueRef = useRef("");
   const gatedOnceRef = useRef(false);
-  const { ensureReady } = useAuthManager();
+  const { ensureReadyOnce } = useAuthManager();
+
+  const emitTyping = useCallback((flag) => {
+    try { onTyping?.(flag); } catch {}
+  }, [onTyping]);
+
+  const stopTyping = useCallback(() => {
+    if (typingIntervalRef.current) {
+      clearInterval(typingIntervalRef.current);
+      typingIntervalRef.current = null;
+    }
+    if (!typingActiveRef.current) return;
+    emitTyping(false);
+    typingActiveRef.current = false;
+    lastTypingValueRef.current = "";
+  }, [emitTyping]);
+
+  const startTyping = useCallback(() => {
+    if (!typingActiveRef.current) {
+      emitTyping(true);
+      typingActiveRef.current = true;
+    }
+    if (!typingIntervalRef.current) {
+      typingIntervalRef.current = setInterval(() => {
+        if (typingActiveRef.current) emitTyping(true);
+      }, 2000);
+    }
+  }, [emitTyping]);
+
+  const updateTypingState = useCallback((rawValue) => {
+    const hasText = rawValue.trim().length > 0;
+    if (hasText) {
+      const trimmed = rawValue.trim();
+      lastTypingValueRef.current = trimmed;
+      startTyping();
+    } else {
+      stopTyping();
+    }
+  }, [startTyping, stopTyping]);
 
   const resetInput = () => {
     setMessage("");
+    updateTypingState("");
     if (inputRef.current) {
       inputRef.current.style.height = "";
       inputRef.current.classList.remove("scrolling");
@@ -62,7 +101,7 @@ const WritingPanel = React.memo(function WritingPanel({
     }
 
     try {
-      const ready = await ensureReady();
+      const ready = await ensureReadyOnce();
       if (!ready) return;
       if (typeof onSendText !== "function") {
         notify("Messaging is not ready (missing onSendText).", "error");
@@ -78,7 +117,7 @@ const WritingPanel = React.memo(function WritingPanel({
       console.error("Error sending message:", error);
       notify("Error sending the message. Check your connection.", "error");
     }
-  }, [message, hasContact, activePeer, isContactConfirmed, canSend, ensureReady, onSendText]);
+  }, [message, hasContact, activePeer, isContactConfirmed, canSend, ensureReadyOnce, onSendText]);
 
   // attachments removed in this MVP
 
@@ -101,12 +140,10 @@ const WritingPanel = React.memo(function WritingPanel({
   };
 
   const handleChange = (event) => {
-    setMessage(event.target.value);
+    const value = event.target.value;
+    setMessage(value);
     adjustHeight();
-    // typing notify
-    const text = event.target.value;
-    if (text.trim().length > 0) notifyTypingInput();
-    else stopTypingImmediate();
+    updateTypingState(value);
   };
 
   const handleKeyDown = (event) => {
@@ -129,62 +166,26 @@ const WritingPanel = React.memo(function WritingPanel({
       }
     });
     setShowEmojiPicker(false);
-    if (newText.trim().length > 0) notifyTypingInput();
-    else stopTypingImmediate();
-  };
-
-  // typing helpers
-  const sendTypingTrue = () => { try { onTyping?.(true); } catch {} };
-  const sendTypingFalse = () => { try { onTyping?.(false); } catch {} };
-  const scheduleAutoOff = () => {
-    if (typingInactivityRef.current) clearTimeout(typingInactivityRef.current);
-    typingInactivityRef.current = setTimeout(() => {
-      if (typingStateRef.current.active) {
-        sendTypingFalse();
-        typingStateRef.current.active = false;
-      }
-    }, 2000);
-  };
-  const notifyTypingInput = () => {
-    const now = Date.now();
-    const st = typingStateRef.current;
-    if (!st.active) {
-      if (typingDebounceRef.current) clearTimeout(typingDebounceRef.current);
-      typingDebounceRef.current = setTimeout(() => {
-        sendTypingTrue();
-        st.active = true;
-        st.lastSentTrueAt = Date.now();
-      }, 700);
-    } else if (now - st.lastSentTrueAt >= 2000) {
-      sendTypingTrue();
-      st.lastSentTrueAt = now;
-    }
-    scheduleAutoOff();
-  };
-  const stopTypingImmediate = () => {
-    if (typingDebounceRef.current) clearTimeout(typingDebounceRef.current);
-    if (typingInactivityRef.current) clearTimeout(typingInactivityRef.current);
-    if (typingStateRef.current.active) {
-      sendTypingFalse();
-      typingStateRef.current.active = false;
-    }
+    updateTypingState(newText);
   };
 
   const handleFocus = async () => {
     if (!gatedOnceRef.current) {
       gatedOnceRef.current = true;
       try {
-        await ensureReady();
+        await ensureReadyOnce();
       } catch {}
     }
-    if (message.trim().length > 0) notifyTypingInput();
+    updateTypingState(message);
   };
 
   useEffect(() => () => {
-    // cleanup timers
-    if (typingDebounceRef.current) clearTimeout(typingDebounceRef.current);
-    if (typingInactivityRef.current) clearTimeout(typingInactivityRef.current);
-  }, []);
+    if (typingIntervalRef.current) {
+      clearInterval(typingIntervalRef.current);
+      typingIntervalRef.current = null;
+    }
+    stopTyping();
+  }, [stopTyping]);
 
   // close emoji on outside click or ESC
   useEffect(() => {
@@ -221,7 +222,7 @@ const WritingPanel = React.memo(function WritingPanel({
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           onFocus={handleFocus}
-          onBlur={stopTypingImmediate}
+          onBlur={stopTyping}
           rows={1}
           // Permitir escribir si hay contacto, aunque la clave E2EE no esté lista
           disabled={!hasContact}

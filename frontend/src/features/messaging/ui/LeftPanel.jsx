@@ -5,12 +5,13 @@ import useConversationManager from "@features/contacts/hooks/useConversationMana
 import NotificationPanel from "@features/messaging/ui/NotificationPanel";
 import AddContactForm from "@features/messaging/ui/AddContactForm";
 import UnifiedList from "@features/messaging/ui/UnifiedList";
-import { useSocket } from "@shared/socket/index.jsx";
 import { useAuthManager } from "@features/auth/hooks/useAuthManager.js";
 import { loadContactsCache } from "@features/contacts/services/contactsCache.js";
 import { DEMO_PREVIEWS, DEMO_CONTACTS_STATE } from "@features/contacts/services/demoContacts.js";
 import { IS_DEMO } from "@shared/config/env.js";
+import { loadRecent } from "@features/messaging/utils/recentConversations.js";
 import { wipeModeData } from "@shared/utils/cleanup.js";
+import { subscribe, getState } from "@features/messaging/store/messagesStore.js";
 import "./LeftPanel.css";
 
 const LeftPanel = ({ onSelectContact }) => {
@@ -26,7 +27,7 @@ const LeftPanel = ({ onSelectContact }) => {
   const { conversations = [], loading: conversationsLoading } = useConversationManager();
 
   // 🔐 Estado de auth (NO llamamos ensureReady en bucles de efecto)
-  const { isAuthenticated, ensureReady } = useAuthManager();
+  const { isAuthenticated, ensureReadyOnce } = useAuthManager();
 
   const localPreviews = useMemo(() => {
     if (!IS_DEMO || isAuthenticated) return [];
@@ -44,6 +45,32 @@ const LeftPanel = ({ onSelectContact }) => {
     }));
   }, [isAuthenticated]);
 
+  const [recentPreviews, setRecentPreviews] = useState(() => loadRecent());
+
+  const combinedPreviews = useMemo(() => {
+    const map = new Map();
+    recentPreviews.forEach((item) => {
+      if (item?.chatId) {
+        map.set(item.chatId, {
+          chatId: item.chatId,
+          displayName: item.displayName || null,
+          nickname: item.displayName || null,
+          lastMessageText: item.lastMessageText || "",
+          lastMessageTimestamp: item.lastMessageTimestamp || Date.now(),
+        });
+      }
+    });
+    localPreviews.forEach((item) => {
+      if (item?.chatId && !map.has(item.chatId)) {
+        map.set(item.chatId, {
+          ...item,
+          nickname: item.displayName || null,
+        });
+      }
+    });
+    return Array.from(map.values());
+  }, [recentPreviews, localPreviews]);
+
   const [selectedContactWallet, setSelectedContactWallet] = useState(null);
   const [selectedConversationPubkey, setSelectedConversationPubkey] = useState(null);
   const [activeSocial, setActiveSocial] = useState(null); // 'add' | 'notis' | null
@@ -52,16 +79,20 @@ const LeftPanel = ({ onSelectContact }) => {
   const isLoading = !!conversationsLoading;
 
   // 🟢 Presencia (socket)
-  const { onPresence } = useSocket();
-  const [presenceMap, setPresenceMap] = useState({}); // { wallet: boolean }
+  const [presenceMap, setPresenceMap] = useState(() => {
+    try { return getState()?.presence || {}; }
+    catch { return {}; }
+  });
 
   useEffect(() => {
-    const off = onPresence?.(({ wallet, online }) => {
-      if (!wallet) return;
-      setPresenceMap(prev => (prev[wallet] === online ? prev : { ...prev, [wallet]: !!online }));
+    const off = subscribe((snap) => {
+      try {
+        setPresenceMap(snap?.presence || {});
+        setRecentPreviews(loadRecent());
+      } catch {}
     });
     return () => { try { off?.(); } catch {} };
-  }, [onPresence]);
+  }, []);
 
   // Fixtures visuales (no clicables)
   // Demostraciones eliminadas según feedback: lista más limpia
@@ -85,34 +116,34 @@ const LeftPanel = ({ onSelectContact }) => {
     if (!key) return { pubkey: null, nickname: null, avatar: null };
     const fromContacts = confirmedContacts.find(c => c.wallet === key);
     const fromConvs    = conversations.find(c => c.pubkey === key);
-    const fromPrev     = localPreviews.find(p => p.chatId === key);
+    const fromPrev     = combinedPreviews.find(p => p.chatId === key);
     return {
       pubkey: key,
       nickname: fromConvs?.nickname ?? fromContacts?.nickname ?? fromPrev?.displayName ?? null,
       avatar:   fromConvs?.avatar   ?? fromContacts?.avatar   ?? null,
     };
-  }, [confirmedContacts, conversations, localPreviews]);
+  }, [confirmedContacts, conversations, combinedPreviews]);
 
   const handleConversationSelect = useCallback(async (pubkey) => {
-    const ready = await ensureReady();
+    const ready = await ensureReadyOnce();
     if (!ready) return;
     setSelectedConversationPubkey(pubkey);
     setSelectedContactWallet(null);
     onSelectContact?.(buildContactDescriptor(pubkey));
-  }, [ensureReady, buildContactDescriptor, onSelectContact]);
+  }, [ensureReadyOnce, buildContactDescriptor, onSelectContact]);
 
   const handleContactSelect = useCallback(async (wallet) => {
-    const ready = await ensureReady();
+    const ready = await ensureReadyOnce();
     if (!ready) return;
     setSelectedContactWallet(wallet);
     setSelectedConversationPubkey(null);
     onSelectContact?.(buildContactDescriptor(wallet));
-  }, [ensureReady, buildContactDescriptor, onSelectContact]);
+  }, [ensureReadyOnce, buildContactDescriptor, onSelectContact]);
 
   const toggleSocial = useCallback(async (panel) => {
     const isOpening = panel && panel !== activeSocial;
     if (isOpening) {
-      const ready = await ensureReady();
+      const ready = await ensureReadyOnce();
       if (!ready) return;
     }
 
@@ -128,7 +159,7 @@ const LeftPanel = ({ onSelectContact }) => {
     if (panel) {
       try { await loadContacts(); } catch {}
     }
-  }, [activeSocial, ensureReady, loadContacts]);
+  }, [activeSocial, ensureReadyOnce, loadContacts]);
 
   const handleDemoReset = useCallback((event) => {
     if (event) event.stopPropagation();
@@ -216,7 +247,7 @@ const LeftPanel = ({ onSelectContact }) => {
           <UnifiedList
             conversations={conversations}
             contacts={confirmedContacts}
-            previews={localPreviews}
+            previews={combinedPreviews}
             selectedWallet={selectedContactWallet}
             selectedPubkey={selectedConversationPubkey}
             onSelectConversation={(pubkey) => { void handleConversationSelect(pubkey); }}

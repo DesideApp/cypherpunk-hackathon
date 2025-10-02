@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { subscribe, getState, actions, convId as canonicalConvId } from "@features/messaging/store/messagesStore.js";
 import { useMessagingSDK } from "@features/messaging/contexts/MessagingProvider.jsx";
 import { useRtcDialer } from "./useRtcDialer.js";
+import { addRecent } from "@features/messaging/utils/recentConversations.js";
 import * as relay from "../clients/relayClient.js";
 import socketClient from "../clients/socketClient.js";
 import { encryptText, encryptPayload, decryptPayload, importConversationKey } from "../e2e/e2e.js";
@@ -47,6 +48,17 @@ export default function useMessaging({
   const isTyping  = useStoreSlice(selTyping);
   const lastError = useStoreSlice(selError);
   const localTypingSentAtRef = useRef(new Map());
+
+  const registerRecent = useCallback((preview) => {
+    if (!peerWallet) return;
+    try {
+      addRecent({
+        chatId: peerWallet,
+        lastMessageText: preview?.text ?? "",
+        lastMessageTimestamp: preview?.timestamp ?? Date.now(),
+      });
+    } catch {}
+  }, [peerWallet]);
 
   const [convKey, setConvKey] = useState(null);
   const decryptWarnedRef = useRef(new Set());
@@ -167,22 +179,27 @@ export default function useMessaging({
       envelope,
       aad,
     });
+    registerRecent({ text, timestamp: Date.now() });
 
     try {
       const wsConnected = socketClient.isConnected();
       const peerOnline = !!presence;
-      const rtcEligible = peerOnline;
       const webrtcEnabled = MESSAGING.USE_WEBRTC_FOR_TEXT && !MESSAGING.FORCE_RELAY;
-      const shouldTryRtc = prefer !== "relay" && wsConnected && webrtcEnabled;
-
       const lastErr = socketClient.getLastRtcError?.(convId);
       const ineligible = !!(lastErr && (lastErr.reason === 'target_not_rtc_eligible' || lastErr.reason === 'sender_not_rtc_eligible'));
+
+      const shouldTryRtc =
+        prefer !== "relay" &&
+        wsConnected &&
+        webrtcEnabled &&
+        dataChannelReady &&
+        !ineligible;
 
       debugMsg('sendText:start', {
         convId,
         len: text?.length,
         dataChannelReady,
-        rtcEligible,
+        rtcEligible: peerOnline,
         presence: peerOnline,
         wsConnected,
         webrtcEnabled,
@@ -190,7 +207,7 @@ export default function useMessaging({
         lastRtcError: lastErr?.reason || null,
       });
 
-      if (shouldTryRtc && prefer !== "relay" && !ineligible) {
+      if (shouldTryRtc) {
         try { await ensureRtc(peerWallet); } catch {}
         const rtcClient = getRtc(peerWallet);
         try { await rtcClient?.maybeKickNegotiation?.(); } catch {}
@@ -205,10 +222,10 @@ export default function useMessaging({
               convId,
               aad,
             };
-              const ok = rtcClient.sendChat(payload);
-              if (ok) {
-                actions.upsertMessage?.(convId, { clientId, status: "sent", via: "rtc", aad });
-                trackMessageSent(convId, "rtc");
+            const ok = rtcClient.sendChat(payload);
+            if (ok) {
+              actions.upsertMessage?.(convId, { clientId, status: "sent", via: "rtc", aad });
+              trackMessageSent(convId, "rtc");
               debugMsg('sendText:success', { via: 'rtc', clientId });
               try {
                 debugTransport('sent-text', {
@@ -218,8 +235,8 @@ export default function useMessaging({
                   clientId,
                 });
               } catch {}
-                return { ok: true, via: "rtc", clientId };
-              }
+              return { ok: true, via: "rtc", clientId };
+            }
           } else {
             debugMsg('rtc:skip', { peer: peerWallet, reason: 'dc-timeout', timeoutMs: openTimeoutMs });
           }
@@ -227,10 +244,15 @@ export default function useMessaging({
           debugMsg('rtc:skip', { peer: peerWallet, reason: 'no-client' });
         }
       } else {
-        const reason = !webrtcEnabled ? 'feature-off' :
-                      !wsConnected   ? 'ws-closed' :
-                      ineligible     ? 'rtc-error-ineligible' :
-                                        'prefer-relay';
+        const reason = !webrtcEnabled
+          ? 'feature-off'
+          : !wsConnected
+            ? 'ws-closed'
+            : ineligible
+              ? 'rtc-error-ineligible'
+              : !dataChannelReady
+                ? 'dc-not-ready'
+                : 'prefer-relay';
         debugMsg('rtc:skip', { peer: peerWallet, reason });
       }
 
@@ -279,7 +301,7 @@ export default function useMessaging({
       console.warn("[msg] sendText FAIL", { reason: e?.message || e, status: e?.status });
       return { ok: false, reason: e?.message || "send-failed" };
     }
-  }, [convKey, convId, selfWallet, peerWallet, presence, dataChannelReady, ensureRtc, getRtc, debugE2EE, debugMsg]);
+  }, [convKey, convId, selfWallet, peerWallet, presence, dataChannelReady, ensureRtc, getRtc, debugE2EE, debugMsg, registerRecent]);
 
   const sendAttachmentInline = useCallback(async ({ base64, mime, kind, w, h, durMs }, { clientId, forceRelayIfOnline = true } = {}) => {
     const localId = clientId || (globalThis?.crypto?.randomUUID?.() || `f_${Date.now()}`);
@@ -318,6 +340,7 @@ export default function useMessaging({
         envelope: { iv, cipher, aad: mediaAad },
         aad: mediaAad,
       });
+      registerRecent({ text: kind || "media", timestamp: Date.now() });
 
       const res = await relay.enqueue({
         to: peerWallet,
@@ -413,7 +436,7 @@ export default function useMessaging({
       actions.markFailed?.(convId, localId, e.message || "send-failed");
       return { ok: false, reason: e.code || e.message, status: e.status };
     }
-  }, [convId, convKey, peerWallet, selfWallet, presence, getRtc]);
+  }, [convId, convKey, peerWallet, selfWallet, presence, getRtc, registerRecent]);
 
   const sendAttachment = useCallback(async (file, { forceRelayIfOnline = true } = {}) => {
     const clientId = (globalThis?.crypto?.randomUUID?.() || `f_${Date.now()}`);

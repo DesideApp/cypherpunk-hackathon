@@ -26,6 +26,8 @@ export const useAuthManager = () => {
 
   const isEnsuring = useRef(false);
   const pendingAuthRef = useRef(null);
+  const ensurePromiseRef = useRef(null);
+  const ensureOnceRef = useRef(null);
 
   // Estado interno
   const stateRef = useRef({
@@ -173,6 +175,9 @@ export const useAuthManager = () => {
    * - Si no hay wallet → dispara gate en silencio (sin "expired").
    */
   const ensureReady = async (action, force = false) => {
+    if (!force && ensurePromiseRef.current) {
+      return ensurePromiseRef.current;
+    }
     if (isEnsuring.current) return false;
     isEnsuring.current = true;
 
@@ -185,91 +190,116 @@ export const useAuthManager = () => {
       force,
     });
 
-    try {
-      const liveConnected = !!connected && !!publicKey;
-      stateRef.current.walletConnected = liveConnected;
+    const executor = (async () => {
+      try {
+        const liveConnected = !!connected && !!publicKey;
+        stateRef.current.walletConnected = liveConnected;
 
-      // 1) Sincroniza status del server si aún no está listo
-      if (!isReady) {
-        await syncAuthStatus(true);
-        LOG("ensureReady:status-synced");
-      }
+        // 1) Sincroniza status del server si aún no está listo
+        if (!isReady) {
+          await syncAuthStatus(true);
+          LOG("ensureReady:status-synced");
+        }
 
-      // 2) Wallet debe estar conectada → NO emitir 'sessionExpired' en frío
-      if (!liveConnected) {
-        LOG("ensureReady:gate-login (no wallet)");
-        setRequiresLogin(true);
-        return false;
-      }
+        // 2) Wallet debe estar conectada → NO emitir 'sessionExpired' en frío
+        if (!liveConnected) {
+          LOG("ensureReady:gate-login (no wallet)");
+          setRequiresLogin(true);
+          return false;
+        }
 
-      // 3) Autenticación con firma si aún no se hizo en esta sesión
-      if (!stateRef.current.walletAuthed) {
-        try {
-          LOG("ensureReady:authenticating wallet…");
-          if (!pendingAuthRef.current) {
-            pendingAuthRef.current = (async () => {
-              try {
-                return await authenticateWallet();
-              } finally {
-                pendingAuthRef.current = null;
+        // 3) Autenticación con firma si aún no se hizo en esta sesión
+        if (!stateRef.current.walletAuthed) {
+          try {
+            LOG("ensureReady:authenticating wallet…");
+            if (!pendingAuthRef.current) {
+              pendingAuthRef.current = (async () => {
+                try {
+                  return await authenticateWallet();
+                } finally {
+                  pendingAuthRef.current = null;
+                }
+              })();
+            }
+
+            const authResult = await pendingAuthRef.current.catch((err) => {
+              pendingAuthRef.current = null;
+              throw err;
+            });
+            LOG("ensureReady:auth result", authResult);
+            if (!authResult || authResult.status !== "authenticated") {
+              if (isUserCancelError(authResult)) {
+                LOG("ensureReady:auth cancelled by user");
+                return false;
               }
-            })();
-          }
-
-          const authResult = await pendingAuthRef.current.catch((err) => {
-            pendingAuthRef.current = null;
-            throw err;
-          });
-          LOG("ensureReady:auth result", authResult);
-          if (!authResult || authResult.status !== "authenticated") {
-            if (isUserCancelError(authResult)) {
-              LOG("ensureReady:auth cancelled by user");
+              await handleAuthFailure("auth_failed");
+              return false;
+            }
+          } catch (e) {
+            if (isUserCancelError(e)) {
+              LOG("ensureReady:auth cancelled by user (throw)");
               return false;
             }
             await handleAuthFailure("auth_failed");
             return false;
           }
-        } catch (e) {
-          if (isUserCancelError(e)) {
-            LOG("ensureReady:auth cancelled by user (throw)");
+
+          stateRef.current.walletAuthed = true;
+          stateRef.current.jwtValid = true;
+          hadAuthedRef.current = true;
+          setRequiresLogin(false);
+          await syncAuthStatus(true);
+          notify("Authentication complete.", "success");
+        }
+
+        // 4) Refresh si toca (o si se fuerza)
+        if (!stateRef.current.jwtValid || force) {
+          LOG("ensureReady:refreshToken start");
+          const refreshed = await refreshToken(); // emite 'sessionRefreshed' al éxito
+          stateRef.current.jwtValid = !!refreshed;
+
+          if (!refreshed) {
+            LOG("ensureReady:refreshToken FAILED");
+            await handleAuthFailure("refresh_failed");
+            window.dispatchEvent(new CustomEvent("sessionExpired", { detail: { silent: false } }));
             return false;
           }
-          await handleAuthFailure("auth_failed");
-          return false;
+
+          LOG("ensureReady:refreshToken OK");
+          await syncAuthStatus(true);
         }
 
-        stateRef.current.walletAuthed = true;
-        stateRef.current.jwtValid = true;
-        hadAuthedRef.current = true;
-        setRequiresLogin(false);
-        await syncAuthStatus(true);
-        notify("Authentication complete.", "success");
+        if (typeof action === "function") await action();
+        LOG("ensureReady:done OK");
+        return true;
+      } finally {
+        isEnsuring.current = false;
       }
+    })();
 
-      // 4) Refresh si toca (o si se fuerza)
-      if (!stateRef.current.jwtValid || force) {
-        LOG("ensureReady:refreshToken start");
-        const refreshed = await refreshToken(); // emite 'sessionRefreshed' al éxito
-        stateRef.current.jwtValid = !!refreshed;
+    if (!force) {
+      const sharedPromise = executor.finally(() => {
+        if (ensurePromiseRef.current === sharedPromise) ensurePromiseRef.current = null;
+      });
+      ensurePromiseRef.current = sharedPromise;
+      return sharedPromise;
+    }
 
-        if (!refreshed) {
-          LOG("ensureReady:refreshToken FAILED");
-          await handleAuthFailure("refresh_failed");
-          window.dispatchEvent(new CustomEvent("sessionExpired", { detail: { silent: false } }));
-          return false;
-        }
-
-        LOG("ensureReady:refreshToken OK");
-        await syncAuthStatus(true);
-      }
-
-      if (typeof action === "function") await action();
-      LOG("ensureReady:done OK");
-      return true;
+    try {
+      return await executor;
     } finally {
-      isEnsuring.current = false;
+      if (ensurePromiseRef.current === executor) ensurePromiseRef.current = null;
     }
   };
+
+  const ensureReadyOnce = useCallback(() => {
+    if (ensureOnceRef.current) return ensureOnceRef.current;
+    const run = ensureReady();
+    ensureOnceRef.current = run.finally(() => {
+      ensureOnceRef.current = null;
+    });
+    return ensureOnceRef.current;
+  }, [ensureReady]);
 
   return {
     isAuthenticated,
@@ -278,6 +308,7 @@ export const useAuthManager = () => {
     selectedWallet,          // pubkey normalizada
     pubkey: selectedWallet,  // alias
     ensureReady,
+    ensureReadyOnce,
     handleAuthFailure,
   };
 };

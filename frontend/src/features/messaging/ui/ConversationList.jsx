@@ -3,8 +3,8 @@ import React, { useState, memo, useEffect, useMemo, useCallback } from "react";
 import { FaSearch } from "react-icons/fa";
 import { useAuthManager } from "@features/auth/hooks/useAuthManager.js";
 import useConversationManager from "@features/contacts/hooks/useConversationManager";
-import { useSocket } from "@shared/socket/index.jsx";
 import useConversationsPreview from "@features/messaging/hooks/useConversationsPreview.js";
+import { subscribe, getState } from "@features/messaging/store/messagesStore.js";
 import "./ConversationList.css";
 
 const formatPubkey = (pubkey) => {
@@ -39,15 +39,18 @@ const ConversationList = ({ onConversationSelected, selectedPubkey = null }) => 
   const storePreviews = useConversationsPreview(selfWallet);
 
   // Presencia en tiempo real
-  const { onPresence } = useSocket();
-  const [onlineMap, setOnlineMap] = useState({});
+  const [onlineMap, setOnlineMap] = useState(() => {
+    try { return getState()?.presence || {}; }
+    catch { return {}; }
+  });
 
   useEffect(() => {
-    const off = onPresence?.(({ wallet, online }) => {
-      setOnlineMap((prev) => (wallet ? { ...prev, [wallet]: !!online } : prev));
+    const off = subscribe((snap) => {
+      try { setOnlineMap(snap?.presence || {}); }
+      catch {}
     });
     return () => { try { off?.(); } catch {} };
-  }, [onPresence]);
+  }, []);
 
   // Refrescar conversaciones cuando hay sesión (sin gatear con ensureReady aquí)
   useEffect(() => {

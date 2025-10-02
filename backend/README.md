@@ -1,28 +1,20 @@
 # Deside Backend
 
-Deside backend (v0.1 under construction).  
-Architecture based on modular monolith with clear domain separation and adapters for API, WS, and workers.
+API REST (Express) y tiempo real (Socket.IO) para mensajería segura. Arquitectura modular con separaciones por dominio y adaptadores para HTTP/WS; los workers están preparados para tareas en segundo plano.
 
----
+- Cómo arrancar el proyecto y los modos (demo/dev): ver el [README de la raíz](../README.md).
+- Diferencias y flags de ejecución: ver [docs/modes.md](../docs/modes.md).
 
-## 🚀 Status
-- **Version:** 0.1 (work in progress)
-- **Node.js:** >= 20
-- **Database:** MongoDB Atlas
-- **Transport:** REST (Express) + Socket.IO (JWT RS256)
-
----
-
-## 📂 Structure
+## Estructura de código
 
 ```
 src/
   apps/
-    api/         # HTTP adapter (Express)
-      v1/        # API version 1 (current v0.1)
-    ws/          # (future) WebSocket adapter
-    worker/      # (future) Workers / cron tasks
-  modules/       # Domain modules
+    api/         # Adaptador HTTP (Express). Middlewares, versionado y montaje de rutas.
+      v1/        # Versión actual de la API
+    ws/          # Adaptador WebSocket (Socket.IO): handshake, presencia, eventos.
+    worker/      # Punto de entrada para trabajos/tareas (planificado)
+  modules/       # Módulos de dominio (routers/controladores/modelos)
     auth/
     users/
     contacts/
@@ -30,87 +22,63 @@ src/
     relay/
     signal/
     rtc/
-  shared/
-    services/    # Common services
-    utils/       # Utilities
-  config/        # Central configuration
-  jobs/          # Scheduled jobs
+  middleware/    # Seguridad, protección de rutas, rate limiting, etc.
+  config/        # Configuración central y toggles
+  jobs/          # Tareas programadas (cleanup, TTL, índices)
+  shared/        # Servicios/utilidades comunes (claves, logging, helpers)
+  utils/         # Utilidades generales
 ```
 
----
+Además, en `scripts/` hay herramientas operativas (listar endpoints, sincronizar/verificar índices, actualizar TTLs).
 
-## 🔑 Authentication
-- **JWT RS256** (private key stored in `/etc/secrets/jwtRS256.key` on Render).
-- **Two flows:**
-  - Cookies + CSRF (browser clients)
-  - Bearer + `x-internal-api` (SDK / server-to-server)
+## Patrones y convenciones
 
----
+- Versionado de API bajo `apps/api/v1` para aislar cambios contractuales.
+- Controladores delgados; validación/parsing en el borde (middlewares/rutas).
+- Respuestas y errores consistentes; logging estructurado con rotación diaria.
+- Alias de imports definidos en `package.json` para rutas cortas a `src/*`.
+- Índices/expiraciones gestionables mediante scripts en `scripts/ops/*`.
 
-## 🛡️ Security
-- `protectRoute` → validates JWT (cookies or bearer).
-- `adminProtect` → requiere `role: admin` o wallet incluida en `ADMIN_WALLETS` si habilitas rutas admin.
+## Flujos principales
 
----
+- HTTP: solicitud → middlewares (seguridad, CORS, límites) → router versionado → controlador del módulo → respuesta.
+- WebSocket: handshake reutiliza la sesión del navegador; presencia y heartbeats para disponibilidad; canales para señalización RTC y eventos de mensajería.
+- Mensajería:
+  - Relay: endpoints para enqueue/fetch/ack y métricas/configuración.
+  - RTC: el cliente obtiene credenciales ICE y negocia data channels cuando es elegible; si no, se mantiene el relay.
 
-## 📡 API Endpoints (summary)
+## Persistencia y operaciones
 
-### Public
-- `GET /api/health`
-- `POST /api/v1/auth/nonce`
-- `POST /api/v1/auth/auth`
+- Almacenamiento en memoria para evaluación rápida, base local (Docker) o clúster externo, según configuración.
+- Modelos por módulo (Mongoose) cuando aplica. Índices/TTL sincronizables con scripts.
+- Logging con Winston y rotación por día; métricas/exportaciones CSV en puntos operativos cuando procede.
 
-### Private (JWT cookie o Bearer)
-- `GET /api/v1/contacts/*`
-- `GET /api/v1/relay/*`
-- `GET /api/v1/dm/*`
-- `GET /api/v1/signal/*`
-- `GET /api/v1/rtc/ice`
+## Modos (referencia breve)
 
-### RTC (Twilio)
-- `GET /api/v1/rtc/ice` protegido por `protectRoute` y rate limit 10 req/min por usuario.
-- Requiere env: `RTC_PROVIDER=twilio`, `TWILIO_ACCOUNT_SID`, `TWILIO_API_KEY`, `TWILIO_API_SECRET`, opcional `TWILIO_REGION`, `TURN_CRED_TTL`.
+- Demo: pensado para evaluación sin secretos. Datos en memoria con seed y políticas conservadoras (por ejemplo, priorizar relay). Detalles en el [README de la raíz](../README.md) y en [docs/modes.md](../docs/modes.md).
+- Dev: usa tu configuración local y mantiene los mismos contratos/rutas.
 
----
+## Uso básico
 
-## 🔧 Development
-```bash
-npm install
-npm run dev
-```
+- Desarrollo desde la raíz: `npm run dev:backend`.
+- Comandos útiles (ver `backend/package.json`): `endpoints`/`docs` para listar rutas, `indexes:sync`/`indexes:verify` para índices, `ttl:update` para expiraciones.
+- Variables de entorno y ejemplos: consulta los `.env.example` del repositorio (no se duplican aquí).
 
-`.env` example:
-```
-NODE_ENV=development
-MONGO_URI=mongodb+srv://...
-MONGO_DB_NAME=DesideCluster
-JWT_ISSUER=deside-auth-v0.1
-JWT_AUDIENCE=deside-app-v0.1
-ALLOW_BEARER_AUTH=true
-INTERNAL_API_SECRET=int-api-2025-08
-BEARER_ROUTE_WHITELIST=^/api/(?:v1/)?(?:relay|signal|rtc)(?:/.*)?$
-```
+## Extender con nuevos módulos
 
----
+- Crea `src/modules/<tu-modulo>/{controllers,routes,models?,services?}`.
+- Monta el router en `apps/api/v1`; si necesitas eventos en tiempo real, añade handlers en `apps/ws`.
+- Define índices/modelos si procede y sincronízalos con los scripts de `scripts/ops/*`.
+- Mantén validación en el borde, controladores delgados y logging consistente.
 
-## 🧪 Testing in Render shell
-```bash
-export API="http://localhost:${PORT}"
-export INTERNAL_API_SECRET='int-api-2025-08'
+## Troubleshooting
 
-# Health
-curl -sS "$API/api/health" | jq .
+- Sesión/handshake de WS: comprueba orígenes permitidos y que el cliente haya establecido sesión antes del handshake.
+- Caídas a relay: revisa presencia/heartbeats y el endpoint ICE.
+- Límites de payload: el relay aplica límites por seguridad.
+- Para topología y consejos de desarrollo, ver [docs/dev-setup.md](../docs/dev-setup.md).
 
-# Relay usage (private)
-curl -sS -H "Authorization: Bearer $TOKEN" \
-  -H "x-internal-api: $INTERNAL_API_SECRET" \
-  "$API/api/v1/relay/usage" | jq .
-```
+## Referencias
 
----
-
-## 📌 Next steps
-- Document endpoints in `src/apps/api/v1/README.md`.
-- Generate OpenAPI spec for v1.
-- Move jobs to `/apps/worker`.
-- Finalize **SIS (Solana Identity Standard)** endpoints.
+- Topología de desarrollo: [docs/dev-setup.md](../docs/dev-setup.md)
+- Modos y flags: [docs/modes.md](../docs/modes.md)
