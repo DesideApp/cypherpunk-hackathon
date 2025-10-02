@@ -1,24 +1,39 @@
 import { createDebugLogger } from "@shared/utils/debug.js";
+import { STORAGE_NS, COOKIE_NAMES } from "@shared/config/env.js";
 
 let isRefreshing = false;
 let refreshPromise = null;
 
-const CSRF_KEY = "csrfToken";
-const WALLET_SIG_KEY = "walletSignature";
+export const CSRF_STORAGE_KEY = `${STORAGE_NS}:csrfToken`;
+export const WALLET_SIGNATURE_KEY = `${STORAGE_NS}:walletSignature`;
+export const ACCESS_TOKEN_COOKIE = COOKIE_NAMES.accessToken;
+export const REFRESH_TOKEN_COOKIE = COOKIE_NAMES.refreshToken;
+export const CSRF_COOKIE_NAME = COOKIE_NAMES.csrfToken;
+
 const EVENT_DEBOUNCE_MS = 1500;
 let lastExpiredEmit = 0;
 
 const DEBUG = createDebugLogger("Token", { envKey: "VITE_DEBUG_TOKEN_LOGS" });
 
+export function readCookie(name) {
+  try {
+    const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${name}=([^;]+)`));
+    return match ? match[1] : null;
+  } catch {
+    return null;
+  }
+}
+
 export function storeCSRFToken(token) {
   if (!token) return;
   try {
-    const existing = localStorage.getItem(CSRF_KEY);
+    const existing = localStorage.getItem(CSRF_STORAGE_KEY);
     if (existing === token) {
       DEBUG("storeCSRFToken: token unchanged");
       return;
     }
-    localStorage.setItem(CSRF_KEY, token);
+    localStorage.setItem(CSRF_STORAGE_KEY, token);
+    try { localStorage.removeItem('csrfToken'); } catch {}
     DEBUG("storeCSRFToken:", token);
   } catch (err) {
     console.warn("⚠️ No se pudo guardar CSRF Token:", err.message);
@@ -26,13 +41,22 @@ export function storeCSRFToken(token) {
 }
 
 export function getStoredCSRFToken() {
-  const fromCookie = document.cookie.match(/csrfToken=([^;]+)/)?.[1];
+  const fromCookie = readCookie(CSRF_COOKIE_NAME);
   if (fromCookie) {
     storeCSRFToken(fromCookie);
     DEBUG("getStoredCSRFToken(cookie):", fromCookie);
     return fromCookie;
   }
-  const fromLS = localStorage.getItem(CSRF_KEY) || null;
+  const fromLS = localStorage.getItem(CSRF_STORAGE_KEY) || null;
+  if (!fromLS) {
+    try {
+      const legacy = localStorage.getItem('csrfToken');
+      if (legacy) {
+        storeCSRFToken(legacy);
+        return legacy;
+      }
+    } catch {}
+  }
   DEBUG("getStoredCSRFToken(localStorage):", fromLS);
   return fromLS;
 }
@@ -41,7 +65,7 @@ export function getStoredCSRFToken() {
 export function storeWalletSignature(signatureBase58) {
   try {
     if (!signatureBase58) return;
-    localStorage.setItem(WALLET_SIG_KEY, signatureBase58);
+    localStorage.setItem(WALLET_SIGNATURE_KEY, signatureBase58);
     DEBUG("storeWalletSignature: set");
   } catch (err) {
     console.warn("⚠️ No se pudo guardar Wallet Signature:", err?.message);
@@ -50,7 +74,7 @@ export function storeWalletSignature(signatureBase58) {
 
 export function getWalletSignature() {
   try {
-    const v = localStorage.getItem(WALLET_SIG_KEY) || null;
+    const v = localStorage.getItem(WALLET_SIGNATURE_KEY) || null;
     if (v) DEBUG("getWalletSignature: present");
     return v;
   } catch {
@@ -59,15 +83,15 @@ export function getWalletSignature() {
 }
 
 export function clearWalletSignature() {
-  try { localStorage.removeItem(WALLET_SIG_KEY); } catch {}
+  try { localStorage.removeItem(WALLET_SIGNATURE_KEY); } catch {}
 }
 
 /** ✔️ Indica si REALMENTE había sesión previa en el navegador. */
 export function hasSessionTokens() {
   try {
-    const hasCsrf = !!(localStorage.getItem(CSRF_KEY) || document.cookie.match(/csrfToken=([^;]+)/));
-    const hasAccess = document.cookie.includes("accessToken=");
-    const hasRefresh = document.cookie.includes("refreshToken=");
+    const hasCsrf = !!(localStorage.getItem(CSRF_STORAGE_KEY) || readCookie(CSRF_COOKIE_NAME));
+    const hasAccess = !!readCookie(ACCESS_TOKEN_COOKIE);
+    const hasRefresh = !!readCookie(REFRESH_TOKEN_COOKIE);
     return hasCsrf || hasAccess || hasRefresh;
   } catch {
     return false;
@@ -77,8 +101,7 @@ export function hasSessionTokens() {
 /** ✔️ Indica si hay cookies de sesión activas (accessToken o refreshToken). */
 export function hasSessionCookies() {
   try {
-    const c = document.cookie || '';
-    return /(?:^|;\s*)(accessToken|refreshToken)=/.test(c);
+    return !!(readCookie(ACCESS_TOKEN_COOKIE) || readCookie(REFRESH_TOKEN_COOKIE));
   } catch {
     return false;
   }
@@ -146,9 +169,22 @@ export async function refreshToken() {
 
 export function clearSession(reason = "manual") {
   try {
-    localStorage.removeItem(CSRF_KEY);
-    sessionStorage.removeItem(CSRF_KEY);
-    document.cookie = "csrfToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    localStorage.removeItem(CSRF_STORAGE_KEY);
+    sessionStorage.removeItem(CSRF_STORAGE_KEY);
+    try { localStorage.removeItem('csrfToken'); sessionStorage.removeItem('csrfToken'); } catch {}
+    const cookieNames = [
+      ACCESS_TOKEN_COOKIE,
+      REFRESH_TOKEN_COOKIE,
+      CSRF_COOKIE_NAME,
+      'accessToken',
+      'refreshToken',
+      'csrfToken',
+    ];
+    cookieNames.forEach((name) => {
+      try {
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+      } catch {}
+    });
     DEBUG("clearSession:", reason);
   } catch (error) {
     console.error("❌ clearSession error:", error.message);

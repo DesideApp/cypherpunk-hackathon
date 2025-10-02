@@ -8,7 +8,6 @@ export const tokens = {
     '--text-secondary': '#4B5563',         // ✅ Gris azulado intermedio
     '--text-on-surface': '#1F2937',        // ✅ Texto sobre surface
     '--surface-color': '#ffffff',          // ⚪️ Superficie clara (puedes ajustarla)
-    '--bubble-received': '#e4e4e7',        // 💬 Burbuja para mensajes recibidos (claro)
 
     // 🟠 Acción / Botón principal
     '--action-color': '#FC554F',
@@ -50,10 +49,9 @@ export const tokens = {
     '--window-background': '#16171A',
     '--text-primary': '#F5F5F5',
     '--text-on-window': '#F8F8F8',
-    '--text-secondary': '#4B5563',         // ✅ Gris azulado intermedio
-    '--text-on-surface': '#1F2937',        // ✅ Texto sobre surface
+    '--text-secondary': '#B5B5B5',         // Gris claro como en theme.js
+    '--text-on-surface': '#E0E0E0',        // Texto claro sobre surface oscuro
     '--surface-color': '#1f232bff',        // 🌑 Superficie oscura
-    '--bubble-received': '#28333bff',      // 💬 Burbuja para mensajes recibidos (oscuro)
 
     // 🟠 Acción / Botón principal
     '--action-color': '#FC554F',

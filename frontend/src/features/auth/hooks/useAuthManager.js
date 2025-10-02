@@ -1,7 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useServer } from "@features/auth/contexts/ServerContext.jsx";
 import { useWallet } from "@wallet-adapter/core/contexts/WalletProvider";
-import { refreshToken, clearSession } from "@shared/services/tokenService.js";
+import {
+  refreshToken,
+  clearSession,
+  getStoredCSRFToken,
+  readCookie,
+  ACCESS_TOKEN_COOKIE,
+  REFRESH_TOKEN_COOKIE,
+} from "@shared/services/tokenService.js";
 import { useAuthenticateWallet } from "./useAuthenticateWallet";
 import { notify } from "@shared/services/notificationService.js";
 import { createDebugLogger } from "@shared/utils/debug.js";
@@ -117,14 +124,11 @@ export const useAuthManager = () => {
   useEffect(() => {
     const expiredHandler = (evt) => {
       const silent = Boolean(evt?.detail?.silent);
-      const hasCookie =
-        document.cookie.includes("accessToken") ||
-        document.cookie.includes("refreshToken");
-      const hasClientCSRF =
-        !!localStorage.getItem("csrfToken") || !!localStorage.getItem("csrf_token");
+      const hasCookie = !!(readCookie(ACCESS_TOKEN_COOKIE) || readCookie(REFRESH_TOKEN_COOKIE));
+      const hasClientCSRF = !!getStoredCSRFToken();
 
       const hadSession =
-        hadAuthedRef.current || stateRef.current.jwtValid || hasCookie;
+        hadAuthedRef.current || stateRef.current.jwtValid || hasCookie || hasClientCSRF;
 
       LOG("sessionExpired event:", { silent, hasCookie, hasClientCSRF, hadSession });
 

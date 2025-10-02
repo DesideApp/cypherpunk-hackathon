@@ -36,6 +36,7 @@ export function createInboxService({
   let firstSampleLogged = false;
 
   const DEBUG = createDebugLogger("inbox", { envKey: "VITE_DEBUG_INBOX_LOGS" });
+  const DEBUG_TRANSPORT = createDebugLogger("transport", { envKey: "VITE_DEBUG_TRANSPORT_LOGS" });
 
   // --- utils
   const safeTs = (ts) => {
@@ -183,7 +184,7 @@ export function createInboxService({
   async function tryAck(ids) {
     if (!ids?.length) return;
     try {
-      await relay.ackDelivered({ ackIds: ids, wallet: selfWallet });
+      await relay.ackDelivered({ ackIds: ids });
       ids.forEach(id => ackBacklog.delete(id));
     } catch {
       ids.forEach(id => ackBacklog.add(id));
@@ -201,7 +202,7 @@ export function createInboxService({
         await tryAck(Array.from(ackBacklog));
       }
 
-      const { messages = [], cursor: next } = await relay.pullPending({ cursor, limit: DEFAULTS.maxBatch, wallet: selfWallet });
+      const { messages = [], cursor: next } = await relay.pullPending({ cursor, limit: DEFAULTS.maxBatch });
 
       if (Array.isArray(messages) && messages.length && !firstSampleLogged) {
         const sample = messages[0] || {};
@@ -217,7 +218,22 @@ export function createInboxService({
       let normalized = [];
       if (Array.isArray(messages) && messages.length) {
         normalized = messages
-          .map(normalize)
+          .map((msg) => {
+            const norm = normalize(msg);
+            if (norm) {
+              if (!norm.via) norm.via = 'relay';
+              try {
+                DEBUG_TRANSPORT('incoming-relay', {
+                  direction: 'incoming',
+                  transport: 'relay',
+                  convId: norm.convId,
+                  serverId: norm.serverId,
+                  hasEnvelope: !!norm.envelope,
+                });
+              } catch {}
+            }
+            return norm;
+          })
           .filter(Boolean)
           .filter(m => {
             const sid = m.id || m.serverId;

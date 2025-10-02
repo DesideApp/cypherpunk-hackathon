@@ -1,92 +1,62 @@
-# Deside Hackathon Monorepo
+# Deside Hackathon - Encrypted Messaging Platform
 
-Repositorio combinado con el backend Express + Socket.IO y el frontend React (Vite) del messenger. Todo el trabajo para el concurso vive dentro de `deside-hackathon`.
+End-to-end encrypted messaging with blockchain wallet authentication. Combined repository with Express + Socket.IO backend and React (Vite) frontend.
 
-## Estructura
+## Structure
 
 ```
-backend/   # API REST + WebSocket server
-frontend/  # SPA en React (Vite)
+backend/   # REST API + WebSocket server  
+frontend/  # React SPA (Vite)
 ```
 
-Cada paquete mantiene su propio `package.json`, scripts y configuración. El backend sigue la arquitectura modular original (`src/apps`, `src/modules`, `src/shared`, etc.) y el frontend conserva las features (auth, wallets, messaging, contacts, layout, shared services…).
+## Getting Started
 
-## Primeros pasos
+### 🚀 Quick Demo (Recommended for Evaluation)
+```bash
+npm install
+npm run demo
+```
+Open `http://localhost:3000` - No external services needed, demo data pre-loaded.
 
-1. Duplica `.env.example` a `.env` en la raíz y completa los secretos (JWT, Mongo, Twilio…).  
-   - Copia las líneas `VITE_*` a `frontend/.env` (hay plantilla en `frontend/.env.example`).
-2. Instala dependencias desde la raíz con workspaces:
-   ```bash
-   npm install
-   ```
-3. Para demos sin Mongo externo, deja `DATA_MODE=memory` (por defecto); se usará un Mongo embebido con `mongodb-memory-server` que se resetea en cada reinicio. El backend siembra datos de demo automáticamente (`SEED_DEMO=true`).
-4. Arranca backend y frontend desde el root:
-   ```bash
-   npm run dev:backend      # sólo API/WS (nodemon)
-   npm run dev:frontend     # sólo SPA (vite)
-   npm run dev:parallel     # ambos procesos en paralelo (usa concurrently)
-   ```
+### 🔧 Full Development
+```bash
+cp .env.example .env    # Fill in your API keys
+npm install
+npm run dev
+```
 
-## Scripts útiles
+## Scripts
 
-- `npm run dev` / `npm run dev:parallel`: levanta backend y frontend desde la raíz.
-- `npm run dev:backend` / `npm run dev:frontend`: procesos individuales.
-- `npm run lint`: ejecuta ESLint sobre el frontend (React + hooks + TypeScript).
-- `npm run test`: corre Vitest (`frontend/src/shared/utils/base64.test.ts`, `tokenService.test.js`).
-- `npm run build --workspace frontend`: compila la SPA para producción.
-- Scripts históricos siguen disponibles dentro de cada paquete (`backend/npm run start`, `backend/npm run endpoints`, etc.).
+- `npm run demo`: self-contained mode with in-memory database and mock services
+- `npm run dev`: full development mode with external services
+- `npm run lint`: ESLint on frontend
+- `npm run test`: run test suites
 
-## Puertos y procesos
+## Technical Details
 
-- `npm run dev:backend` → levanta el API/WS en `http://localhost:3001` (Mongo embebido, Socket.IO, health OK).
-- `npm run dev:frontend` → levanta Vite en `http://localhost:3000`.
+**Demo Mode:** Uses in-memory MongoDB, mock WebRTC services, pre-seeded data  
+**Dev Mode:** Requires `.env` with real API keys (MongoDB, Twilio, etc.)  
+**Ports:** Backend on `:3001`, Frontend on `:3000`
 
-Antes de arrancar, limpia cualquier proceso previo que use esos puertos:
+### 🔐 E2EE Grade-1 Configuration
+
+The app requires a shared static key for the current encryption tier. Define it in your frontend env (or root `.env`) before running:
 
 ```bash
-# lista puertos en escucha (refresca cada segundo, salir con Ctrl+C)
-watch -n 1 "lsof -nP -iTCP -sTCP:LISTEN"
-
-# o para centrarse en uno concreto
-watch -n 1 "lsof -nP -i :3000"
+VITE_E2E_SHARED_KEY_BASE64=$(openssl rand -base64 32)
 ```
 
-Si `npm run dev:frontend` intenta usar otro puerto (p.ej. 3001), significa que hay un Vite antiguo vivo. Mátalo con:
+If the variable is missing the UI shows the conversations but sending text or media returns `e2e-key-missing` and nothing leaves the browser. The same key must be present in every client instance taking part in the demo.
 
+### Optional: Persistent Database
+
+For persistent data between restarts:
 ```bash
-lsof -i :3000          # identifica el PID
-kill <pid>
+mkdir -p docker-data/mongo
+docker compose -f docker/docker-compose.yml up -d mongo
 ```
+Set `DATA_MODE=local` and `MONGO_URI=mongodb://127.0.0.1:27017/deside` in `.env`.
 
-Para la demo usa `http://localhost:3000` (no 127.0.0.1) y activa `withCredentials:true` en fetch/sockets para que la cookie `accessToken` viaje correctamente. En modo memoria, el backend rellena usuarios/contactos de demo (se puede desactivar con `SEED_DEMO=false`).
+---
 
-### Mongo persistente (opcional)
-
-Si quieres conservar usuarios/contactos entre reinicios:
-
-1. Crea la carpeta de datos y levanta Mongo con Docker Compose:
-   ```bash
-   mkdir -p docker-data/mongo
-   docker compose -f docker/docker-compose.yml up -d mongo
-   ```
-2. Cambia en `.env`:
-   ```
-   DATA_MODE=local
-   MONGO_URI=mongodb://127.0.0.1:27017/deside
-   ```
-3. Reinicia `npm run dev:backend`. Los datos se guardarán en `docker-data/mongo/`.
-
-Para resetear la base de demo:
-
-```bash
-docker compose -f docker/docker-compose.yml down
-rm -rf docker-data/mongo/*
-```
-
-Después vuelve a ejecutar el `docker compose up` de arriba.
-
-## Notas
-
-- Las rutas de API y sockets se mantienen idénticas a las del repositorio original, por lo que no hay cambios en los clientes existentes.
-- Los directorios `node_modules` y artefactos de build están excluidos vía `.gitignore`.
-- Para futuras limpiezas/módulos extra, trabaja siempre dentro de este monorepo para mantener el historial alineado con hackathon.
+*API routes and WebSocket interfaces remain compatible with the original architecture for seamless integration.*

@@ -5,6 +5,8 @@ import {
   hasSessionTokens,
   emitSessionExpired,
   getWalletSignature,
+  readCookie,
+  ACCESS_TOKEN_COOKIE,
 } from "./tokenService.js";
 import { apiUrl } from "@shared/config/env.js";
 
@@ -17,8 +19,10 @@ function normalizeEndpoint(ep) {
 
 function readAccessToken() {
   try {
-    const m = document.cookie.match(/(?:^|;\s*)(accessToken|jwt|idToken)=([^;]+)/i);
-    return m ? decodeURIComponent(m[2]) : null;
+    const cookie = readCookie(ACCESS_TOKEN_COOKIE);
+    if (cookie) return decodeURIComponent(cookie);
+    const fallback = document.cookie.match(/(?:^|;\s*)(jwt|idToken)=([^;]+)/i);
+    return fallback ? decodeURIComponent(fallback[2]) : null;
   } catch { return null; }
 }
 

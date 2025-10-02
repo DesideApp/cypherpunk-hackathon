@@ -5,7 +5,7 @@ import WritingPanel from "./WritingPanel";
 import ChatMessages from "./ChatMessages";
 
 import useMessaging from "@features/messaging/hooks/useMessaging";
-import { MESSAGING } from "@shared/config/env.js";
+import { ENV, MESSAGING } from "@shared/config/env.js";
 import { useSocket } from "@shared/socket";
 import { useAuthManager } from "@features/auth/hooks/useAuthManager.js";
 import { base64ToUtf8 } from "@shared/utils/base64.js";
@@ -99,8 +99,6 @@ function toUiMessage(m, myWallet) {
 
 /* ===================== Componente ===================== */
 
-const DEFAULT_E2EE_KEY = "Z1lIs6c5lT6ZIKEdeHcCz6DY5Bnm1I++jpl+VUgi9kI=";
-
 export default function ChatWindow({ selectedContact, activePanel, setActivePanel }) {
   const { isConnected, isConnecting } = useSocket();
   const { pubkey: myWallet } = useAuthManager();
@@ -122,19 +120,18 @@ export default function ChatWindow({ selectedContact, activePanel, setActivePane
   } = useMessaging({
     selfWallet: myWallet,
     peerWallet,
-    // E2EE estático para demo: usa la clave del .env y cae a un valor por defecto si falta
-    sharedKeyBase64:
-      import.meta?.env?.VITE_MESSAGING_E2EE_SHARED_KEY_B64 || DEFAULT_E2EE_KEY,
+    // Grado-1 E2EE: requiere clave fija en env, si no existe no se envía
+    sharedKeyBase64: (ENV.E2E_SHARED_KEY_BASE64 || '').trim() || null,
   });
 
   // Debug explícito de resolución de clave (ayuda a diagnósticos)
   useEffect(() => {
-    const rawEnv = import.meta?.env?.VITE_MESSAGING_E2EE_SHARED_KEY_B64;
-    const effective = rawEnv || DEFAULT_E2EE_KEY;
+    const rawEnv = (ENV.E2E_SHARED_KEY_BASE64 || '').trim();
+    const resolved = rawEnv || null;
     try {
       console.debug('[E2EE] resolve', {
-        from: rawEnv ? 'env' : 'default',
-        envLen: effective.length,
+        from: resolved ? 'env' : 'missing',
+        envLen: resolved ? resolved.length : 0,
       });
     } catch {}
   }, [peerWallet]);

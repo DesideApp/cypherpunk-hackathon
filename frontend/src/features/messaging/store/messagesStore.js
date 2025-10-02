@@ -3,6 +3,7 @@
 // presencia/typing y errores. API: subscribe, getState, actions.*
 
 import { canonicalConvId } from "../domain/id.js";
+import { STORAGE_NS } from "@shared/config/env.js";
 
 // ✅ ConvId determinista y ÚNICO: "A:B"
 export { canonicalConvId as convId };
@@ -26,6 +27,8 @@ function save(conv, msgs) {
 const state = new Map();          // convId -> Array<msg>
 const subs = new Map();           // convId -> Set<fn(list)>
 const globalSubs = new Set();     // Set<fn(fullState)>
+const presence = new Map();       // wallet -> boolean
+const typing = new Map();         // convId -> boolean (remoto)
 let lastError = null;
 
 // --- Notificación
@@ -48,6 +51,8 @@ export function getState() {
   const byConversation = Object.fromEntries(state.entries());
   return {
     byConversation,
+    presence: Object.fromEntries(presence.entries()),
+    typing: Object.fromEntries(typing.entries()),
     lastError,
   };
 }
@@ -122,13 +127,38 @@ function normalizeIncoming(raw) {
     createdAt: raw?.createdAt || Date.now(),
     sender: raw?.sender || "other",
     status: raw?.status || "sent",
+    via: raw?.via || null,
   };
 
   const payload = raw?.payload ? raw.payload : raw;
+  const from = raw?.from ?? payload?.from ?? raw?.meta?.from ?? null;
+  const to = raw?.to ?? payload?.to ?? raw?.meta?.to ?? null;
+  const convId = raw?.convId ?? payload?.convId ?? raw?.meta?.convId ?? null;
+  const aad = raw?.aad ?? payload?.aad ?? null;
+  const mime = raw?.mime ?? payload?.mime ?? raw?.meta?.mime ?? null;
+  const messageKind = raw?.messageType || payload?.kind || raw?.meta?.kind || null;
+
+  const envelopeFromPayload = payload?.envelope && payload.envelope.iv && payload.envelope.cipher
+    ? { iv: payload.envelope.iv, cipher: payload.envelope.cipher, aad: payload.envelope.aad || payload.envelope.aadB64 || null }
+    : null;
+
+  const envelopeFromLegacy = (!envelopeFromPayload && raw?.box)
+    ? { iv: raw?.iv || payload?.iv || null, cipher: raw.box, aad }
+    : null;
 
   // Texto
   if (payload?.kind === "text" || typeof payload?.text === "string") {
-    return { ...base, kind: "text", text: payload.text ?? String(payload?.body ?? "") };
+    return {
+      ...base,
+      kind: "text",
+      text: payload.text ?? String(payload?.body ?? ""),
+      from,
+      to,
+      convId,
+      aad,
+      envelope: envelopeFromPayload || envelopeFromLegacy || null,
+      via: raw?.via || payload?.via || raw?.transport || raw?.meta?.via || base.via || null,
+    };
   }
 
   // Media (binarios)
@@ -136,10 +166,32 @@ function normalizeIncoming(raw) {
   if (payload?.envelope && payload?.kind === "text") {
     const env = payload.envelope && typeof payload.envelope === 'object' ? payload.envelope : {};
     // Mantener aad si venía fuera para no romper descifrado
-    return { ...base, kind: "text", envelope: { ...env, ...(env?.aad || env?.aadB64 ? {} : (payload?.aad || payload?.aadB64 ? { aad: payload.aad, aadB64: payload.aadB64 } : {})) } };
+    return {
+      ...base,
+      kind: "text",
+      envelope: {
+        ...env,
+        ...(env?.aad || env?.aadB64 ? {} : (payload?.aad || payload?.aadB64 ? { aad: payload.aad, aadB64: payload.aadB64 } : {})),
+      },
+      from,
+      to,
+      convId,
+      aad,
+    };
   }
   // Fallback
-  return { ...base, kind: "text", text: String(payload ?? "") };
+  return {
+    ...base,
+    kind: messageKind || payload?.kind || "text",
+    text: typeof payload === 'string' ? payload : String(payload ?? ""),
+    mime,
+    from,
+    to,
+    convId,
+    aad,
+    envelope: envelopeFromPayload || envelopeFromLegacy || null,
+    via: raw?.via || payload?.via || raw?.transport || raw?.meta?.via || base.via || null,
+  };
 }
 
 // --- API de acciones
@@ -204,4 +256,34 @@ export const actions = {
 
   // Estados auxiliares
   setError(err) { lastError = err; notifyAll(); },
+
+  setPresence(wallet, online) {
+    if (!wallet) return;
+    const bool = !!online;
+    if (bool) {
+      const prev = presence.get(wallet);
+      if (prev === bool) return;
+      presence.set(wallet, true);
+    } else if (presence.has(wallet)) {
+      presence.delete(wallet);
+    } else {
+      return;
+    }
+    notifyAll();
+  },
+
+  setTyping(conv, flag) {
+    if (!conv) return;
+    const bool = !!flag;
+    if (bool) {
+      const prev = typing.get(conv);
+      if (prev === bool) return;
+      typing.set(conv, true);
+    } else if (typing.has(conv)) {
+      typing.delete(conv);
+    } else {
+      return;
+    }
+    notifyAll();
+  },
 };

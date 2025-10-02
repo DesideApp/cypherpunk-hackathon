@@ -10,7 +10,7 @@
 
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { io } from "socket.io-client";
-import { WS_URL } from "@shared/config/env.js";
+import { WS_URL, IS_DEMO } from "@shared/config/env.js";
 import { getWalletSignature, hasSessionCookies } from "@shared/services/tokenService.js";
 import { getCSRFToken } from "@shared/utils/csrf.js";
 import { canonicalConvId } from "@features/messaging/domain/id.js";
@@ -178,20 +178,30 @@ export function SocketProvider({ children }) {
     };
 
     const ensureSocket = () => {
-      if (!hasSessionCookies()) return;
       if (cleanupSocket) return;
+      if (IS_DEMO && !hasSessionCookies()) {
+        setIsConnecting(false);
+        return;
+      }
       setIsConnecting(true);
       cleanupSocket = setupSocket();
     };
 
-    if (hasSessionCookies()) {
+    const shouldAutoConnect = !IS_DEMO || hasSessionCookies();
+    if (shouldAutoConnect) {
       ensureSocket();
     } else {
       setIsConnecting(false);
     }
 
     const onSessionReady = () => {
-      if (!hasSessionCookies()) return;
+      if (IS_DEMO && !hasSessionCookies()) return;
+      if (cleanupSocket) {
+        try {
+          socketRef.current?.connect?.();
+        } catch {}
+        return;
+      }
       ensureSocket();
     };
 
