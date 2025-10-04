@@ -39,12 +39,12 @@ const THEMES = {
 
     // ====== JUPITER PLUGIN (LIGHT) ======
     // Valores de la página de Jupiter (ya en R,G,B):
-    "--jupiter-plugin-primary": "184, 168, 255",      // #B8A8FF (tu connect)
-    "--jupiter-plugin-background": "250, 251, 252",   // #FAFBFC aprox
-    "--jupiter-plugin-primary-text": "42, 52, 66",    // #2A3442 (tu text-primary)
+    "--jupiter-plugin-primary": "210, 199, 255",      // #D1C7FF
+    "--jupiter-plugin-background": "245, 246, 248",   // #F5F6F8
+    "--jupiter-plugin-primary-text": "42, 52, 66",    // #2A3442
     "--jupiter-plugin-warning": "251, 191, 36",       // amber 500
-    "--jupiter-plugin-interactive": "228, 236, 245",  // #E4ECF5
-    "--jupiter-plugin-module": "245, 246, 248",       // #F5F6F8
+    "--jupiter-plugin-interactive": "195, 204, 217",  // #C3CCD9
+    "--jupiter-plugin-module": "223, 226, 236",       // #DFE2EC
     // Compatibilidad (algunas builds usan camelCase):
     "--jupiter-plugin-primaryText": "42, 52, 66"
   },
@@ -89,14 +89,14 @@ const THEMES = {
 
     // ====== JUPITER PLUGIN (DARK) ======
     // Convertido a R,G,B (sin comillas, sin rgb()):
-    "--jupiter-plugin-primary": "138, 110, 255",      // #8A6EFF
-    "--jupiter-plugin-background": "22, 23, 26",      // #16171A
-    "--jupiter-plugin-primary-text": "245, 245, 245", // #F5F5F5
+    "--jupiter-plugin-primary": "176, 144, 252",      // #B090FC
+    "--jupiter-plugin-background": "18, 20, 24",      // #121418
+    "--jupiter-plugin-primary-text": "240, 240, 240", // #F0F0F0
     "--jupiter-plugin-warning": "251, 191, 36",       // amber 500
-    "--jupiter-plugin-interactive": "31, 35, 43",     // #1F232B
-    "--jupiter-plugin-module": "40, 51, 59",          // #28333B
+    "--jupiter-plugin-interactive": "36, 42, 54",     // #242A36
+    "--jupiter-plugin-module": "26, 30, 38",          // #1A1E26
     // Compatibilidad camelCase:
-    "--jupiter-plugin-primaryText": "245, 245, 245"
+    "--jupiter-plugin-primaryText": "240, 240, 240"
   }
 };
 

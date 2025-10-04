@@ -6,6 +6,7 @@ import { useLayout } from '@features/layout/contexts/LayoutContext';
 import { panelEvents } from '@wallet-adapter/ui/system/panel-bus';
 import { useWallet } from '@wallet-adapter/core/contexts/WalletProvider';
 import { useRpc } from '@wallet-adapter/core/contexts/RpcProvider';
+import { PublicKey } from '@solana/web3.js';
 import { useAuth, AUTH_STATUS } from '@features/auth/contexts/AuthContext.jsx';
 import ThemeToggle from '@features/layout/components/ThemeToggle.jsx';
 import './LeftBar.css';
@@ -16,6 +17,12 @@ const STROKE = 2;
 const isDev = typeof process !== 'undefined' && process.env?.NODE_ENV !== 'production';
 const swapEnabled = String(import.meta.env?.VITE_FEATURE_SWAP ?? 'false').toLowerCase() === 'true';
 
+const PASSTHROUGH_SHAPES = {
+  CONTEXT: 'context',
+  WRAPPED_CONTEXT: 'wrapped-context',
+  NONE: 'none',
+};
+
 const LeftBarLogo = () => {
   const { theme } = useLayout();
   const logoSrc = theme === 'dark' ? '/assets/logo-dark.svg' : '/assets/logo-light.svg';
@@ -24,8 +31,16 @@ const LeftBarLogo = () => {
 
 export default function LeftBar() {
   const { isTablet, isMobile, setRightPanelOpen, leftbarExpanded, theme } = useLayout();
-  const { adapter, status: walletStatus, connected, publicKey, connect, availableWallets } = useWallet();
-  const { endpoint } = useRpc();
+  const {
+    adapter,
+    status: walletStatus,
+    connected,
+    publicKey,
+    connect,
+    disconnect,
+    availableWallets,
+  } = useWallet();
+  const { endpoint, connection } = useRpc();
   const { status: authStatus } = useAuth();
   const isReady = authStatus === AUTH_STATUS.READY;
   const walletConnected = Boolean(publicKey);
@@ -38,54 +53,144 @@ export default function LeftBar() {
   // ===== Jupiter Plugin integration =====
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const pluginBootstrappedRef = useRef(false);
+  const passthroughShapeRef = useRef(PASSTHROUGH_SHAPES.NONE);
 
-  const REFERRAL_ACCOUNT = "DVQmBebnW3M6ckxxHnZnMyUgD6598oz6hmi7FU2v5sBX";
-  const REFERRAL_FEE_BPS = 20;
+  const REFERRAL_ACCOUNT = "6kiaNP1ep5yb64mtTkJGwSH5Lgv4rn9vJo9rbQQj8Ppb";
+  const REFERRAL_FEE_BPS = 80;
 
   const getBranding = (t) => {
     const base = t === 'dark' ? '/assets/logo-dark.svg' : '/assets/logo-light.svg';
     return { logoUri: `${base}?v=${t}`, name: 'Deside Swap' };
   };
 
-  function buildJupiterWalletPassthrough(adapter, status) {
+  function buildJupiterWalletPassthrough(adapter, status, connectionRef) {
     if (!adapter) return null;
-    const signMessage =
+
+    const statusConnecting = status === 'connecting';
+    const statusConnected = status === 'connected' || !!adapter.publicKey;
+
+    let publicKeyObj = null;
+    const publicKeyString = adapter.publicKey || null;
+    try {
+      if (publicKeyString) publicKeyObj = new PublicKey(publicKeyString);
+    } catch {
+      publicKeyObj = null;
+    }
+
+    const asUint8Array = (value) =>
+      typeof value === 'string' ? bs58.decode(value) : value;
+
+    const signMessageFn =
       typeof adapter.signMessage === 'function'
         ? async (msg) => {
             const asString = typeof msg === 'string' ? msg : new TextDecoder().decode(msg);
-            const sig = await adapter.signMessage(asString);
-            return typeof sig === 'string' ? new Uint8Array(bs58.decode(sig)) : sig;
+            const signature = await adapter.signMessage(asString);
+            return asUint8Array(signature);
           }
         : undefined;
 
+    const signTransactionFn = adapter.signTransaction?.bind(adapter);
+    const signAllTransactionsFn = adapter.signAllTransactions?.bind(adapter);
+
+    const sendTransactionFn =
+      typeof adapter.signTransaction === 'function'
+        ? async (tx, maybeConnection, options) => {
+            const conn = maybeConnection && typeof maybeConnection.sendRawTransaction === 'function'
+              ? maybeConnection
+              : connectionRef;
+            if (!conn || typeof conn.sendRawTransaction !== 'function') {
+              throw new Error('Connection unavailable for sendTransaction');
+            }
+            const signedTx = await adapter.signTransaction(tx);
+            const serialized = typeof signedTx?.serialize === 'function' ? signedTx.serialize() : signedTx;
+            return conn.sendRawTransaction(serialized, options);
+          }
+        : undefined;
+
+    const connectFn = async () => {
+      try {
+        await adapter.connect?.();
+      } catch {
+        if (availableWallets?.length) {
+          try { await connect(availableWallets[0]); } catch {}
+        }
+      }
+    };
+
+    const disconnectFn = async () => {
+      try { await adapter.disconnect?.(); } catch {}
+      try { await disconnect?.(); } catch {}
+    };
+
+    const walletRecord = adapter
+      ? {
+          adapter,
+          name: adapter.name,
+          icon: adapter.icon,
+          publicKey: publicKeyObj || publicKeyString,
+          readyState: 'Installed',
+        }
+      : null;
+
     return {
-      connected: !!adapter.publicKey,
-      connecting: status === 'connecting',
-      publicKey: adapter.publicKey || null,
-      signTransaction: adapter.signTransaction?.bind(adapter),
-      signAllTransactions: adapter.signAllTransactions?.bind(adapter),
-      signMessage,
-      disconnect: adapter.disconnect?.bind(adapter),
+      autoConnect: false,
+      wallets: walletRecord ? [walletRecord] : [],
+      wallet: walletRecord,
+      publicKey: publicKeyObj || publicKeyString,
+      connecting: statusConnecting,
+      connected: statusConnected,
+      disconnecting: false,
+      select: () => {},
+      connect: connectFn,
+      disconnect: disconnectFn,
+      sendTransaction: sendTransactionFn,
+      signTransaction: signTransactionFn,
+      signAllTransactions: signAllTransactionsFn,
+      signMessage: signMessageFn,
     };
   }
 
-  function initJupiter({ branding, endpoint, walletPassthrough, onConnectRequest }) {
-    const enablePass = !!walletPassthrough;
-    const cfg = {
+  // Intenta inicializar el plugin con distintas formas de passthrough.
+  // Algunas builds esperan { wallet }, otras el objeto directo.
+  // Devuelve la forma aceptada o 'none' si desactivamos passthrough.
+  function initJupiterRobust({ branding, endpoint, walletPassthrough, onConnectRequest }) {
+    const base = {
       displayMode: 'modal',
       formProps: {
         referralAccount: REFERRAL_ACCOUNT,
         referralFee: REFERRAL_FEE_BPS,
       },
-      enableWalletPassthrough: enablePass,
       endpoint,
       onRequestConnectWallet: onConnectRequest,
       branding,
     };
-    if (enablePass) {
-      cfg.passthroughWalletContextState = { wallet: walletPassthrough };
+
+    const attempts = [];
+    if (walletPassthrough) {
+      attempts.push({
+        shape: PASSTHROUGH_SHAPES.CONTEXT,
+        props: { ...base, enableWalletPassthrough: true, passthroughWalletContextState: walletPassthrough },
+      });
+      attempts.push({
+        shape: PASSTHROUGH_SHAPES.WRAPPED_CONTEXT,
+        props: { ...base, enableWalletPassthrough: true, passthroughWalletContextState: { wallet: walletPassthrough } },
+      });
     }
-    window.Jupiter.init(cfg);
+    // Último recurso: sin passthrough (deja que el plugin gestione conexión)
+    attempts.push({ shape: PASSTHROUGH_SHAPES.NONE, props: { ...base, enableWalletPassthrough: false } });
+
+    for (const a of attempts) {
+      try {
+        window.Jupiter.init(a.props);
+        passthroughShapeRef.current = a.shape;
+        return a.shape;
+      } catch (_) {
+        try { window.Jupiter.close?.(); } catch {}
+        try { window.Jupiter.destroy?.(); } catch {}
+      }
+    }
+    passthroughShapeRef.current = PASSTHROUGH_SHAPES.NONE;
+    return PASSTHROUGH_SHAPES.NONE;
   }
 
   const ensurePluginLoaded = async () => {
@@ -116,10 +221,10 @@ export default function LeftBar() {
       if (wasOpen) {
         window.Jupiter.close?.();
         requestAnimationFrame(() => {
-          initJupiter({
+          initJupiterRobust({
             branding,
             endpoint,
-            walletPassthrough: buildJupiterWalletPassthrough(adapter, walletStatus),
+            walletPassthrough: buildJupiterWalletPassthrough(adapter, walletStatus, connection),
             onConnectRequest: () => {
               try { panelEvents.open('connect'); } catch {}
               if (availableWallets?.[0]) connect(availableWallets[0]);
@@ -131,20 +236,28 @@ export default function LeftBar() {
         pluginBootstrappedRef.current = false;
       }
     }
-  }, [theme, scriptLoaded, endpoint, adapter, walletStatus, connect, availableWallets]);
+  }, [theme, scriptLoaded, endpoint, adapter, walletStatus, connection, connect, availableWallets]);
 
   useEffect(() => {
     if (!scriptLoaded || !window.Jupiter || !pluginBootstrappedRef.current) return;
-    const walletPassthrough = buildJupiterWalletPassthrough(adapter, walletStatus);
+    const walletPassthrough = buildJupiterWalletPassthrough(adapter, walletStatus, connection);
     const enablePass = !!walletPassthrough;
     if (typeof window.Jupiter.setProps === 'function') {
       try {
         const props = { endpoint };
         if (enablePass) {
-          Object.assign(props, {
-            enableWalletPassthrough: true,
-            passthroughWalletContextState: { wallet: walletPassthrough },
-          });
+          const shape = passthroughShapeRef.current;
+          if (shape === PASSTHROUGH_SHAPES.NONE) {
+            Object.assign(props, { enableWalletPassthrough: false });
+          } else {
+            const passthroughValue = shape === PASSTHROUGH_SHAPES.WRAPPED_CONTEXT
+              ? { wallet: walletPassthrough }
+              : walletPassthrough;
+            Object.assign(props, {
+              enableWalletPassthrough: true,
+              passthroughWalletContextState: passthroughValue,
+            });
+          }
         } else {
           Object.assign(props, { enableWalletPassthrough: false });
         }
@@ -153,7 +266,7 @@ export default function LeftBar() {
       } catch {}
     }
     pluginBootstrappedRef.current = false;
-  }, [adapter, walletStatus, endpoint, scriptLoaded]);
+  }, [adapter, walletStatus, endpoint, connection, scriptLoaded]);
 
   const openJupiterSwap = async () => {
     if (!swapEnabled) return;
@@ -164,19 +277,40 @@ export default function LeftBar() {
     }
     await ensurePluginLoaded();
     if (!window.Jupiter) return;
+    const openSafely = () => (window.Jupiter.resume?.() || window.Jupiter.open?.());
     if (!pluginBootstrappedRef.current) {
-      initJupiter({
+      const walletContextState = buildJupiterWalletPassthrough(adapter, walletStatus, connection);
+      const shape = initJupiterRobust({
         branding: getBranding(theme),
         endpoint,
-        walletPassthrough: buildJupiterWalletPassthrough(adapter, walletStatus),
+        walletPassthrough: walletContextState,
         onConnectRequest: () => {
           try { panelEvents.open('connect'); } catch {}
           if (availableWallets?.[0]) connect(availableWallets[0]);
         },
       });
       pluginBootstrappedRef.current = true;
+      try {
+        openSafely();
+      } catch (_) {
+        // Fallback: reintentar sin passthrough si la build no soporta la forma usada
+        try { window.Jupiter.close?.(); } catch {}
+        try { window.Jupiter.destroy?.(); } catch {}
+        passthroughShapeRef.current = PASSTHROUGH_SHAPES.NONE;
+        initJupiterRobust({
+          branding: getBranding(theme),
+          endpoint,
+          walletPassthrough: null,
+          onConnectRequest: () => {
+            try { panelEvents.open('connect'); } catch {}
+            if (availableWallets?.[0]) connect(availableWallets[0]);
+          },
+        });
+        openSafely();
+      }
+      return;
     }
-    (window.Jupiter.resume?.() || window.Jupiter.open?.());
+    try { openSafely(); } catch {}
   };
 
   const pages = [
