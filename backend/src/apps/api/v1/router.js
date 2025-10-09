@@ -11,6 +11,8 @@ import signalRoutes       from '#modules/signal/routes/index.js';
 import relayRoutes        from '#modules/relay/routes/index.js';
 import dmRoutes           from '#modules/dm/routes/index.js';
 import rtcRoutes          from '#modules/rtc/routes/index.js';
+import blinkRoutes        from '#modules/blinks/routes/index.js';
+import agreementRoutes    from '#modules/agreements/routes/index.js';
 
 const v1 = Router();
 
@@ -23,6 +25,8 @@ v1.use('/contacts', protectRoute, contactRoutes);
 v1.use('/signal',   protectRoute, signalRoutes);
 v1.use('/relay',    protectRoute, relayRoutes);
 v1.use('/dm',       protectRoute, dmRoutes);
+v1.use('/blinks',   protectRoute, blinkRoutes);
+v1.use('/agreements', protectRoute, agreementRoutes);
 // RTC: privada dentro del módulo (protectRoute en la ruta)
 v1.use('/rtc', rtcRoutes);
 

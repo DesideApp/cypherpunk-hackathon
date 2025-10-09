@@ -1,7 +1,7 @@
 // src/features/messaging/ui/TypingIndicator.jsx
 import React from "react";
 
-export default function TypingIndicator({ isTyping, whoLabel = "El otro usuario" }) {
+export default function TypingIndicator({ isTyping, whoLabel = "The other participant" }) {
   if (!isTyping) return null;
   return (
     <div
@@ -14,7 +14,7 @@ export default function TypingIndicator({ isTyping, whoLabel = "El otro usuario"
       aria-live="polite"
       aria-atomic="true"
     >
-      {whoLabel} está escribiendo…
+      {whoLabel} is typing...
     </div>
   );
 }

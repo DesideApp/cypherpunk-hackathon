@@ -1,6 +1,8 @@
 // src/features/messaging/ui/MessageBubble.jsx
 import React from "react";
 import { Lock } from "lucide-react";
+import AgreementCard from "./AgreementCard.jsx";
+import PaymentRequestCard from "./PaymentRequestCard.jsx";
 import "./MessageBubble.css";
 
 function resolveTransport(via) {
@@ -78,6 +80,34 @@ const MessageBubble = ({ msg = {}, isMe, position }) => {
     .join(" ");
 
   const dataUri = (m) => `data:${m.mime || "application/octet-stream"};base64,${m.base64}`;
+
+  if (msg?.kind === "agreement" && msg?.agreement) {
+    const bubbleClasses = [
+      "message-bubble",
+      "agreement-wrapper",
+      isMe ? "sent" : "received",
+      position,
+    ].join(" ");
+    return (
+      <div className={bubbleClasses} role="listitem">
+        <AgreementCard msg={msg} />
+      </div>
+    );
+  }
+
+  if (msg?.kind === "payment-request" && msg?.paymentRequest) {
+    const bubbleClasses = [
+      "message-bubble",
+      "payment-request-wrapper",
+      isMe ? "sent" : "received",
+      position,
+    ].join(" ");
+    return (
+      <div className={bubbleClasses} role="listitem">
+        <PaymentRequestCard msg={msg} />
+      </div>
+    );
+  }
 
   return (
     <div

@@ -7,6 +7,18 @@
   word-break: break-word;
 }
 
+.message-bubble.agreement-wrapper {
+  padding: 0;
+  background: none;
+  max-width: 100%;
+}
+
+.message-bubble.payment-request-wrapper {
+  padding: 0;
+  background: none;
+  max-width: 100%;
+}
+
 .message-bubble.sent { align-self: flex-end; }
 .message-bubble.received { align-self: flex-start; }
 

@@ -1,0 +1,279 @@
+.payment-card-wrapper {
+  position: relative;
+  display: inline-flex;
+  max-width: clamp(260px, 72vw, 360px);
+  margin: 2px 0;
+  border-radius: 16px;
+}
+
+.payment-card-wrapper--own {
+  align-self: flex-end;
+}
+
+.payment-card-wrapper--contact {
+  align-self: flex-start;
+}
+
+.payment-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 0;
+  box-shadow: none;
+  overflow: hidden;
+  font-family: var(--font-body-family);
+}
+
+/* Sin hairline interno para evitar líneas extra */
+.payment-card::after { display: none; }
+
+/* Quitamos la franja coral lateral para evitar el halo rojo */
+.payment-card::before { display: none; }
+
+.payment-card--contact {
+  /* Telegram: superficie plana, misma que la burbuja */
+  background: var(--bubble-received);
+  color: var(--text-primary);
+}
+
+.payment-card--own {
+  background: var(--sent-message);
+  color: var(--text-on-surface);
+}
+
+/* Estado paid no recolorea el fondo en Telegram; solo icono/chip */
+.payment-card.is-paid { background: inherit; }
+
+.payment-card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.payment-card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+
+.payment-card-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-family: var(--font-caption-family);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text-secondary) 92%, transparent);
+  background: transparent;
+  border: 0;
+}
+
+.payment-card-chip.is-success {
+  color: var(--success-color, #3bd89f);
+  background: rgba(59, 216, 159, 0.16);
+  border-color: rgba(59, 216, 159, 0.32);
+}
+
+.payment-card-date {
+  font-family: var(--font-caption-family);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text-secondary) 90%, transparent);
+}
+
+.payment-card-title {
+  margin: 0;
+  font-family: var(--font-title-family);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.payment-card-subtitle {
+  margin: 0;
+  font-family: var(--font-subtitle-family);
+  font-size: 0.78rem;
+  font-weight: var(--font-subtitle-weight);
+  color: color-mix(in srgb, var(--text-secondary) 88%, transparent);
+}
+
+/* Línea de identidad (pubkey completa, monospace, discreta) */
+.payment-card-id {
+  margin: 2px 0 0;
+  font-family: var(--font-data-family);
+  font-size: 0.72rem;
+  line-height: 1.2;
+  word-break: break-all;
+  color: color-mix(in srgb, var(--text-secondary) 82%, transparent);
+}
+
+.payment-card--own .payment-card-id {
+  color: color-mix(in srgb, var(--text-on-surface) 82%, transparent);
+}
+
+.payment-card--own .payment-card-title,
+.payment-card--own .payment-card-amount-value,
+.payment-card--own .payment-card-meta-value {
+  color: var(--text-on-surface);
+}
+
+.payment-card--own .payment-card-subtitle,
+.payment-card--own .payment-card-note,
+.payment-card--own .payment-card-meta-label {
+  color: color-mix(in srgb, var(--text-on-surface) 85%, transparent);
+}
+
+.payment-card-amount-block {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.payment-card-amount-value {
+  font-family: var(--font-title-family);
+  font-size: 1.24rem;
+  font-weight: 600;
+}
+
+.payment-card-amount-token {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 0;
+  border-radius: 0;
+  font-family: var(--font-caption-family);
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: 0;
+  color: color-mix(in srgb, var(--text-secondary) 88%, transparent);
+  background: transparent;
+}
+
+.payment-card--own .payment-card-amount-token {
+  border: 0;
+  background: transparent;
+  color: color-mix(in srgb, var(--text-on-surface) 88%, transparent);
+}
+
+.payment-card-meta {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: color-mix(in srgb, var(--text-secondary) 85%, transparent);
+}
+
+.payment-card-meta-label {
+  font-family: var(--font-caption-family);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.65rem;
+  color: color-mix(in srgb, var(--text-secondary) 72%, transparent);
+}
+
+.payment-card-meta-value {
+  font-family: var(--font-data-family);
+  font-size: 0.75rem;
+  color: var(--text-primary);
+}
+
+.payment-card-note {
+  margin: 0;
+  font-size: 0.75rem;
+  color: color-mix(in srgb, var(--text-secondary) 88%, transparent);
+}
+
+.payment-card--own .payment-card-note {
+  color: color-mix(in srgb, var(--text-on-surface) 78%, transparent);
+}
+
+.payment-card-divider {
+  display: none; /* Telegram evita separadores visibles */
+}
+
+.payment-card-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.payment-card-primary,
+.payment-card-secondary {
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-family: var(--font-ui-family);
+  font-size: var(--font-ui-size);
+  font-weight: var(--font-ui-weight);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  min-width: 120px;
+  text-align: center;
+}
+
+/* Ajuste de esquinas como las bubbles (dos esquinas marcadas) */
+.message-bubble.received.first  .payment-card { border-top-left-radius: 16px; border-bottom-left-radius: 4px; }
+.message-bubble.received.middle .payment-card { border-top-left-radius: 4px;  border-bottom-left-radius: 4px; }
+.message-bubble.received.last   .payment-card { border-top-left-radius: 4px;   border-bottom-left-radius: 16px; }
+
+.message-bubble.sent.first  .payment-card { border-top-right-radius: 16px; border-bottom-right-radius: 4px; }
+.message-bubble.sent.middle .payment-card { border-top-right-radius: 4px;  border-bottom-right-radius: 4px; }
+.message-bubble.sent.last   .payment-card { border-top-right-radius: 4px;   border-bottom-right-radius: 16px; }
+
+
+.payment-card-primary {
+  background: var(--action-color, #fc554f);
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.payment-card-primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--action-color) 94%, #ffffff 6%);
+}
+
+.payment-card-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.payment-card-secondary {
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
+  color: inherit;
+}
+
+.payment-card-secondary:hover:not(:disabled) {
+  color: var(--text-primary);
+  border-color: color-mix(in srgb, var(--border-color-active) 80%, transparent);
+  background: color-mix(in srgb, var(--hover-overlay) 60%, transparent);
+}
+
+.payment-card-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .payment-card {
+    padding: 14px;
+  }
+
+  .payment-card-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .payment-card-footer button {
+    width: 100%;
+  }
+}

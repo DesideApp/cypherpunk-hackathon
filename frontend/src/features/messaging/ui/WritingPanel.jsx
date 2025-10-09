@@ -37,7 +37,7 @@ const WritingPanel = React.memo(function WritingPanel({
   const typingIntervalRef = useRef(null);
   const lastTypingValueRef = useRef("");
   const gatedOnceRef = useRef(false);
-  const { ensureReadyOnce } = useAuthManager();
+  const { ensureReadyOnce, pubkey: myWallet } = useAuthManager();
 
   const emitTyping = useCallback((flag) => {
     try { onTyping?.(flag); } catch {}
@@ -224,11 +224,9 @@ const WritingPanel = React.memo(function WritingPanel({
           onFocus={handleFocus}
           onBlur={stopTyping}
           rows={1}
-          // Permitir escribir si hay contacto, aunque la clave E2EE no esté lista
           disabled={!hasContact}
         />
 
-        {/* Iconos a la izquierda */}
         <div className="left-icons-container">
           <button
             type="button"
@@ -242,7 +240,6 @@ const WritingPanel = React.memo(function WritingPanel({
           </button>
         </div>
 
-        {/* Clear */}
         {message.trim() && (
           <button
             type="button"
@@ -262,7 +259,6 @@ const WritingPanel = React.memo(function WritingPanel({
         )}
       </div>
 
-      {/* Enviar */}
       <button
         type="button"
         className="send-button"
