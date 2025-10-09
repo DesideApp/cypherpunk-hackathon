@@ -90,7 +90,7 @@ const ChatMessages = ({
       aria-live="polite"
       aria-relevant="additions"
     >
-      {/* Sin contacto seleccionado → previews */}
+      {/* No contact selected → previews */}
       {!selectedContact && (
         <div className="chat-placeholder-container">
           {(previews?.length ?? 0) === 0 ? (

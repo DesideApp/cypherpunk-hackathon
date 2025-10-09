@@ -5,6 +5,15 @@ SPA en React + Vite. Cliente de mensajería E2EE con transporte RTC/Relay y aute
 - Cómo arrancar el proyecto y los modos (demo/dev): ver el [README de la raíz](../README.md).
 - Diferencias y flags de ejecución: ver [docs/modes.md](../docs/modes.md).
 
+## Swap (Jupiter) — cambio de red sin afectar WS/RTC
+
+- La app core (WS/RTC) permanece en devnet usando `VITE_WS_URL` y `VITE_SOLANA_RPC` del `.env`.
+- El swap usa variables propias en `.env`:
+  - `VITE_JUPITER_MODE=devnet | mainnet`
+  - `VITE_JUPITER_RPC_DEVNET`, `VITE_JUPITER_RPC_MAINNET`
+- Cambia solo `VITE_JUPITER_MODE` y reinicia Vite para probar el swap en mainnet sin romper presencia/RTC.
+- Más detalles: [docs/runbook-env.md](../docs/runbook-env.md)
+
 ## Estructura de código
 
 ```

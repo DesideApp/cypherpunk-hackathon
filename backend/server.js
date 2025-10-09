@@ -186,11 +186,17 @@ const startServer = async () => {
     app.use(express.static(path.join(__dirname, 'public')));
 
     // Rate limit global "soft"
+    const RATE_LIMIT_SKIP_PREFIXES = [
+      '/api/v1/relay/fetch',
+      '/api/v1/relay/ack',
+    ];
+
     app.use(rateLimit({
       windowMs: 15 * 60 * 1000,
       max: 500,
       standardHeaders: true,
-      legacyHeaders: false
+      legacyHeaders: false,
+      skip: (req) => RATE_LIMIT_SKIP_PREFIXES.some((prefix) => req.path && req.path.startsWith(prefix)),
     }));
     logger.info('✅ Middleware setup complete');
 

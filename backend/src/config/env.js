@@ -15,6 +15,14 @@ export const env = cleanEnv(process.env, {
   RELAY_MAX_BOX_BYTES:      num({ default: 3_000_000 }),        // 3 MB FINAL
   RELAY_TTL_SECONDS:        num({ default: 30 * 24 * 3600 }),   // 30 días
 
+  DIALECT_API_BASE_URL:     str({ default: 'https://api.dial.to/v1' }),
+  DIALECT_BLINK_CLIENT_KEY: str({ default: '' }),
+
+  SOLANA_RPC_URL:           str({ default: 'https://api.devnet.solana.com' }),
+  SOLANA_COMMITMENT:        str({ default: 'confirmed' }),
+  SOLANA_CLUSTER:           str({ default: 'devnet' }),
+  SOLANA_TIMEOUT_MS:        num({ default: 20_000 }),
+
   // Auth para pruebas (Bearer)
   ALLOW_BEARER_AUTH:        bool({ default: false }),
   BEARER_ROUTE_WHITELIST:   str({ default: '^/api/relay/,^/api/signal/' }),

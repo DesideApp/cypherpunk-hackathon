@@ -41,6 +41,15 @@ export default function LeftBar() {
     availableWallets,
   } = useWallet();
   const { endpoint, connection } = useRpc();
+  // Jupiter endpoint aislado del core: usa sus propias env vars (no rompe RTC/WS)
+  const J_MODE_RAW = (import.meta.env?.VITE_JUPITER_MODE || 'devnet');
+  const J_MODE = String(J_MODE_RAW).toLowerCase();
+  const J_RPC_MAIN = import.meta.env?.VITE_JUPITER_RPC_MAINNET;
+  const J_RPC_DEV = import.meta.env?.VITE_JUPITER_RPC_DEVNET;
+  const jupiterEndpoint =
+    (J_MODE === 'mainnet' || J_MODE === 'mainnet-beta')
+      ? (J_RPC_MAIN || endpoint)
+      : (J_RPC_DEV || endpoint);
   const { status: authStatus } = useAuth();
   const isReady = authStatus === AUTH_STATUS.READY;
   const walletConnected = Boolean(publicKey);
@@ -223,7 +232,7 @@ export default function LeftBar() {
         requestAnimationFrame(() => {
           initJupiterRobust({
             branding,
-            endpoint,
+            endpoint: jupiterEndpoint,
             walletPassthrough: buildJupiterWalletPassthrough(adapter, walletStatus, connection),
             onConnectRequest: () => {
               try { panelEvents.open('connect'); } catch {}
@@ -244,7 +253,7 @@ export default function LeftBar() {
     const enablePass = !!walletPassthrough;
     if (typeof window.Jupiter.setProps === 'function') {
       try {
-        const props = { endpoint };
+        const props = { endpoint: jupiterEndpoint };
         if (enablePass) {
           const shape = passthroughShapeRef.current;
           if (shape === PASSTHROUGH_SHAPES.NONE) {
@@ -266,7 +275,7 @@ export default function LeftBar() {
       } catch {}
     }
     pluginBootstrappedRef.current = false;
-  }, [adapter, walletStatus, endpoint, connection, scriptLoaded]);
+  }, [adapter, walletStatus, endpoint, connection, scriptLoaded, jupiterEndpoint]);
 
   const openJupiterSwap = async () => {
     if (!swapEnabled) return;
@@ -282,7 +291,7 @@ export default function LeftBar() {
       const walletContextState = buildJupiterWalletPassthrough(adapter, walletStatus, connection);
       const shape = initJupiterRobust({
         branding: getBranding(theme),
-        endpoint,
+        endpoint: jupiterEndpoint,
         walletPassthrough: walletContextState,
         onConnectRequest: () => {
           try { panelEvents.open('connect'); } catch {}

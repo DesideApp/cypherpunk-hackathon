@@ -22,6 +22,86 @@
   position: relative;
 }
 
+.chat-composer-zone {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-action-bar-shell {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 8px);
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.chat-action-bar-shell .action-bar {
+  pointer-events: auto;
+  display: inline-flex;
+  gap: 8px;
+  padding: 0 8px;
+  max-width: min(420px, 100%);
+}
+
+.action-bar-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--border-color) 65%, transparent);
+  background: color-mix(in srgb, var(--window-background) 70%, transparent);
+  backdrop-filter: blur(8px);
+  color: var(--text-on-window, var(--text-secondary));
+  font-size: 0.85rem;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.action-bar-button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--background-color) 82%, transparent);
+  color: var(--text-primary);
+  border-color: var(--border-color-active);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.16);
+}
+
+.action-bar-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.action-bar-button.pending {
+  border-color: var(--border-color-active);
+  color: var(--text-primary);
+}
+
+.action-bar-button.disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .chat-action-bar-shell {
+    bottom: calc(100% + 4px);
+  }
+
+  .chat-action-bar-shell .action-bar {
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .action-bar-button {
+    flex: 0 0 auto;
+    min-width: 32%;
+  }
+}
+
 /* =========================================
    💬 CONTENEDOR DE MENSAJES
    👉 el scroll lo gestiona .chat-messages (hijo)
@@ -100,5 +180,203 @@
 
   .chat-empty-content p {
     font-size: 0.8rem;
+  }
+}
+
+/* =========================================
+   ⚡ Modal de acciones Blink
+========================================= */
+.chat-action-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.chat-action-modal {
+  background: var(--window-background);
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+  width: min(340px, 92vw);
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  gap: 16px;
+  color: var(--text-primary);
+}
+
+.chat-action-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.chat-action-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.chat-action-close {
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  font-size: 1.4rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px;
+}
+
+.chat-action-close:hover {
+  color: var(--text-primary);
+}
+
+.chat-action-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.chat-action-description {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.chat-action-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.chat-action-summary span {
+  background: color-mix(in srgb, var(--window-background) 75%, transparent);
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
+.chat-action-help {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.agreement-modal textarea {
+  resize: vertical;
+  min-height: 90px;
+}
+
+.agreement-payer-toggle {
+  display: inline-flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.agreement-toggle {
+  border-radius: 999px;
+  padding: 6px 14px;
+  border: 1px solid var(--border-color);
+  background: color-mix(in srgb, var(--window-background) 70%, transparent);
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.agreement-toggle.active {
+  background: color-mix(in srgb, var(--background-color) 85%, transparent);
+  border-color: var(--border-color-active);
+  color: var(--text-primary);
+}
+
+.agreement-toggle:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.chat-action-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.9rem;
+}
+
+.chat-action-field span {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.chat-action-field select,
+.chat-action-field input {
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: var(--background-color);
+  padding: 10px 12px;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.chat-action-field select:focus,
+.chat-action-field input:focus {
+  outline: none;
+  border-color: var(--border-color-active);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--border-color-active) 25%, transparent);
+}
+
+.chat-action-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.chat-action-secondary,
+.chat-action-primary {
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.chat-action-secondary {
+  background: transparent;
+  border-color: var(--border-color);
+  color: var(--text-secondary);
+}
+
+.chat-action-secondary:hover {
+  color: var(--text-primary);
+  border-color: var(--border-color-active);
+}
+
+.chat-action-primary {
+  background: var(--accent-color, #4c6ef5);
+  color: #fff;
+}
+
+.chat-action-primary:hover {
+  background: var(--accent-color-strong, #3554dd);
+}
+
+@media (max-width: 600px) {
+  .chat-action-modal {
+    width: min(360px, 94vw);
+  }
+
+  .chat-action-footer {
+    flex-direction: column-reverse;
+  }
+
+  .chat-action-secondary,
+  .chat-action-primary {
+    width: 100%;
+    text-align: center;
   }
 }

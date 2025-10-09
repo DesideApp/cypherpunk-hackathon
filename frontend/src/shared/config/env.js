@@ -51,11 +51,17 @@ const COOKIE_NAMES = {
 };
 
 const E2E_SHARED_KEY_BASE64 = readEnv('VITE_E2E_SHARED_KEY_BASE64', '');
+const SOLANA_CHAIN = readEnv('VITE_SOLANA_CHAIN', IS_DEMO ? 'devnet' : 'mainnet-beta');
 
 // --- bases (con alias compatibles) ---
 const API_BASE_URL = trimRightSlash(
   readFirst(['VITE_API_BASE_URL', 'VITE_BACKEND_URL'], 'http://localhost:10000')
 );
+
+const DIALECT_API_BASE_URL = trimRightSlash(
+  readEnv('VITE_DIALECT_API_BASE_URL', 'https://api.dial.to/v1')
+);
+const DIALECT_CLIENT_KEY = readEnv('VITE_BLINK_CLIENT_KEY', '');
 
 // Socket.IO puede recibir base HTTP/HTTPS; internamente usará /socket.io
 const WS_URL = trimRightSlash(
@@ -126,6 +132,22 @@ const MESSAGING = {
   HEARTBEAT_INTERVAL_MS: toNum(readEnv('VITE_HEARTBEAT_INTERVAL_MS', `${25 * 1000}`), 25 * 1000),
 };
 
+// --- feature flags de la app (expuestos para UI/flows) ---
+const FEATURES = {
+  AGREEMENT_VERIFY: toBool(readEnv('VITE_FEATURE_AGREEMENT_VERIFY', 'false'), false),
+  AGREEMENT_SETTLEMENT: toBool(readEnv('VITE_FEATURE_AGREEMENT_SETTLEMENT', 'false'), false),
+  PAYMENT_INLINE_EXEC: toBool(readEnv('VITE_PAYMENT_INLINE_EXEC', 'true'), true),
+};
+
+const DIALECT = {
+  API_BASE_URL: DIALECT_API_BASE_URL,
+  CLIENT_KEY: DIALECT_CLIENT_KEY,
+};
+
+const SOLANA = {
+  CHAIN: SOLANA_CHAIN,
+};
+
 // --- helpers públicos ---
 export function apiUrl(path) {
   if (!path) return API_BASE_URL;
@@ -134,10 +156,10 @@ export function apiUrl(path) {
 }
 
 // Named exports (útiles si quieres importar sin ENV)
-export { API_BASE_URL, WS_URL, ENDPOINTS, RTC_CONFIG, MESSAGING, IS_DEMO, STORAGE_NS, CACHE_NS, COOKIE_NAMES, E2E_SHARED_KEY_BASE64 };
+export { API_BASE_URL, WS_URL, ENDPOINTS, RTC_CONFIG, MESSAGING, IS_DEMO, STORAGE_NS, CACHE_NS, COOKIE_NAMES, E2E_SHARED_KEY_BASE64, FEATURES, DIALECT, SOLANA };
 
 // Default aggregate
-export const ENV = { API_BASE_URL, WS_URL, ENDPOINTS, RTC_CONFIG, MESSAGING, IS_DEMO, STORAGE_NS, CACHE_NS, COOKIE_NAMES, E2E_SHARED_KEY_BASE64 };
+export const ENV = { API_BASE_URL, WS_URL, ENDPOINTS, RTC_CONFIG, MESSAGING, IS_DEMO, STORAGE_NS, CACHE_NS, COOKIE_NAMES, E2E_SHARED_KEY_BASE64, FEATURES, DIALECT, SOLANA };
 export default ENV;
 
 // Debug visible SOLO en dev
