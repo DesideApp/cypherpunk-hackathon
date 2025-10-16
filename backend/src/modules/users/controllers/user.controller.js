@@ -38,6 +38,10 @@ export async function findUserByPubkey(req, res) {
       blocked,
       nickname: user.nickname || null,
       avatar: user.avatar || null,
+      social: {
+        x: user.social?.x || null,
+        website: user.social?.website || null,
+      },
     });
   } catch (error) {
     console.error("❌ Error checking user:", error);

@@ -7,8 +7,17 @@
   width: 100%;
   height: 100%;
   min-height: 0; /* ✅ permite que el hijo scrollee dentro de un contenedor flex */
-  background-color: var(--window-background);
 }
+
+.chat-window-inner {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 0;
+}
+
 
 /* =========================================
    🧩 BODY (Mensajes + Writing Panel)
@@ -18,72 +27,182 @@
   flex-direction: column;
   flex: 1;
   min-height: 0; /* ✅ crítico para que el área de mensajes tenga scroll propio */
-  background-color: var(--background-color);
   position: relative;
+}
+
+.chat-window-messages {
+  position: relative;
+  flex: 1;
+  min-height: 0;
 }
 
 .chat-composer-zone {
   position: relative;
   display: flex;
   flex-direction: column;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0; /* Sin padding extra, WritingPanel gestiona su propio ancho */
+  padding-left: 0; /* Alineado al borde izquierdo como ChatMessages */
+  padding-right: 8px; /* Mismo espacio que scrollbar-gutter de ChatMessages */
 }
 
+/* Responsive - composer zone (sin padding, lo gestiona WritingPanel) */
+
 .chat-action-bar-shell {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: calc(100% + 8px);
+  position: relative; /* ✅ Flujo normal, NO absolute */
   display: flex;
   justify-content: center;
   pointer-events: none;
-  z-index: 4;
+  margin-top: 12px; /* ✅ Respiro desde ChatMessages */
+  margin-bottom: 8px; /* Separación con WritingPanel */
+  z-index: 2;
 }
 
 .chat-action-bar-shell .action-bar {
   pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  padding-right: 60px; /* Espacio para botón Send (42px) + margin-left (10px) + gap (8px) */
+  width: 100%;
+  max-width: 840px; /* MISMO contenedor que WritingPanel */
+  margin: 0 auto;
+  justify-content: space-between; /* Acciones izquierda, Balance derecha */
+  box-sizing: border-box;
+}
+
+.action-bar-left {
   display: inline-flex;
   gap: 8px;
-  padding: 0 8px;
-  max-width: min(420px, 100%);
+}
+
+.action-bar-right {
+  display: inline-flex;
+  align-items: center;
+  /* Sin margin-right, space-between lo gestiona */
 }
 
 .action-bar-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 34px;
+  height: 36px;
   padding: 0 16px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--border-color) 65%, transparent);
-  background: color-mix(in srgb, var(--window-background) 70%, transparent);
-  backdrop-filter: blur(8px);
-  color: var(--text-on-window, var(--text-secondary));
-  font-size: 0.85rem;
+  border-radius: 18px; /* Match con input wrapper */
+  border: none;
+  background: var(--window-background);
+  color: var(--text-secondary); /* Acciones interactivas */
+  font-size: 13px;
+  font-weight: var(--font-caption-weight);
   cursor: pointer;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
-  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: none;
+  transition: var(--transition-all);
+  letter-spacing: -0.01em;
 }
 
 .action-bar-button:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--background-color) 82%, transparent);
-  color: var(--text-primary);
-  border-color: var(--border-color-active);
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.16);
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.95);
+  transform: scale(1.05);
 }
 
 .action-bar-button:disabled {
   cursor: not-allowed;
-  opacity: 0.55;
+  color: var(--text-muted); /* Color plano para disabled */
 }
 
 .action-bar-button.pending {
-  border-color: var(--border-color-active);
-  color: var(--text-primary);
+  background: var(--active-overlay);
+  color: var(--accent-color);
 }
 
 .action-bar-button.disabled {
-  opacity: 0.55;
+  color: var(--text-muted); /* Color plano para disabled */
   cursor: not-allowed;
+}
+
+/* ===== Fund chip (saldo + pelota +) ===== */
+.action-bar-fund-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  padding: 0 6px 0 12px;
+  border-radius: 18px; /* Match con input wrapper */
+  border: none;
+  background: var(--window-background);
+  color: var(--text-muted); /* Balance info */
+  box-shadow: none;
+  transition: var(--transition-all);
+}
+
+.action-bar-fund-chip:hover {
+  background: rgba(255, 255, 255, 0.12);
+  transform: scale(1.05);
+}
+
+.action-bar-fund-chip.disabled {
+  pointer-events: none;
+}
+
+.action-bar-fund-chip.disabled .fund-balance-btn {
+  color: var(--text-muted); /* Color plano para disabled */
+}
+
+.action-bar-fund-chip.disabled .fund-plus-btn {
+  color: var(--text-muted); /* Color plano para disabled */
+}
+
+.fund-balance-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  padding: 0 6px 0 0;
+  border: none;
+  color: inherit; /* Hereda del fund-chip (40%) */
+  font-size: 0.9rem;
+  font-weight: 600; /* Mantener negrita (era var(--font-title-weight) que es 600) */
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: var(--transition-all);
+}
+
+.fund-balance-btn:hover {
+  color: var(--text-secondary); /* Hover mismo tono que botones */
+}
+
+.fund-plus-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--window-background); /* Mismo fondo que todos los botones */
+  color: var(--text-secondary); /* Mismo color que botones */
+  box-shadow: none;
+  cursor: pointer;
+  transition: var(--transition-all);
+}
+
+.fund-plus-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.95); /* Hover más claro */
+  transform: scale(1.08);
+}
+
+.fund-plus-btn:active {
+  transform: scale(0.95);
+}
+
+@media (max-width: 640px) {
+  .fund-balance-btn { display: none; }
+  .action-bar-fund-chip { padding: 0 4px; height: 40px; }
+  .fund-plus-btn { width: 36px; height: 36px; }
 }
 
 @media (max-width: 640px) {
@@ -99,6 +218,10 @@
   .action-bar-button {
     flex: 0 0 auto;
     min-width: 32%;
+  }
+
+  .action-bar-right {
+    margin-right: 8px; /* Mantiene recogido en móviles */
   }
 }
 
@@ -137,7 +260,7 @@
 .dc-status-hint {
   align-self: center;
   margin: 4px 0 6px;
-  font-size: 12px;
+  font-size: var(--font-caption-size);
   color: var(--text-secondary);
 }
 
@@ -161,7 +284,7 @@
 
 .chat-empty-content h2 {
   font-size: 1.2rem;
-  font-weight: 500;
+  font-weight: var(--font-caption-weight);
   color: var(--text-on-window);
 }
 
@@ -189,7 +312,7 @@
 .chat-action-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: var(--overlay-dark-heavy);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
@@ -198,15 +321,16 @@
 }
 
 .chat-action-modal {
-  background: var(--window-background);
-  border-radius: 16px;
+  background: var(--surface-color);
+  border-radius: var(--radius-xl);
   border: 1px solid var(--border-color);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+  box-shadow: var(--elevated-shadow);
+  backdrop-filter: blur(20px);
   width: min(340px, 92vw);
   display: flex;
   flex-direction: column;
-  padding: 20px;
-  gap: 16px;
+  padding: 24px;
+  gap: 20px;
   color: var(--text-primary);
 }
 
@@ -220,7 +344,7 @@
 .chat-action-header h2 {
   margin: 0;
   font-size: 1.1rem;
-  font-weight: 600;
+  font-weight: var(--font-title-weight);
 }
 
 .chat-action-close {
@@ -258,7 +382,7 @@
 }
 
 .chat-action-summary span {
-  background: color-mix(in srgb, var(--window-background) 75%, transparent);
+ /* Hereda del contenedor padre */
   border-radius: 999px;
   padding: 4px 10px;
 }
@@ -283,14 +407,14 @@
   border-radius: 999px;
   padding: 6px 14px;
   border: 1px solid var(--border-color);
-  background: color-mix(in srgb, var(--window-background) 70%, transparent);
+ /* Hereda del contenedor padre */
   cursor: pointer;
   font-size: 0.85rem;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  transition: var(--transition-all);
 }
 
 .agreement-toggle.active {
-  background: color-mix(in srgb, var(--background-color) 85%, transparent);
+  background: color-mix(in srgb, var(--window-background) 85%, transparent);
   border-color: var(--border-color-active);
   color: var(--text-primary);
 }
@@ -309,63 +433,68 @@
 
 .chat-action-field span {
   color: var(--text-secondary);
-  font-weight: 500;
+  font-weight: var(--font-caption-weight);
 }
 
 .chat-action-field select,
 .chat-action-field input {
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
-  background: var(--background-color);
-  padding: 10px 12px;
+  background: var(--window-background);
+  padding: var(--font-caption-size) 14px;
   color: var(--text-primary);
   font-size: 0.95rem;
+  transition: var(--transition-all);
 }
 
 .chat-action-field select:focus,
 .chat-action-field input:focus {
   outline: none;
   border-color: var(--border-color-active);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--border-color-active) 25%, transparent);
+  box-shadow: 0 0 0 3px var(--hover-overlay);
 }
 
 .chat-action-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  gap: var(--font-caption-size);
 }
 
 .chat-action-secondary,
 .chat-action-primary {
-  border-radius: 999px;
-  padding: 8px 18px;
+  border-radius: var(--radius-full);
+  padding: 10px 20px;
   font-size: 0.95rem;
+  font-weight: var(--font-caption-weight);
   cursor: pointer;
   border: 1px solid transparent;
-  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition: var(--transition-all);
 }
 
 .chat-action-secondary {
-  background: transparent;
   border-color: var(--border-color);
   color: var(--text-secondary);
 }
 
 .chat-action-secondary:hover {
+  background: var(--hover-overlay);
   color: var(--text-primary);
   border-color: var(--border-color-active);
 }
 
 .chat-action-primary {
-  background: var(--accent-color, #4c6ef5);
-  color: #fff;
+  background: var(--accent-color);
+  color: var(--surface-color);
+  box-shadow: 0 2px 8px rgba(252, 85, 79, 0.25);
 }
 
 .chat-action-primary:hover {
-  background: var(--accent-color-strong, #3554dd);
+  background: var(--accent-color-strong);
+  box-shadow: 0 4px var(--font-caption-size) rgba(252, 85, 79, 0.35);
+  transform: translateY(-1px);
 }
 
-@media (max-width: 600px) {
+@media (max-width: var(--font-title-weight)px) {
   .chat-action-modal {
     width: min(360px, 94vw);
   }

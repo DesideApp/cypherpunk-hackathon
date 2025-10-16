@@ -17,6 +17,25 @@ export const env = cleanEnv(process.env, {
 
   DIALECT_API_BASE_URL:     str({ default: 'https://api.dial.to/v1' }),
   DIALECT_BLINK_CLIENT_KEY: str({ default: '' }),
+  TELEGRAM_BUY_BLINK_BASE_URL: str({ default: '' }),
+  TELEGRAM_BUY_SHARE_BASE_URL: str({ default: '' }),
+  TELEGRAM_TOKEN_LIST:         str({ default: '' }),
+  TELEGRAM_ALLOW_GROUP_MESSAGES: bool({ default: false }),
+
+  // Jupiter (Ultra/API Gateway)
+  JUPITER_API_KEY:          str({ default: '' }),
+  JUPITER_QUOTE_URL:        str({ default: 'https://quote-api.jup.ag/v6/quote' }),
+  JUPITER_SWAP_URL:         str({ default: 'https://quote-api.jup.ag/v6/swap' }),
+  JUPITER_PLATFORM_FEE_BPS: num({ default: 0 }),
+  JUPITER_FEE_ACCOUNT:      str({ default: '' }),
+
+  // Token mints para blinks de compra
+  MINT_BONK:                str({ default: '' }),
+  MINT_JUP:                 str({ default: '' }),
+  MINT_PENGU:               str({ default: '' }),
+  MINT_PUMP:                str({ default: '' }),
+  MINT_WIF:                 str({ default: '' }),
+  MINT_JitoSOL:             str({ default: '' }),
 
   SOLANA_RPC_URL:           str({ default: 'https://api.devnet.solana.com' }),
   SOLANA_COMMITMENT:        str({ default: 'confirmed' }),

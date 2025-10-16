@@ -7,6 +7,28 @@ import { getLatestBlockhash, confirmSignature, getParsedTransaction } from '#sha
 
 const MEMO_PREFIX = 'AGREEMENT::';
 
+async function sleep(delayMs) {
+  await new Promise((resolve) => setTimeout(resolve, delayMs));
+}
+
+export async function fetchAgreementTransaction(txSig, { maxAttempts = 4, delayMs = 450 } = {}) {
+  let parsed = null;
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    try {
+      await confirmSignature(txSig);
+    } catch (error) {
+      logger.warn('[agreement] confirmSignature failed', { txSig, attempt, error: error?.message });
+    }
+
+    parsed = await getParsedTransaction(txSig);
+    if (parsed) break;
+    if (attempt < maxAttempts - 1) {
+      await sleep(delayMs);
+    }
+  }
+  return parsed;
+}
+
 function agreementFingerprint(agreement) {
   const base = {
     title: agreement?.title || '',
@@ -103,13 +125,7 @@ export async function verifySignatureTransaction({ txSig, agreement, signer }) {
   const hash = ensureAgreementHash(agreement);
   const expectedMemo = buildMemoFromHash(hash);
 
-  try {
-    await confirmSignature(txSig);
-  } catch (error) {
-    logger.warn('[agreement] confirmSignature failed', { txSig, error: error?.message });
-  }
-
-  const parsed = await getParsedTransaction(txSig);
+  const parsed = await fetchAgreementTransaction(txSig);
   if (!parsed) {
     return { ok: false, reason: 'TX_NOT_FOUND' };
   }

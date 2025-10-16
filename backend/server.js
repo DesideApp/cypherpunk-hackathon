@@ -54,9 +54,16 @@ const envAllowed = (env.ALLOWED_ORIGINS || '')
   .map(s => s.trim())
   .filter(Boolean);
 
+const DEFAULT_DEV_ORIGINS = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:3002',
+  'http://localhost:5173'
+];
+
 const ALLOWED_ORIGINS = Array.isArray(config.allowedOrigins) && config.allowedOrigins.length
   ? config.allowedOrigins
-  : (envAllowed.length ? envAllowed : ['http://localhost:3000']);
+  : (envAllowed.length ? envAllowed : DEFAULT_DEV_ORIGINS);
 
 const corsLogTimestamps = new Map();
 const CORS_LOG_TTL_MS = Math.max(Number(process.env.CORS_LOG_TTL_MS ?? 30000) || 0, 1000);
@@ -288,10 +295,21 @@ const startServer = async () => {
 
     logger.info('🚀 Starting HTTP server...');
     // 7) Levantar HTTP server (lo hace apps/ws internamente)
-    server.listen(PORT, () => {
+    server.listen(PORT, async () => {
       logger.info(`🚀 Server listening on port ${PORT}`);
       logger.info(`🩺 Health: http://localhost:${PORT}/api/health`);
       logger.info('✅ Server startup complete');
+      
+      // 8) Iniciar bot de Telegram
+      try {
+        const { startTelegramBot } = await import('./src/modules/telegram-bot/index.js');
+        await startTelegramBot();
+        logger.info('🤖 Telegram bot started successfully');
+      } catch (error) {
+        logger.error('❌ Telegram bot failed to start:', error.message);
+        logger.error('❌ Telegram bot error stack:', error.stack);
+        console.error('Full Telegram bot error:', error);
+      }
     });
 
   } catch (error) {

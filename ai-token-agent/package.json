@@ -1,0 +1,26 @@
+{
+  "name": "deside-token-agent",
+  "version": "1.0.0",
+  "description": "Agente de IA automatizado para añadir tokens SPL de Solana al sistema de blinks",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "add": "node src/index.js add",
+    "discover": "node src/index.js discover",
+    "watch": "node src/index.js watch",
+    "list": "node src/index.js list",
+    "remove": "node src/index.js remove",
+    "update-prices": "node src/index.js update-prices",
+    "insights": "node src/index.js insights",
+    "cleanup": "node src/index.js cleanup"
+  },
+  "dependencies": {
+    "@solana/web3.js": "^1.98.4",
+    "chalk": "^5.4.1",
+    "commander": "^12.1.0",
+    "node-fetch": "^3.3.2",
+    "ora": "^8.1.1",
+    "prompts": "^2.4.2"
+  }
+}
+

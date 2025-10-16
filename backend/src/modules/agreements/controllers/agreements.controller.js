@@ -1,6 +1,6 @@
 import Agreement from '../models/agreement.model.js';
 import { AgreementStatus } from '../constants.js';
-import { buildSignatureTransaction, verifySignatureTransaction } from '../services/signature.service.js';
+import { buildSignatureTransaction, verifySignatureTransaction, fetchAgreementTransaction } from '../services/signature.service.js';
 
 function asIsoOrNull(value) {
   if (!value) return null;
@@ -272,11 +272,37 @@ export async function markAgreementSettled(req, res) {
       return res.status(400).json({ error: 'VALIDATION_FAILED', message: 'Transaction signature required.' });
     }
 
+    const signature = txSig.trim();
+    const parsed = await fetchAgreementTransaction(signature);
+    if (!parsed) {
+      return res.status(422).json({ error: 'TX_NOT_FOUND' });
+    }
+    if (parsed.meta?.err) {
+      return res.status(422).json({ error: 'TX_REVERTED', details: parsed.meta.err });
+    }
+
+    const accounts = parsed.transaction?.message?.accountKeys || [];
+    const hasPayer = accounts.some((acc) => {
+      const pk = acc?.pubkey || acc?.toBase58?.() || acc;
+      return pk === agreement.payer;
+    });
+    const hasPayee = accounts.some((acc) => {
+      const pk = acc?.pubkey || acc?.toBase58?.() || acc;
+      return pk === agreement.payee;
+    });
+
+    if (!hasPayer || !hasPayee) {
+      return res.status(422).json({
+        error: 'PARTICIPANT_MISMATCH',
+        details: { expected: [agreement.payer, agreement.payee] },
+      });
+    }
+
     agreement.receipt = {
       ...(agreement.receipt || {}),
       settlement: {
         status: 'settled',
-        txSig: txSig.trim(),
+        txSig: signature,
         recordedAt: new Date(),
       },
     };

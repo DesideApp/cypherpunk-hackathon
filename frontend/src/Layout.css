@@ -1,18 +1,7 @@
 /* ---------------------------------------------
    ✅ GLOBAL LAYOUT
 ---------------------------------------------- */
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-body {
-  background: var(--background-color);
-  font-family: 'Roboto', sans-serif;
-}
+/* html, body se definen en Chat.css (página específica) */
 
 /* ---------------------------------------------
    ✅ Vars locales (solo layout)
@@ -41,11 +30,11 @@ body {
 /* Contenido principal */
 .layout-content {
   grid-area: content;
-  background: var(--background-color);
+  background: transparent; /* Los hijos aplican sus propios colores */
   overflow: hidden;        /* evita scroll doble; ajusta si lo necesitas */
   z-index: 1;              /* por debajo de overlays/modales */
   position: relative;
-  min-width: 0; /* evita que el contenido “rompa” la columna y se cuele bajo el rail */
+  min-width: 0; /* evita que el contenido "rompa" la columna y se cuele bajo el rail */
 }
 
 /* Bottom bar eliminado */

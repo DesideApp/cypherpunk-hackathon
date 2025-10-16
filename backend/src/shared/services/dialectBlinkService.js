@@ -1,6 +1,7 @@
 import fetch from 'node-fetch';
 import { env } from '#config/env.js';
 import logger from '#config/logger.js';
+import { validateBlinkAction } from './blinkValidationService.js';
 
 const DEFAULT_TIMEOUT_MS = 15_000;
 const ALLOWED_HOST_SUFFIX = '.dial.to';
@@ -80,6 +81,20 @@ export async function executeBlinkAction({ actionUrl, account, timeoutMs = DEFAU
   }
 
   const normalizedActionUrl = assertAllowedActionUrl(actionUrl);
+  
+  // Validar parámetros específicos del blink (mints, montos, etc.)
+  try {
+    validateBlinkAction(normalizedActionUrl);
+  } catch (error) {
+    if (error instanceof BlinkExecutionError) {
+      throw error;
+    }
+    throw new BlinkExecutionError('Blink validation failed', {
+      status: 400,
+      body: { error: 'BLINK_VALIDATION_FAILED', details: error.message },
+      url: normalizedActionUrl,
+    });
+  }
   const targetUrl = buildBlinkExecuteUrl(normalizedActionUrl);
 
   logger.info('▶️ [blink] executing action', {

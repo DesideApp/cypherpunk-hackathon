@@ -25,6 +25,21 @@ const userSchema = new mongoose.Schema({
   nickname: { type: String, default: null },
   avatar:   { type: String, default: null }, // URL o CID/IPFS si aplica
 
+  // Social (perfiles opcionales)
+  social: {
+    x: {
+      type: String,
+      default: null,
+      trim: true,
+      maxlength: 32,
+    },
+    website: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+  },
+
   // Moderación
   // Alias: `user.isBanned` apunta a `banned`
   banned: { type: Boolean, default: false, alias: 'isBanned' },
