@@ -6,7 +6,7 @@ import { resolve } from "path";
 const backendUrl =
   process.env.VITE_BACKEND_URL || (process.env.NODE_ENV === "production"
     ? "https://backend-deside.onrender.com"
-    : "http://localhost:3000");
+    : "http://localhost:3001");
 
 const isProduction = process.env.NODE_ENV === "production";
 
@@ -48,6 +48,7 @@ export default defineConfig({
       "@pages": resolve(__dirname, "src/pages"),
       "@main": resolve(__dirname, "src/main"),
       "@Layout": resolve(__dirname, "src/Layout"),
+      "@utils": resolve(__dirname, "src/utils"),
     },
     // Evita copias duplicadas de React que provocan "Invalid hook call"
     dedupe: ["react", "react-dom"],
@@ -66,13 +67,13 @@ export default defineConfig({
         target: backendUrl,
         changeOrigin: true,
         secure: isProduction,
-        rewrite: (path) => path.replace(/^\/api/, ""),
+        rewrite: (path) => path.replace(/^\/api/, "/api"),
       },
       "/socket.io": {
         target: backendUrl,
         ws: true,
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/socket.io/, ""),
+        rewrite: (path) => path.replace(/^\/socket.io/, "/socket.io"),
       },
     },
   },

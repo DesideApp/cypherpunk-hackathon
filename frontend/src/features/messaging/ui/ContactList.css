@@ -26,14 +26,14 @@
   border: none;
   background: transparent;
   outline: none;
-  font-family: 'Montserrat', sans-serif;
-  font-size: 14px;
+  font-family: var(--font-title-family);
+  font-size: var(--font-navigation-size);
   color: var(--text-color);
   flex-grow: 1;
 }
 
 .search-icon {
-  font-size: 14px;
+  font-size: var(--font-navigation-size);
   color: rgba(128, 128, 128, 0.85);
   margin-right: 8px;
 }
@@ -53,12 +53,12 @@
   background-color: var(--bubble-background);
   border: 2px solid rgba(128, 128, 128, 0.15);
   border-radius: 12px;
-  padding: 10px 14px;
+  padding: 10px var(--font-navigation-size);
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 10px;
-  transition: background-color 0.2s ease-in-out, filter 0.2s ease-in-out;
+  transition: var(--transition-all);
 }
 
 .contact-item:hover {
@@ -67,7 +67,7 @@
 }
 
 .contact-item.active {
-  border-color: #fc554f;
+  border-color: var(--error-color);
   background-color: var(--bubble-background);
   filter: brightness(1.2);
 }
@@ -82,7 +82,7 @@
 
 /* 📌 Nombre o nickname */
 .contact-name {
-  font-family: 'Montserrat', sans-serif;
+  font-family: var(--font-title-family);
   font-size: 0.95rem;
   color: var(--text-color);
 }

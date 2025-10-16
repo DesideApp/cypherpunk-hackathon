@@ -3,8 +3,8 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-// TTL (segundos). Usa RELAY_MESSAGE_TTL o RELAY_TTL_SECONDS. Fallback: 30 días.
-const FALLBACK_TTL = 60 * 60 * 24 * 30; // 2592000
+// TTL (segundos). Usa RELAY_MESSAGE_TTL o RELAY_TTL_SECONDS. Fallback: 90 días.
+const FALLBACK_TTL = 60 * 60 * 24 * 90; // 7776000
 const parsed = parseInt(
   process.env.RELAY_MESSAGE_TTL ?? process.env.RELAY_TTL_SECONDS ?? String(FALLBACK_TTL),
   10
@@ -62,7 +62,7 @@ const relaySchema = new mongoose.Schema(
     /** 🏷️ Tipo de mensaje para categorización */
     messageType: {
       type: String,
-      enum: ['text', 'file', 'image', 'audio', 'video', 'system', 'other'],
+      enum: ['text', 'file', 'image', 'audio', 'video', 'system', 'other', 'blink-action'],
       default: 'text',
       index: true
     },

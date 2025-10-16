@@ -1,0 +1,221 @@
+/* TokenSearch.css */
+.token-search {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+}
+
+.token-search__input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.token-search__input {
+  width: 100%;
+  padding: 12px 16px;
+  padding-right: 40px;
+  border: 2px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--background-color, #ffffff);
+  color: var(--text-color, #1f2937);
+  transition: border-color 0.2s ease;
+}
+
+.token-search__input:focus {
+  outline: none;
+  border-color: var(--accent-color, #3b82f6);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.token-search__input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.token-search__spinner {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e5e7eb;
+  border-top: 2px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.token-search__results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--background-color, #ffffff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 1000;
+  margin-top: 4px;
+}
+
+.token-search__result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border-bottom: 1px solid var(--border-color, #f3f4f6);
+}
+
+.token-search__result:last-child {
+  border-bottom: none;
+}
+
+.token-search__result:hover {
+  background-color: var(--hover-color, #f9fafb);
+}
+
+.token-search__result--found {
+  background-color: var(--success-bg, #f0fdf4);
+}
+
+.token-search__result--not-found {
+  background-color: var(--warning-bg, #fffbeb);
+}
+
+.token-search__result-content {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.token-search__result-icon {
+  font-size: 16px;
+  margin-right: 12px;
+}
+
+.token-search__result-info {
+  flex: 1;
+}
+
+.token-search__result-code {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-color, #1f2937);
+  margin-bottom: 2px;
+}
+
+.token-search__result-label {
+  font-size: 12px;
+  color: var(--text-secondary, #6b7280);
+}
+
+.token-search__add-button {
+  padding: 6px 12px;
+  background: var(--accent-color, #3b82f6);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.token-search__add-button:hover:not(:disabled) {
+  background: var(--accent-hover, #2563eb);
+}
+
+/* Estilos para tipos de coincidencia */
+.match-type {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.match-type--exact_symbol {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+  border-color: rgba(34, 197, 94, 0.2);
+}
+
+.match-type--exact_name {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+  border-color: rgba(34, 197, 94, 0.2);
+}
+
+.match-type--prefix_symbol {
+  background: rgba(251, 191, 36, 0.1);
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.2);
+}
+
+.match-type--prefix_name {
+  background: rgba(251, 191, 36, 0.1);
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.2);
+}
+
+.match-type--partial_symbol {
+  background: rgba(156, 163, 175, 0.1);
+  color: #9ca3af;
+  border-color: rgba(156, 163, 175, 0.2);
+}
+
+.match-type--partial_name {
+  background: rgba(156, 163, 175, 0.1);
+  color: #9ca3af;
+  border-color: rgba(156, 163, 175, 0.2);
+}
+
+.token-search__add-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .token-search__input {
+    background: var(--dark-background, #1f2937);
+    color: var(--dark-text, #f9fafb);
+    border-color: var(--dark-border, #374151);
+  }
+  
+  .token-search__results {
+    background: var(--dark-background, #1f2937);
+    border-color: var(--dark-border, #374151);
+  }
+  
+  .token-search__result:hover {
+    background-color: var(--dark-hover, #374151);
+  }
+  
+  .token-search__result-code {
+    color: var(--dark-text, #f9fafb);
+  }
+  
+  .token-search__result-label {
+    color: var(--dark-text-secondary, #9ca3af);
+  }
+}

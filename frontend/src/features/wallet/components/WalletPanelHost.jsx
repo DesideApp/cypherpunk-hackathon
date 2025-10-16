@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth, AUTH_STATUS } from '@features/auth/contexts/AuthContext.jsx';
 import { useWallet } from '@wallet-adapter/core/contexts/WalletProvider';
 import { SidePanel } from '@wallet-adapter/ui/panels/SidePanel';
 import WalletMenuContent from '@wallet-adapter/ui/components/WalletMenuContent';
+import AuthFlowShell from '@wallet-adapter/ui/system/AuthFlowShell';
 import { panelEvents } from '@wallet-adapter/ui/system/panel-bus';
+import { useLayout } from '@features/layout/contexts/LayoutContext';
 
 const isDev =
   typeof process !== 'undefined' && process.env?.NODE_ENV !== 'production';
@@ -17,6 +19,21 @@ export default function WalletPanelHost() {
 
   const [open, setOpen] = useState(false);
   const [wantOpen, setWantOpen] = useState(false); // recordatorio de “abre menú” pendiente
+  const MODE = String(import.meta.env?.VITE_WALLET_PANEL_MODE || 'modal').toLowerCase();
+  const { theme } = useLayout(); // fuerza re-render al cambiar tema
+
+  // Safe-area para no tapar la leftbar (usado por el modal)
+  const leftInsetPx = useMemo(() => {
+    try {
+      const raw = getComputedStyle(document.documentElement)
+        .getPropertyValue('--leftbar-width')
+        .trim();
+      const n = parseInt(raw || '68', 10);
+      return Number.isFinite(n) ? n : 68;
+    } catch {
+      return 68;
+    }
+  }, []);
 
   // Escucha del bus
   useEffect(() => {
@@ -59,12 +76,27 @@ export default function WalletPanelHost() {
   }, [open, isReady, walletConnected]);
 
   return (
-    <SidePanel
-      isOpen={open}
-      onClose={() => setOpen(false)}
-      disableBackdropClose={false} // aquí ya no hay hard‑gate
-    >
-      <WalletMenuContent onClose={() => setOpen(false)} />
-    </SidePanel>
+    MODE === 'modal' ? (
+      <AuthFlowShell
+        key={`wa-shell-${theme}`}
+        open={open}
+        view={'panel'}
+        // Slot gate vacío (no lo usamos en menú)
+        gate={<div />}
+        // Panel: contenido del menú existente, con su botón de cerrar
+        panel={<WalletMenuContent onClose={() => setOpen(false)} />}
+        // Safe-area para no tapar el rail
+        leftInsetPx={leftInsetPx}
+      />
+    ) : (
+      <SidePanel
+        key={`wa-side-${theme}`}
+        isOpen={open}
+        onClose={() => setOpen(false)}
+        disableBackdropClose={false}
+      >
+        <WalletMenuContent onClose={() => setOpen(false)} />
+      </SidePanel>
+    )
   );
 }

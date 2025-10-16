@@ -2,12 +2,14 @@
 // Compositor simplificado: sólo texto + envío rápido.
 
 import React, { useState, useRef, useCallback, useMemo, useEffect } from "react";
-import { Send, Smile, X } from "lucide-react";
+import { Smile, X, Zap, Zap as ZapIcon } from "lucide-react";
 import data from "@emoji-mart/data";
 import Picker from "@emoji-mart/react";
 import ENV from "@shared/config/env.js";
 import { useAuthManager } from "@features/auth/hooks/useAuthManager.js";
 import { notify } from "@shared/services/notificationService.js";
+// Parser de comandos naturales simplificado
+import { useBlinkDetection, BlinkList } from "./BlinkPreview.jsx";
 import "./WritingPanel.css";
 
 const TEXT_MAX_BYTES = Number(ENV?.MESSAGING?.TEXT_MAX_BYTES || 32 * 1024);
@@ -23,9 +25,14 @@ const WritingPanel = React.memo(function WritingPanel({
   activePeer,
   isContactConfirmed = true,
   canSend = true,
+  sendPaymentRequest, // función para enviar payment requests
+  onOpenSendModal, // función para abrir modal de Send
 }) {
   const [message, setMessage] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  // const [commandPreview, setCommandPreview] = useState(null); // REMOVIDO - ahora usa placeholder dinámico
+  const [isProcessingCommand, setIsProcessingCommand] = useState(false);
+  const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
   const inputRef = useRef(null);
   const wrapperRef = useRef(null);
   const prevHeightRef = useRef(42);
@@ -38,6 +45,11 @@ const WritingPanel = React.memo(function WritingPanel({
   const lastTypingValueRef = useRef("");
   const gatedOnceRef = useRef(false);
   const { ensureReadyOnce, pubkey: myWallet } = useAuthManager();
+
+  // Parser simplificado para comandos naturales
+
+  // Detectar blinks en el mensaje
+  const { detectedBlinks: currentBlinks, hasBlinks } = useBlinkDetection(message);
 
   const emitTyping = useCallback((flag) => {
     try { onTyping?.(flag); } catch {}
@@ -91,6 +103,7 @@ const WritingPanel = React.memo(function WritingPanel({
     const trimmed = message.trim();
     if (!trimmed) return;
 
+    // Validaciones básicas
     if (!hasContact) { notify("Select a contact before sending a message.", "error"); return; }
     if (!activePeer) { notify("No active peer selected.", "error"); return; }
     if (!isContactConfirmed) { notify("That contact is not confirmed yet. Accept/request before sending.", "warning"); return; }
@@ -101,6 +114,37 @@ const WritingPanel = React.memo(function WritingPanel({
     }
 
     try {
+      setIsProcessingCommand(true);
+      
+      // ✅ DETECCIÓN DE COMANDO "enviar X sol"
+      const sendCommand = trimmed.match(/enviar\s+(\d+(?:\.\d+)?)\s+sol/i);
+      
+      if (sendCommand) {
+        const amount = sendCommand[1];
+        console.log('🚀 Send command detected:', amount, 'SOL');
+        
+        // Abrir modal de Send con campos pre-rellenados
+        if (onOpenSendModal) {
+          // Activar animación de éxito
+          setShowSuccessAnimation(true);
+          
+          // Abrir modal después de un pequeño delay para la animación
+          setTimeout(() => {
+            onOpenSendModal({
+              kind: 'send',
+              amount: amount,
+              token: 'SOL'
+            });
+            resetInput();
+            setShowSuccessAnimation(false);
+          }, 800); // Duración de la animación
+          return;
+        } else {
+          console.error('❌ onOpenSendModal function not provided');
+        }
+      }
+      
+      // Si no es un comando, enviar como mensaje normal
       const ready = await ensureReadyOnce();
       if (!ready) return;
       if (typeof onSendText !== "function") {
@@ -113,11 +157,14 @@ const WritingPanel = React.memo(function WritingPanel({
         return;
       }
       resetInput();
+      
     } catch (error) {
-      console.error("Error sending message:", error);
-      notify("Error sending the message. Check your connection.", "error");
+      console.error("Error processing message:", error);
+      notify(`Error: ${error.message}`, "error");
+    } finally {
+      setIsProcessingCommand(false);
     }
-  }, [message, hasContact, activePeer, isContactConfirmed, canSend, ensureReadyOnce, onSendText]);
+  }, [message, hasContact, activePeer, isContactConfirmed, canSend, myWallet, ensureReadyOnce, onSendText, onOpenSendModal]);
 
   // attachments removed in this MVP
 
@@ -144,7 +191,29 @@ const WritingPanel = React.memo(function WritingPanel({
     setMessage(value);
     adjustHeight();
     updateTypingState(value);
+    
+    // Comando detection removido - ahora usa placeholder dinámico
   };
+
+   // Placeholder dinámico
+   const dynamicPlaceholder = useMemo(() => {
+     if (!message.trim()) {
+       return hasContact ? "Write a message..." : "Select a contact";
+     }
+     
+     // Detectar si hay un blink en el mensaje
+     const blinkDetected = message.toLowerCase().includes('buy ') || 
+                          message.toLowerCase().includes('transfer ') ||
+                          message.toLowerCase().includes('swap ') ||
+                          message.toLowerCase().includes('enviar ');
+     
+     if (blinkDetected) {
+       return "Enter para enviar blink";
+     }
+     
+     // Si hay texto pero no es blink, mostrar placeholder vacío para que no interfiera
+     return "";
+   }, [message, hasContact]);
 
   const handleKeyDown = (event) => {
     if (event.key === "Enter" && !event.shiftKey) {
@@ -213,62 +282,93 @@ const WritingPanel = React.memo(function WritingPanel({
 
   return (
     <div ref={wrapperRef} className="writing-panel" aria-live="polite">
-      <div className={`input-wrapper ${message.trim() ? "has-text" : ""}`}>
-        <textarea
-          ref={inputRef}
-          className="chat-input input-base input-lg"
-          placeholder={hasContact ? "Write a message..." : "Select a contact"}
-          value={message}
-          onChange={handleChange}
-          onKeyDown={handleKeyDown}
-          onFocus={handleFocus}
-          onBlur={stopTyping}
-          rows={1}
-          disabled={!hasContact}
-        />
+      {/* Blink Previews */}
+      {hasBlinks && (
+        <div className="blink-previews-container">
+          <BlinkList 
+            urls={currentBlinks} 
+            onExecute={(url) => {
+              window.open(url, '_blank', 'noopener,noreferrer');
+              notify('Abriendo blink...', 'info');
+            }}
+          />
+        </div>
+      )}
+      
+      <div className="input-row">
+         <div className={`input-wrapper ${message.trim() ? "has-text" : ""}`}>
+          {/* Input con texto dinámico que incluye la sugerencia */}
+          <div className="dynamic-text-container">
+            <span className="user-text">
+              {message}
+            </span>
+            {message.trim() && dynamicPlaceholder.includes("Enter para enviar blink") && (
+              <span className="blink-suggestion-inline" 
+                    style={{ marginLeft: `${message.length * 0.6}em` }}>
+                <ZapIcon size={16} strokeWidth={2} className={`blink-icon ${showSuccessAnimation ? 'success-fill' : ''}`} />
+                {dynamicPlaceholder}
+              </span>
+            )}
+          </div>
+          
+          <textarea
+            ref={inputRef}
+            className="chat-input input-base input-lg"
+            placeholder={!message.trim() ? dynamicPlaceholder : ""}
+            value={message}
+            onChange={handleChange}
+            onKeyDown={handleKeyDown}
+            onFocus={handleFocus}
+            onBlur={stopTyping}
+            rows={1}
+            disabled={!hasContact}
+          />
 
-        <div className="left-icons-container">
-          <button
-            type="button"
-            className="emoji-icon"
-            ref={emojiBtnRef}
-            onClick={() => setShowEmojiPicker((v) => !v)}
-            title="Emoji"
-            aria-label="Insert emoji"
-          >
-            <Smile size={18} />
-          </button>
+          <div className="left-icons-container">
+            <button
+              type="button"
+              className="emoji-icon"
+              ref={emojiBtnRef}
+              onClick={() => setShowEmojiPicker((v) => !v)}
+              title="Emoji"
+              aria-label="Insert emoji"
+            >
+              <Smile size={20} />
+            </button>
+          </div>
+
+          {message.trim() && (
+            <button
+              type="button"
+              className="clear-icon"
+              onClick={resetInput}
+              aria-label="Clear message"
+              title="Clear"
+            >
+              <X size={16} />
+            </button>
+          )}
+
+          {showEmojiPicker && (
+            <div ref={emojiPickerRef} className="emoji-picker-wrapper">
+              <Picker data={data} onEmojiSelect={insertEmoji} theme="auto" />
+            </div>
+          )}
         </div>
 
-        {message.trim() && (
           <button
             type="button"
-            className="clear-icon"
-            onClick={resetInput}
-            aria-label="Clear message"
-            title="Clear"
+            className="send-button"
+            onClick={handleSend}
+            disabled={!message.trim() || !canSend || isProcessingCommand}
+            aria-label="Send message"
+            title="Send"
           >
-            <X size={16} />
-          </button>
-        )}
-
-        {showEmojiPicker && (
-          <div ref={emojiPickerRef} className="emoji-picker-wrapper">
-            <Picker data={data} onEmojiSelect={insertEmoji} theme="auto" />
-          </div>
-        )}
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+          </svg>
+        </button>
       </div>
-
-      <button
-        type="button"
-        className="send-button"
-        onClick={handleSend}
-        disabled={!message.trim() || !canSend}
-        aria-label="Send message"
-        title="Send"
-      >
-        <Send size={18} />
-      </button>
     </div>
   );
 });

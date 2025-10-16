@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import PropTypes from "prop-types";
 import { notify } from "@shared/services/notificationService.js";
+import { ModalShell, UiButton } from "@shared/ui";
 
 const BASE58_RE = /^[1-9A-HJ-NP-Za-km-z]{20,}$/;
 
@@ -27,53 +28,41 @@ export default function SettlementModal({ open, onClose, onSubmit, loading }) {
     onSubmit(trimmed);
   };
 
+  const footer = (
+    <>
+      <UiButton variant="secondary" onClick={onClose} disabled={loading}>
+        Cancel
+      </UiButton>
+      <UiButton onClick={handleConfirm} disabled={loading}>
+        Save
+      </UiButton>
+    </>
+  );
+
   return (
-    <div className="chat-action-modal-overlay" role="presentation">
-      <div
-        className="chat-action-modal settlement-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="settlement-modal-title"
-      >
-        <header className="chat-action-header">
-          <h2 id="settlement-modal-title">Attach transaction</h2>
-          <button
-            type="button"
-            className="chat-action-close"
-            onClick={onClose}
-            aria-label="Close"
+    <ModalShell
+      open={open}
+      onClose={onClose}
+      title="Attach transaction"
+      footer={footer}
+      modalProps={{ className: "settlement-modal" }}
+    >
+      <div className="chat-action-body">
+        <p className="chat-action-description">
+          Paste the payment transaction to mark this agreement as settled.
+        </p>
+        <label className="chat-action-field">
+          <span>Transaction (txSig)</span>
+          <input
+            type="text"
+            value={txSig}
+            onChange={(ev) => setTxSig(ev.target.value)}
+            placeholder="E.g. 4aQh..."
             disabled={loading}
-          >
-            ×
-          </button>
-        </header>
-
-        <div className="chat-action-body">
-          <p className="chat-action-description">
-            Paste the payment transaction to mark this agreement as settled.
-          </p>
-          <label className="chat-action-field">
-            <span>Transaction (txSig)</span>
-            <input
-              type="text"
-              value={txSig}
-              onChange={(ev) => setTxSig(ev.target.value)}
-              placeholder="E.g. 4aQh..."
-              disabled={loading}
-            />
-          </label>
-        </div>
-
-        <footer className="chat-action-footer">
-          <button type="button" className="chat-action-secondary" onClick={onClose} disabled={loading}>
-            Cancel
-          </button>
-          <button type="button" className="agreement-primary" onClick={handleConfirm} disabled={loading}>
-            Save
-          </button>
-        </footer>
+          />
+        </label>
       </div>
-    </div>
+    </ModalShell>
   );
 }
 

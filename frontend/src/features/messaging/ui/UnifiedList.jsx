@@ -1,12 +1,13 @@
 // src/features/messaging/ui/UnifiedList.jsx
 import React, { useState, memo, useMemo, useCallback } from "react";
-import { FaSearch } from "react-icons/fa";
+import { Search } from "lucide-react";
 import { useAuthManager } from "@features/auth/hooks/useAuthManager.js";
 import useConversationsPreview from "@features/messaging/hooks/useConversationsPreview.js";
+import { UiChip, UiSearchInput } from "@shared/ui";
 import "./UnifiedList.css";
 
 const formatPubkey = (key = "") =>
-  key ? `${key.slice(0, 6)}...${key.slice(-4)}` : "";
+  key ? `${key.slice(0, 4)}...${key.slice(-4)}` : "";
 
 const UnifiedList = ({
   conversations = [],
@@ -20,6 +21,7 @@ const UnifiedList = ({
   presence = {}, // mapa { wallet: boolean }
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeFilter, setActiveFilter] = useState("all");
   const { pubkey: selfWallet } = useAuthManager();
   const storePreviews = useConversationsPreview(selfWallet);
 
@@ -102,16 +104,30 @@ const UnifiedList = ({
     [fixtures]
   );
 
-  // ====== filtro por búsqueda ======
+  // ====== filtro por búsqueda + filtro activo ======
   const filtered = useMemo(() => {
+    let list = mergedList;
+
+    // 1. Aplicar filtro por tipo
+    if (activeFilter === "unread") {
+      list = list.filter((item) => (item.unreadCount || 0) > 0);
+    } else if (activeFilter === "pending") {
+      // TODO: implementar cuando tengamos tracking de requests pendientes
+      list = list.filter((item) => item.hasPendingRequest === true);
+    } else if (activeFilter === "contacts") {
+      list = list.filter((item) => item.type === "contact");
+    }
+    // "all" no filtra nada
+
+    // 2. Aplicar búsqueda de texto
     const term = (searchTerm || "").toLowerCase().trim();
-    if (!term) return mergedList;
-    return mergedList.filter((item) =>
+    if (!term) return list;
+    return list.filter((item) =>
       (item.nickname && item.nickname.toLowerCase().includes(term)) ||
       (item.pubkey && item.pubkey.toLowerCase().includes(term)) ||
       (item.lastMessageText && item.lastMessageText.toLowerCase().includes(term))
     );
-  }, [mergedList, searchTerm]);
+  }, [mergedList, searchTerm, activeFilter]);
 
   const displayList = useMemo(() => {
     if (searchTerm.trim()) return filtered;
@@ -136,29 +152,48 @@ const UnifiedList = ({
     else onSelectContact?.(item.pubkey);
   }, [onSelectConversation, onSelectContact]);
 
-  // ====== estilos inline para el punto de presencia ======
-  const dot = (online) => ({
-    width: 8,
-    height: 8,
-    borderRadius: 999,
-    marginRight: 8,
-    flex: "0 0 auto",
-    background: online ? "var(--green-500, #10b981)" : "var(--gray-400, #9ca3af)",
-    boxShadow: online ? "0 0 0 2px rgba(16,185,129,.25)" : "none",
-  });
-
   return (
     <div className="unified-list-container">
       <div className="search-bar">
-        <FaSearch className="search-icon" />
-        <input
-          type="text"
+        <UiSearchInput
           placeholder="Search..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           onKeyDown={handleSearchEnter}
           aria-label="Search conversations and contacts"
         />
+      </div>
+
+      {/* Filtros */}
+      <div className="filter-bar">
+        <UiChip
+          selected={activeFilter === "all"}
+          onClick={() => setActiveFilter("all")}
+          className="ui-chip--filter"
+        >
+          All
+        </UiChip>
+        <UiChip
+          selected={activeFilter === "unread"}
+          onClick={() => setActiveFilter("unread")}
+          className="ui-chip--filter"
+        >
+          Unread
+        </UiChip>
+        <UiChip
+          selected={activeFilter === "pending"}
+          onClick={() => setActiveFilter("pending")}
+          className="ui-chip--filter"
+        >
+          Pending
+        </UiChip>
+        <UiChip
+          selected={activeFilter === "contacts"}
+          onClick={() => setActiveFilter("contacts")}
+          className="ui-chip--filter"
+        >
+          Contacts
+        </UiChip>
       </div>
 
       {displayList.length === 0 && <p className="no-results">No results.</p>}
@@ -187,9 +222,6 @@ const UnifiedList = ({
               }}
               title={item.nickname || item.pubkey}
             >
-              {/* Punto presencia */}
-              <span aria-hidden="true" style={dot(online)} />
-
               <div className="unified-avatar-circle" aria-hidden="true" data-letter={item.nickname?.[0] || item.pubkey?.[0] || '?'}>
                 {item.avatar ? (
                   <img src={item.avatar} alt="" className="unified-avatar" />
@@ -198,6 +230,8 @@ const UnifiedList = ({
                     {item.nickname?.[0] || item.pubkey?.[0] || "?"}
                   </span>
                 )}
+                {/* Indicador online en el avatar */}
+                {online && <span className="avatar-online-indicator" />}
               </div>
 
               <div className="unified-info">
@@ -209,9 +243,7 @@ const UnifiedList = ({
                   {item.type === "contact" && item.premium && (
                     <span className="badge premium">PREMIUM</span>
                   )}
-                  {item.type === "preview" && (
-                    <span className="badge unknown">UNKNOWN</span>
-                  )}
+                  {/* Badge UNKNOWN removido - pubkey truncada es suficiente */}
                   {isFixture && <span className="badge demo">DEMO</span>}
                 </div>
 

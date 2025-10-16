@@ -36,6 +36,8 @@ const ChatMessages = ({
 }) => {
   const chatContainerRef = useRef(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
+  const prevMessageCountRef = useRef(0);
+  const prevScrollHeightRef = useRef(0);
 
   // Historial de backup deshabilitado en esta versión
   const historyMessages = useMemo(() => [], []);
@@ -66,7 +68,22 @@ const ChatMessages = ({
   // 3) Auto-scroll al fondo si ya estabas abajo
   useEffect(() => {
     const el = chatContainerRef.current;
-    if (el && isAtBottom) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    if (!el) return;
+
+    const messageCount = allMessages.length;
+    const hasNewMessage = messageCount > prevMessageCountRef.current;
+    const heightChanged = el.scrollHeight > prevScrollHeightRef.current + 1;
+
+    if (isAtBottom && (hasNewMessage || heightChanged)) {
+      requestAnimationFrame(() => {
+        const node = chatContainerRef.current;
+        if (!node) return;
+        node.scrollTop = node.scrollHeight;
+      });
+    }
+
+    prevMessageCountRef.current = messageCount;
+    prevScrollHeightRef.current = el.scrollHeight;
   }, [allMessages, isAtBottom]);
 
   // 4) Scroll handler
@@ -79,7 +96,11 @@ const ChatMessages = ({
 
   const scrollToBottom = () => {
     const el = chatContainerRef.current;
-    if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    prevScrollHeightRef.current = el.scrollHeight;
+    prevMessageCountRef.current = allMessages.length;
+    setIsAtBottom(true);
   };
 
   return (

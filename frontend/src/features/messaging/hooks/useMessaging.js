@@ -398,6 +398,124 @@ export default function useMessaging({
       }
     }, [convId, selfWallet, peerWallet, convKey, debugE2EE, debugMsg, registerRecent]);
 
+  const sendBlinkAction = useCallback(
+    async ({
+      kind = 'buy',
+      token = null,
+      amountInSol = null,
+      amount = null,
+      expectedOut = null,
+      actionUrl = null,
+      solanaActionUrl = null,
+      dialToUrl = null,
+      blinkApiUrl = null,
+      txSig = null,
+      source = 'local',
+      meta = null,
+    } = {}) => {
+      if (!convId || !selfWallet || !peerWallet) {
+        return { ok: false, reason: "missing-context" };
+      }
+      if (!convKey) {
+        debugE2EE('blink-action:key-missing', { convId });
+        return { ok: false, reason: "e2e-key-missing" };
+      }
+
+      try {
+        if (actionUrl) {
+          try {
+            assertAllowed(actionUrl, { feature: 'blink-action' });
+          } catch (err) {
+            return { ok: false, reason: err?.message || 'blink-not-allowed' };
+          }
+        }
+
+        const clientId = nextClientMsgId();
+        const createdAt = Date.now();
+        const resolvedAmount = amountInSol ?? amount ?? null;
+
+        const blink = {
+          id: clientId,
+          kind: kind || 'buy',
+          token: token || null,
+          amountInSol: resolvedAmount,
+          expectedOut: expectedOut ?? null,
+          actionUrl: actionUrl || null,
+          solanaActionUrl: solanaActionUrl || null,
+          dialToUrl: dialToUrl || null,
+          blinkApiUrl: blinkApiUrl || null,
+          txSig: txSig || null,
+          source: source || 'local',
+          meta: meta || null,
+          createdAt,
+        };
+
+        const aad = buildAAD({ convId, from: selfWallet, to: peerWallet, isMedia: false });
+        const envelope = await encryptPayload({ type: 'blink_action', blink }, convKey, aad);
+
+        actions.upsertMessage?.(convId, {
+          clientId,
+          from: selfWallet,
+          to: peerWallet,
+          sender: 'me',
+          kind: 'blink-action',
+          status: 'pending',
+          sentAt: createdAt,
+          createdAt,
+          blinkAction: blink,
+          envelope,
+          aad,
+        });
+
+        const recentLabelParts = [
+          'Blink',
+          kind ? kind.toUpperCase() : null,
+          token || null,
+        ].filter(Boolean);
+        registerRecent({
+          text: recentLabelParts.join(' '),
+          timestamp: createdAt,
+        });
+
+        try {
+          const res = await relay.sendEnvelope({
+            toWallet: peerWallet,
+            clientId,
+            envelope,
+            meta: {
+              kind: 'blink-action',
+              convId,
+              from: selfWallet,
+              to: peerWallet,
+              token: token || null,
+              blinkKind: kind || 'buy',
+            },
+            force: true,
+          });
+
+          actions.upsertMessage?.(convId, {
+            clientId,
+            id: res?.id,
+            status: 'sent',
+            deliveredAt: res?.deliveredAt || null,
+            via: 'relay',
+            forced: true,
+          });
+        } catch (relayError) {
+          debugMsg('blink-action:relay-error', relayError?.message);
+          actions.markFailed?.(convId, clientId, relayError?.message || 'send-failed');
+          return { ok: false, reason: relayError?.message || 'send-failed' };
+        }
+
+        return { ok: true, blink };
+      } catch (error) {
+        debugMsg('blink-action:error', error?.message);
+        return { ok: false, reason: error?.message || 'blink-action-failed' };
+      }
+    },
+    [convId, selfWallet, peerWallet, convKey, debugE2EE, debugMsg, registerRecent]
+  );
+
   const sendAgreement = useCallback(
     async ({ title, body, amount, token, payer, payee, deadline }) => {
       if (!convId || !selfWallet || !peerWallet) {
@@ -712,6 +830,10 @@ export default function useMessaging({
                 mm.paymentRequest = payload.request || null;
                 mm.kind = mm.kind || 'payment-request';
               }
+              if (payload?.type === 'blink_action') {
+                mm.blinkAction = payload.blink || null;
+                mm.kind = mm.kind || 'blink-action';
+              }
               mm.aad = aad;
             } catch (error) {
               const warnKey = `${msg?.id || msg?.clientId || msg?.serverId || 'no-id'}:${msg?.timestamp || msg?.sentAt || ''}`;
@@ -745,6 +867,11 @@ export default function useMessaging({
           if (!mm.paymentRequest && msg?.paymentRequest) mm.paymentRequest = msg.paymentRequest;
         }
 
+        if ((mm.kind === 'blink-action' || msg?.kind === 'blink-action')) {
+          mm.kind = 'blink-action';
+          if (!mm.blinkAction && msg?.blinkAction) mm.blinkAction = msg.blinkAction;
+        }
+
         processed.push(mm);
       }
 
@@ -758,12 +885,14 @@ export default function useMessaging({
     isTyping,
     canUseDataChannel: dataChannelReady,
     lastError,
+    keyReady,
     sendText,
     sendPaymentRequest,
+    sendBlinkAction,
     sendAgreement,
     sendAttachment,
     sendAttachmentInline,
     setTyping,
     e2ee: { keyReady },
-  }), [decMessages, presence, isTyping, dataChannelReady, lastError, keyReady, sendText, sendPaymentRequest, sendAgreement, sendAttachment, sendAttachmentInline, setTyping]);
+  }), [decMessages, presence, isTyping, dataChannelReady, lastError, keyReady, sendText, sendPaymentRequest, sendBlinkAction, sendAgreement, sendAttachment, sendAttachmentInline, setTyping]);
 }

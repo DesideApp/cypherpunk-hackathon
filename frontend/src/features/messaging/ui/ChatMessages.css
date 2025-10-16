@@ -4,18 +4,44 @@
   flex-direction: column;
   flex: 1;
   min-height: 0;               /* ✅ crítico para scroll en flex */
-  padding: 12px 20px 90px;     /* más padding inferior para no tapar los últimos mensajes */
+  padding: 0;
+  padding-right: 0; /* Sin padding para scrollbar */
   overflow-y: auto;
-  background: var(--background-color);
   -webkit-overflow-scrolling: touch; /* mejor scroll en iOS */
   overscroll-behavior: contain;      /* evita pull-to-refresh/scroll chaining */
   touch-action: pan-y;               /* suprime gestos raros en touch */
   z-index: 1;                        /* por debajo del composer */
+  scrollbar-gutter: stable; /* ✅ CLAVE: Reserva espacio para scrollbar siempre */
+}
+
+/* Contenedor interno centrado para los mensajes */
+.chat-messages > * {
+  width: 100%;
+  max-width: 840px; /* MISMO ancho TOTAL que WritingPanel */
+  margin: 0 auto;
+  padding: var(--font-caption-size) 0 0; /* SIN padding lateral, las burbujas se alinean al límite del contenedor */
+}
+
+/* Primera burbuja con padding superior */
+.chat-messages > *:first-child {
+  padding-top: var(--font-caption-size);
+}
+
+/* Última burbuja con padding inferior para WritingPanel */
+.chat-messages > *:last-child {
+  padding-bottom: 90px; /* Espacio para WritingPanel */
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .chat-messages > * {
+    /* Sin cambios, sin padding lateral */
+  }
 }
 
 /* Grupos de mensajes (ajuste de espacio) */
 .message-group { margin-bottom: 8px; }
-.message-group:last-child { margin-bottom: 12px; }
+.message-group:last-child { margin-bottom: var(--font-caption-size); }
 
 /* Placeholder (sin contacto) */
 .chat-placeholder-container {
@@ -23,19 +49,23 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px 20px;
+  padding: 60px 20px;
   text-align: center;
 }
 
 .chat-placeholder {
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font-size: 15px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
 }
 
 .chat-previews-title {
   font-size: 14px;
-  color: var(--text-secondary);
-  margin-bottom: 10px;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-bottom: 16px;
+  letter-spacing: -0.02em;
 }
 
 .chat-previews-list {
@@ -49,23 +79,22 @@
   display: flex;
   justify-content: space-between;
   padding: 8px 10px;
-  background: var(--window-background);
   border: 1px solid var(--border-color);
   border-radius: 8px;
   margin-bottom: 6px;
 }
 
 .preview-name {
-  font-weight: 600;
-  font-size: 13px;
+  font-weight: var(--font-title-weight);
+  font-size: var(--font-data-size);
   color: var(--text-on-window);
 }
 
-.preview-text { font-size: 12px; color: var(--text-secondary); }
+.preview-text { font-size: var(--font-caption-size); color: var(--text-secondary); }
 .preview-date { font-size: 11px; color: var(--text-secondary); }
 
 .load-more-btn {
-  font-size: 13px;
+  font-size: var(--font-data-size);
   color: var(--text-on-window);
   background: var(--background-overlay);
   border: none;
@@ -91,13 +120,13 @@
   justify-content: center;
   cursor: pointer;
   box-shadow: var(--window-shadow);
-  color: #fff;
-  font-size: 18px;
+  color: var(--surface-color);
+  font-size: var(--font-title-size);
   z-index: 2; /* no debe tapar el WritingPanel */
-  transition: background 0.2s ease;
+  transition: var(--transition-all);
 }
 .scroll-to-bottom-btn:hover { background: var(--accent-color-hover); }
-.scroll-to-bottom-btn svg { color: #fff; }
+.scroll-to-bottom-btn svg { color: var(--surface-color); }
 
 /* Desktop: ocultar botón flotante */
 @media (min-width: 1025px) {

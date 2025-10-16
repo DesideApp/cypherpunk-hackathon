@@ -29,7 +29,11 @@ export const LayoutProvider = ({ children }) => {
   const [device, setDevice] = useState("desktop");
 
   // Theme state
-  const [theme, setTheme] = useState(getPreferredTheme());
+  const [theme, setTheme] = useState(() => {
+    const initialTheme = getPreferredTheme();
+    applyTheme(initialTheme); // Aplicar solo UNA VEZ en la inicialización
+    return initialTheme;
+  });
 
   const toggleTheme = () => {
     const newTheme = theme === "light" ? "dark" : "light";
@@ -37,9 +41,7 @@ export const LayoutProvider = ({ children }) => {
     applyTheme(newTheme);
   };
 
-  useLayoutEffect(() => {
-    applyTheme(theme);
-  }, [theme]);
+  // ELIMINADO useLayoutEffect para evitar bucle infinito
 
   // Update device on resize
   useEffect(() => {

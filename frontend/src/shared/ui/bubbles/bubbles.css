@@ -1,0 +1,81 @@
+/* shared/ui/bubbles/bubbles.css
+   Base visual para meta de bubbles (texto y acciones). */
+
+/* Tamaños controlados para meta */
+:root {
+  --icon-size: 10px;
+  --bubble-gap: 4px;
+  --bubble-right-pad: 8px;
+  --time-width: 4.6ch; /* ancho realista de 13:10 con tabular-nums */
+  --bubble-card-max-width: 340px;
+}
+
+.bubble-inner { position: relative; }
+
+/* Contenedor para previews en burbujas de mensaje */
+.bubble-previews {
+  margin-top: 8px;
+  padding-top: 8px;
+}
+
+/* Contenedor para lista de previews */
+.preview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Contenedor específico para dial blinks */
+.dial-blink-previews {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bubble-text {
+  display: block;
+  white-space: pre-wrap;
+  word-break: break-word;
+  padding-right: var(--bubble-meta-width);
+}
+
+/* Contenedor de contenido para bubbles de acción */
+.action-body { padding-right: var(--bubble-meta-width); }
+
+.bubble-meta {
+  position: absolute; /* relativo a .message-content del feature */
+  right: var(--bubble-right-pad);
+  bottom: 3px;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bubble-gap);
+  height: 16px;
+  line-height: 16px;
+}
+
+.bubble-time {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.72;
+  display: inline-block;
+  width: var(--time-width);
+  text-align: right;
+}
+
+.bubble-lock {
+  display: inline-flex;
+  width: var(--icon-size);
+  height: var(--icon-size);
+  opacity: 0.85;
+}
+
+.bubble-slot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--icon-size);
+  height: var(--icon-size);
+  pointer-events: none;
+}
+
+.bubble-meta .transport-dot { width: var(--icon-size); height: var(--icon-size); }

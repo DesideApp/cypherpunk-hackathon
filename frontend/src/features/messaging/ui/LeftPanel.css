@@ -3,51 +3,32 @@
   flex-direction: column;
   height: 100%;
   width: 100%;
-  background: var(--window-background);
   padding: 0;
   margin: 0;
   overflow: hidden;
   box-sizing: border-box;
 }
 
-/* 🔷 Panel social: header + contenido (altura total animada) */
-.left-panel-social {
-  height: 100%;
-  overflow: hidden;
-  transition: height 0.3s ease;
-  flex-shrink: 0;
-}
-
-.left-panel-social.collapsed {
-  height: 0px;
-}
-
-.left-panel-social.expanded {
-  height: 300px;
-}
+/* Panel social eliminado - ahora son modales */
 
 /* 🔘 Cabecera */
 .social-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 60px; /* igual que header del chat */
-  padding: 0 12px;
+  height: 56px;
+  padding: 0 20px;
   flex-shrink: 0;
-  cursor: default;
-}
-
-.social-header.expanded {
-  cursor: ns-resize; /* cursor flechas verticales solo abierto */
 }
 
 /* 🔹 Título del header */
 .left-panel-title {
-  text-overflow: ellipsis;
-  font-family: var(--font-subtitle-family);
-  font-size: var(--font-subtitle-size);
-  font-weight: var(--font-subtitle-weight);
+  font-family: var(--font-ui-family);
+  font-size: 20px;
+  font-weight: 700;
   color: var(--text-on-window);
+  letter-spacing: -0.02em;
+  margin: 0;
 }
 
 /* 🔹 Contenedor de botones a la derecha */
@@ -60,57 +41,88 @@
 /* 🔘 Botones */
 .social-button {
   border: none;
-  background: none;
-  cursor: pointer; /* los botones mantienen pointer normal */
-  height: 40px;
-  width: 40px;
+  cursor: pointer;
+  height: 36px;
+  width: 36px;
   display: flex;
   justify-content: center;
   align-items: center;
-  color: var(--text-on-window);
-  border-radius: 8px;
-  transition: background-color 0.2s ease-in-out;
+  color: var(--text-secondary);
+  border-radius: 50%;
+  transition: var(--transition-all);
 }
 
 .social-button:hover {
-  background-color: var(--hover-overlay);
+  background-color: var(--background-color);
+  transform: scale(1.05);
 }
 
-.social-button.active {
-  background-color: var(--active-overlay);
+.social-button:active {
+  transform: scale(0.95);
 }
 
-/* 📦 Wrapper del contenido social */
-.social-content-wrapper {
-  position: relative;
-  height: 100%; 
-  overflow: hidden;
+/* Modales */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
 }
 
-/* 🧩 Pestañas internas */
-.social-tab {
-  height: 100%;
+.modal-content {
+  background: var(--surface-color);
+  border-radius: 12px;
   width: 100%;
-  position: absolute;
-  top: 0;
-  left: 0;
-  transition: opacity 0.3s ease;
-  opacity: 0;
-  pointer-events: none;
+  max-width: 480px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
 
-.social-tab.visible {
-  opacity: 1;
-  pointer-events: auto;
-  position: relative;
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-color);
 }
 
-/* 🧩 Contenido interno con scroll vertical */
-.social-content-inner {
-  height: 100%;
-  padding: 12px;
+.modal-header h3 {
+  font-family: var(--font-ui-family);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-on-surface);
+  margin: 0;
+}
+
+.modal-close {
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 24px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: var(--transition-all);
+}
+
+.modal-close:hover {
+  background: var(--background-color);
+  transform: scale(1.1);
+}
+
+.modal-content > *:not(.modal-header) {
+  padding: 24px;
   overflow-y: auto;
-  box-sizing: border-box;
 }
 
 /* 📜 Lista principal */
@@ -118,21 +130,12 @@
   flex-grow: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  transition: margin-top 0.3s ease;
-}
-
-.left-panel-main.with-social-expanded {
-  margin-top: 0px;
-}
-
-.left-panel-main.with-social-collapsed {
-  margin-top: 0px;
 }
 
 /* ℹ️ Loading */
 .left-panel-loading {
   text-align: center;
-  color: #777;
+  color: var(--text-muted);
   font-size: 1rem;
   padding: 10px;
 }
@@ -149,7 +152,7 @@
   position: absolute;
   top: -4px;
   right: -4px;
-  background-color: #fc554f;
+  background-color: var(--error-color);
   color: white;
   font-size: 0.65rem;
   font-weight: bold;

@@ -6,7 +6,7 @@ import ChatMessages from "./ChatMessages";
 import ActionBar from "./ActionBar.jsx";
 
 import useMessaging from "@features/messaging/hooks/useMessaging";
-import { ENV, MESSAGING } from "@shared/config/env.js";
+import { ENV, MESSAGING, MOCKS } from "@shared/config/env.js";
 import { useAuthManager } from "@features/auth/hooks/useAuthManager.js";
 import { useRtcDialer } from "@features/messaging/hooks/useRtcDialer.js";
 import { base64ToUtf8 } from "@shared/utils/base64.js";
@@ -21,6 +21,8 @@ import { notify } from "@shared/services/notificationService.js";
 import { createDebugLogger } from "@shared/utils/debug.js";
 import "./ChatWindow.css";
 import AgreementModal from "./modals/AgreementModal.jsx";
+import BuyTokenModal from "./modals/BuyTokenModal.jsx";
+import FundWalletModal from "./modals/FundWalletModal.jsx";
 
 /* -------------------- helpers -------------------- */
 function inferKindFromMime(mime = "") {
@@ -122,6 +124,14 @@ function toUiMessage(m, myWallet) {
     };
   }
 
+  if (m.kind === 'blink-action' || m.blinkAction || m.payload?.type === 'blink_action') {
+    return {
+      ...base,
+      kind: 'blink-action',
+      blinkAction: m.blinkAction || m.payload?.blink || null,
+    };
+  }
+
   if (m.kind === 'payment-send' || m.paymentSend) {
     return {
       ...base,
@@ -163,6 +173,7 @@ export default function ChatWindow({ selectedContact, activePanel, setActivePane
     messages: rawMessages,
     sendText,
     sendPaymentRequest,
+    sendBlinkAction,
     sendAgreement,
     setTyping,
     e2ee,
@@ -201,6 +212,9 @@ export default function ChatWindow({ selectedContact, activePanel, setActivePane
 
   const [actionModal, setActionModal] = useState(null);
   const [agreementModalOpen, setAgreementModalOpen] = useState(false);
+  const [buyModalOpen, setBuyModalOpen] = useState(false);
+  const [buyPreset, setBuyPreset] = useState(null);
+  const [fundModalOpen, setFundModalOpen] = useState(false);
 
   const peerLabel = useMemo(() => {
     const pk = selected?.pubkey;
@@ -447,43 +461,155 @@ export default function ChatWindow({ selectedContact, activePanel, setActivePane
     }));
   }, [peerWallet, myWallet]);
 
+  // Función para abrir modal de Send desde comandos naturales
+  const openSendModal = useCallback((params) => {
+    if (!peerWallet || !myWallet) {
+      if (!peerWallet) notify("Select a contact before sending.", "warning");
+      else notify("Connect your wallet before using actions.", "warning");
+      return;
+    }
+    
+    console.log('🚀 Opening Send modal with params:', params);
+    
+    window.dispatchEvent(new CustomEvent("chat:action:open", {
+      detail: {
+        kind: 'send',
+        amount: params.amount,
+        token: params.token,
+        peerWallet,
+        selfWallet: myWallet,
+      },
+    }));
+  }, [peerWallet, myWallet]);
+
+  const handleBlinkShared = useCallback((payload) => {
+    if (!payload) return;
+    sendBlinkAction({
+      kind: payload.kind || 'buy',
+      token: payload.token || null,
+      amountInSol: payload.amountInSol ?? payload.amount ?? null,
+      expectedOut: payload.expectedOut ?? null,
+      actionUrl: payload.actionUrl || null,
+      solanaActionUrl: payload.solanaActionUrl || null,
+      dialToUrl: payload.dialToUrl || null,
+      blinkApiUrl: payload.blinkApiUrl || null,
+      txSig: payload.txSig || null,
+      source: payload.source || 'local',
+      meta: payload.meta || null,
+    });
+  }, [sendBlinkAction]);
+
+  const triggerMockBlink = useCallback((overrides = {}) => {
+    if (!peerWallet || !myWallet) {
+      notify("Select a contact before sending a mock blink.", "warning");
+      return;
+    }
+    const defaults = {
+      kind: "buy",
+      token: "BONK",
+      amountInSol: 0.1,
+      expectedOut: null,
+      actionUrl: null,
+      solanaActionUrl: null,
+      dialToUrl: "https://jupiter.dial.to/swap/SOL-BONK",
+      blinkApiUrl: null,
+      txSig: "MOCK_SIG",
+      source: "mock",
+      meta: null,
+    };
+    const payload = { ...defaults, ...overrides };
+    sendBlinkAction(payload);
+    notify("Mock blink message sent.", "info");
+  }, [peerWallet, myWallet, sendBlinkAction]);
+
+  useEffect(() => {
+    if (!MOCKS.BLINK_BUY) return undefined;
+    if (typeof window === "undefined") return undefined;
+
+    const ns = window.__DESIDE_DEBUG || (window.__DESIDE_DEBUG = {});
+    ns.sendMockBlinkBuy = triggerMockBlink;
+
+    return () => {
+      if (window.__DESIDE_DEBUG) {
+        delete window.__DESIDE_DEBUG.sendMockBlinkBuy;
+      }
+    };
+  }, [triggerMockBlink]);
+
+  useEffect(() => {
+    const handler = (event) => {
+      const detail = event?.detail || {};
+      const { token, amount, multiplier, peerWallet: targetPeer, shareOnComplete } = detail;
+      if (!token || amount === undefined || amount === null) return;
+      if (targetPeer && peerWallet && targetPeer !== peerWallet) return;
+      const numeric = Number(amount);
+      const formatted = Number.isFinite(numeric)
+        ? Number(numeric.toFixed(6)).toString().replace(/\.?0+$/, "")
+        : String(amount);
+      setBuyPreset({
+        token,
+        amount: formatted,
+        multiplier: multiplier || 1,
+        share: shareOnComplete !== false,
+      });
+      setBuyModalOpen(true);
+    };
+    window.addEventListener("chat:blink:buy", handler);
+    return () => window.removeEventListener("chat:blink:buy", handler);
+  }, [peerWallet]);
+
   return (
     <div className="chat-window">
-      <ChatHeader
-        selectedContact={selected}
-        peerOnline={peerOnline}
-        isTyping={isTypingRemote}
-      />
+      <div className="chat-window-inner">
+        <ChatHeader
+          selectedContact={selected}
+          peerOnline={peerOnline}
+          isTyping={isTypingRemote}
+          messages={messages}
+          onSearchSelect={(msg) => {
+            // TODO: scroll al mensaje seleccionado
+            console.log("Selected message:", msg);
+          }}
+        />
 
-      <div className="chat-window-body">
-        <div className="chat-window-messages">
-          <ChatMessages
-            key={peerWallet || "none"}
-            messages={messages}
-            selectedContact={peerWallet}
-            activePanel={activePanel}
-            setActivePanel={setActivePanel}
-          />
-        </div>
-
-        <div className="chat-composer-zone">
-          <div className="chat-action-bar-shell" aria-hidden={!peerWallet}>
-            <ActionBar
-              disabled={actionDisabled}
-              onSend={() => dispatchActionEvent("send")}
-              onRequest={() => dispatchActionEvent("request")}
-              onAgreement={() => dispatchActionEvent("agreement")}
+        <div className="chat-window-body">
+          <div className="chat-window-messages">
+            <ChatMessages
+              key={peerWallet || "none"}
+              messages={messages}
+              selectedContact={peerWallet}
+              activePanel={activePanel}
+              setActivePanel={setActivePanel}
             />
           </div>
-          <WritingPanel
-            key={peerWallet || "none"}
-            onSendText={onSendText}
-            onTyping={setTyping}
-            hasContact={hasContact}
-            activePeer={peerWallet}
-            isContactConfirmed={true}
-            canSend={canSend}
-          />
+
+          <div className="chat-composer-zone">
+            <div className="chat-action-bar-shell" aria-hidden={!peerWallet}>
+              <ActionBar
+                disabled={actionDisabled}
+                onSend={() => dispatchActionEvent("send")}
+                onRequest={() => dispatchActionEvent("request")}
+                onBuy={() => {
+                  setBuyPreset({ share: true });
+                  setBuyModalOpen(true);
+                }}
+                onBuyMock={MOCKS.BLINK_BUY ? () => triggerMockBlink() : undefined}
+                onFund={() => setFundModalOpen(true)}
+                onAgreement={() => dispatchActionEvent("agreement")}
+              />
+            </div>
+            <WritingPanel
+              key={peerWallet || "none"}
+              onSendText={onSendText}
+              onTyping={setTyping}
+              hasContact={hasContact}
+              activePeer={peerWallet}
+              isContactConfirmed={true}
+              canSend={canSend}
+              sendPaymentRequest={sendPaymentRequest}
+              onOpenSendModal={openSendModal}
+            />
+          </div>
         </div>
       </div>
 
@@ -602,6 +728,27 @@ export default function ChatWindow({ selectedContact, activePanel, setActivePane
           peerWallet={peerWallet}
           selfLabel={selfLabel}
           peerLabel={peerLabel}
+        />
+      )}
+
+      {buyModalOpen && (
+        <BuyTokenModal
+          open={buyModalOpen}
+          presetToken={buyPreset?.token || null}
+          presetAmount={buyPreset?.amount || null}
+          shareOnComplete={buyPreset?.share !== false}
+          onClose={() => {
+            setBuyModalOpen(false);
+            setBuyPreset(null);
+          }}
+          onBlinkShared={handleBlinkShared}
+        />
+      )}
+
+      {fundModalOpen && (
+        <FundWalletModal
+          open={fundModalOpen}
+          onClose={() => setFundModalOpen(false)}
         />
       )}
     </div>

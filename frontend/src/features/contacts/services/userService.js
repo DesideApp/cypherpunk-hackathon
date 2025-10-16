@@ -39,6 +39,7 @@ export async function searchUserByPubkey(pubkey) {
           blocked: false,
           nickname: null,
           avatar: null,
+          social: { x: null, website: null },
           message: "Usuario no registrado.",
         }
       : {
@@ -49,6 +50,7 @@ export async function searchUserByPubkey(pubkey) {
           blocked: response.blocked || false,
           nickname: response.nickname || null,
           avatar: response.avatar || null,
+          social: response.social || { x: null, website: null },
           message: null,
         };
 

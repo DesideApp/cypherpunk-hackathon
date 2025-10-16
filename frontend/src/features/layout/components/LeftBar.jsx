@@ -1,7 +1,7 @@
 // src/components/layout/LeftBar.jsx
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { MessageCircle, User as UserIcon, ArrowLeftRight } from 'lucide-react';
+import { MessageCircle, User as UserIcon, ArrowLeftRight, Settings } from 'lucide-react';
 import { useLayout } from '@features/layout/contexts/LayoutContext';
 import { panelEvents } from '@wallet-adapter/ui/system/panel-bus';
 import { useWallet } from '@wallet-adapter/core/contexts/WalletProvider';
@@ -9,6 +9,7 @@ import { useRpc } from '@wallet-adapter/core/contexts/RpcProvider';
 import { PublicKey } from '@solana/web3.js';
 import { useAuth, AUTH_STATUS } from '@features/auth/contexts/AuthContext.jsx';
 import ThemeToggle from '@features/layout/components/ThemeToggle.jsx';
+import SettingsPanel from '@features/settings/components/SettingsPanel.jsx';
 import './LeftBar.css';
 import bs58 from 'bs58';
 
@@ -30,7 +31,65 @@ const LeftBarLogo = () => {
 };
 
 export default function LeftBar() {
-  const { isTablet, isMobile, setRightPanelOpen, leftbarExpanded, theme } = useLayout();
+  const { isTablet, isMobile, leftbarExpanded, theme } = useLayout();
+  const [activeModal, setActiveModal] = useState(null); // null = Chat (página), 'swap'/'user'/'settings' = Modal activo
+  
+  // Función para cerrar TODOS los modales antes de abrir uno nuevo
+  const closeAllModals = useCallback(() => {
+    // Cerrar Jupiter si está abierto
+    try {
+      if (window.Jupiter?.close) {
+        if (isDev) console.debug('[LeftBar] Cerrando Jupiter...');
+        window.Jupiter.close();
+      }
+    } catch (e) {
+      if (isDev) console.debug('[LeftBar] Error cerrando Jupiter:', e);
+    }
+    
+    // Cerrar WalletPanel (User) usando el bus de eventos
+    try {
+      panelEvents.close();
+      if (isDev) console.debug('[LeftBar] WalletPanel cerrado via panelEvents');
+    } catch (e) {
+      if (isDev) console.debug('[LeftBar] Error cerrando WalletPanel:', e);
+    }
+    
+    // Settings se cierra automáticamente via activeModal state
+  }, []);
+  
+  // Función para volver a Chat (cerrar modal activo)
+  const returnToChat = useCallback(() => {
+    if (isDev) console.debug('[LeftBar] Volviendo a Chat (sin modal)');
+    closeAllModals();
+    setActiveModal(null); // null = Chat está activo
+  }, [closeAllModals]);
+  
+  // ESC para cerrar modal activo y volver a Chat
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && activeModal) {
+        if (isDev) console.debug('[LeftBar] ESC → Cerrando modal, volviendo a Chat');
+        returnToChat();
+      }
+    };
+    
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [activeModal, returnToChat]);
+
+  // Detectar cuando WalletPanel (User) se cierra manualmente
+  useEffect(() => {
+    if (activeModal !== 'user') return;
+
+    // Escuchar el evento de cierre del panel
+    const handlePanelClose = () => {
+      if (isDev) console.debug('[LeftBar] WalletPanel cerrado → Volviendo a Chat');
+      setActiveModal(null);
+    };
+
+    const unsubscribe = panelEvents.onClose(handlePanelClose);
+    return () => unsubscribe();
+  }, [activeModal]);
   const {
     adapter,
     status: walletStatus,
@@ -277,8 +336,18 @@ export default function LeftBar() {
     pluginBootstrappedRef.current = false;
   }, [adapter, walletStatus, endpoint, connection, scriptLoaded, jupiterEndpoint]);
 
+
   const openJupiterSwap = async () => {
     if (!swapEnabled) return;
+    
+    // Cerrar otros modales antes de abrir Jupiter
+    closeAllModals();
+    
+    // Pequeño delay para asegurar cierre
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    setActiveModal('swap'); // Marcar como activo
+    
     if (!walletConnected) {
       try { panelEvents.open('connect'); } catch {}
       if (availableWallets?.[0]) connect(availableWallets[0]);
@@ -340,12 +409,14 @@ export default function LeftBar() {
         {/* Nav superior */}
         <div className="leftbar-section top-section">
           {pages.map((link) => {
-            const active = link.path ? isActive(link.path) : false;
+            const active = link.path ? isActive(link.path) && !activeModal : false;
+            const isSwapModal = link.label === 'Swap';
             return (
               <button
                 key={link.path || link.label}
                 type="button"
                 className={`leftbar-button ${active ? 'active' : ''}`}
+                data-modal-open={isSwapModal && activeModal === 'swap' ? 'true' : undefined}
                 aria-label={link.label}
                 aria-current={active ? 'page' : undefined}
                 title={link.label}
@@ -355,6 +426,8 @@ export default function LeftBar() {
                     link.action();
                     if (isDev) console.debug('[LeftBar] Action', link.label);
                   } else if (link.path) {
+                    // Cerrar todos los modales y volver a Chat
+                    returnToChat();
                     navigate(link.path);
                     if (isDev) console.debug('[LeftBar] Navigate', link.path);
                   }
@@ -370,15 +443,19 @@ export default function LeftBar() {
 
         {/* Zona inferior */}
         <div className="leftbar-section bottom-section">
-          {/* Account / Wallet */}
+          {/* Account / Wallet - PRIMERO */}
           <button
             type="button"
             className="leftbar-button user-button"
+            data-modal-open={activeModal === 'user' ? 'true' : undefined}
             aria-label="Account / Wallet"
             title="Account / Wallet"
             onClick={(e) => {
               e.stopPropagation();
-              setRightPanelOpen(false);
+              
+              // Cerrar otros modales antes de abrir User
+              closeAllModals();
+              setActiveModal('user'); // Marcar como activo
 
               const mode = isReady ? 'menu' : 'connect';
               panelEvents.open(mode);
@@ -398,14 +475,39 @@ export default function LeftBar() {
             </span>
           </button>
 
-          {/* Ajustes y otros botones inferiores eliminados; mantenemos sólo wallet + theme */}
+          {/* Settings - SEGUNDO */}
+          <button
+            type="button"
+            className="leftbar-button settings-button"
+            data-modal-open={activeModal === 'settings' ? 'true' : undefined}
+            aria-label="Settings"
+            title="Settings"
+            onClick={(e) => {
+              e.stopPropagation();
+              
+              // Cerrar otros modales antes de abrir Settings
+              closeAllModals();
+              setActiveModal('settings'); // Marcar como activo
+              
+              if (isDev) console.debug('[LeftBar] Settings opened');
+            }}
+          >
+            <span className="icon-container">
+              <Settings size={ICON_SIZE} strokeWidth={STROKE} />
+            </span>
+          </button>
 
-          {/* Theme */}
+          {/* Theme - Con spacing */}
           <div className="leftbar-theme-pocket">
             <ThemeToggle variant="switch" />
           </div>
         </div>
       </div>
+
+      {/* Settings Panel Modal */}
+      {activeModal === 'settings' && (
+        <SettingsPanel onClose={returnToChat} />
+      )}
     </aside>
   );
 }

@@ -1,0 +1,146 @@
+/* Settings Panel Overlay */
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Settings Panel Card */
+.settings-panel {
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  background: var(--surface-color);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Header */
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--background-color);
+}
+
+.settings-title {
+  font-family: var(--font-title-family);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-on-window);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.settings-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: var(--transition-all);
+}
+
+.settings-close-btn:hover {
+  background: var(--background-color);
+  color: var(--text-on-window);
+  transform: scale(1.05);
+}
+
+.settings-close-btn:active {
+  transform: scale(0.95);
+}
+
+/* Search Test */
+.settings-search-test {
+  padding: 16px 24px 0 24px;
+}
+
+/* Content */
+.settings-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-section-title {
+  font-family: var(--font-navigation-family);
+  font-size: var(--font-navigation-size);
+  font-weight: 600;
+  text-transform: var(--font-navigation-transform);
+  color: var(--text-secondary);
+  letter-spacing: 0.06em;
+  margin: 0;
+}
+
+.settings-placeholder {
+  font-family: var(--font-ui-family);
+  font-size: var(--font-ui-size);
+  color: var(--text-muted);
+  margin: 0;
+  padding: 16px;
+  background: var(--background-color);
+  border-radius: 12px;
+  text-align: center;
+}
+
+/* Scrollbar */
+.settings-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.settings-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.settings-content::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+
+.settings-content::-webkit-scrollbar-thumb:hover {
+  background: var(--border-color-active);
+}
+

@@ -134,6 +134,10 @@ function WalletMenuContent({ onClose }: Props) {
       await update({
         nickname: (nickDraft || "Unnamed").trim(),
         avatar: avatarForPayload,
+        social: {
+          x: normalizeX(xDraft || ""),
+          website: ensureHttps(webDraft || ""),
+        },
         signature,
         message,
       });

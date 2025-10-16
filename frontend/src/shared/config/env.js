@@ -55,7 +55,7 @@ const SOLANA_CHAIN = readEnv('VITE_SOLANA_CHAIN', IS_DEMO ? 'devnet' : 'mainnet-
 
 // --- bases (con alias compatibles) ---
 const API_BASE_URL = trimRightSlash(
-  readFirst(['VITE_API_BASE_URL', 'VITE_BACKEND_URL'], 'http://localhost:10000')
+  readFirst(['VITE_API_BASE_URL', 'VITE_BACKEND_URL'], 'http://localhost:3001')
 );
 
 const DIALECT_API_BASE_URL = trimRightSlash(
@@ -139,6 +139,10 @@ const FEATURES = {
   PAYMENT_INLINE_EXEC: toBool(readEnv('VITE_PAYMENT_INLINE_EXEC', 'true'), true),
 };
 
+const MOCKS = {
+  BLINK_BUY: toBool(readEnv('VITE_ENABLE_BLINK_BUY_MOCK', 'false'), false),
+};
+
 const DIALECT = {
   API_BASE_URL: DIALECT_API_BASE_URL,
   CLIENT_KEY: DIALECT_CLIENT_KEY,
@@ -156,10 +160,10 @@ export function apiUrl(path) {
 }
 
 // Named exports (útiles si quieres importar sin ENV)
-export { API_BASE_URL, WS_URL, ENDPOINTS, RTC_CONFIG, MESSAGING, IS_DEMO, STORAGE_NS, CACHE_NS, COOKIE_NAMES, E2E_SHARED_KEY_BASE64, FEATURES, DIALECT, SOLANA };
+export { API_BASE_URL, WS_URL, ENDPOINTS, RTC_CONFIG, MESSAGING, IS_DEMO, STORAGE_NS, CACHE_NS, COOKIE_NAMES, E2E_SHARED_KEY_BASE64, FEATURES, DIALECT, SOLANA, MOCKS };
 
 // Default aggregate
-export const ENV = { API_BASE_URL, WS_URL, ENDPOINTS, RTC_CONFIG, MESSAGING, IS_DEMO, STORAGE_NS, CACHE_NS, COOKIE_NAMES, E2E_SHARED_KEY_BASE64, FEATURES, DIALECT, SOLANA };
+export const ENV = { API_BASE_URL, WS_URL, ENDPOINTS, RTC_CONFIG, MESSAGING, IS_DEMO, STORAGE_NS, CACHE_NS, COOKIE_NAMES, E2E_SHARED_KEY_BASE64, FEATURES, DIALECT, SOLANA, MOCKS };
 export default ENV;
 
 // Debug visible SOLO en dev

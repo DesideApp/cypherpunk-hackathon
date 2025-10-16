@@ -19,9 +19,14 @@ export function useProfile() {
     try {
       const r = await searchUserByPubkey(base58);
       if (!r?.error && r?.registered) {
-        setProfile({ nickname: r.nickname || "", avatar: r.avatar || "", pubkey: r.pubkey });
+        setProfile({
+          nickname: r.nickname || "",
+          avatar: r.avatar || "",
+          pubkey: r.pubkey,
+          social: r.social || { x: "", website: "" },
+        });
       } else {
-        setProfile({ nickname: "", avatar: "", pubkey: base58 });
+        setProfile({ nickname: "", avatar: "", pubkey: base58, social: { x: "", website: "" } });
       }
     } finally {
       setLoading(false);
@@ -30,8 +35,8 @@ export function useProfile() {
 
   useEffect(() => { void refresh(); }, [refresh]);
 
-  const update = useCallback(async ({ nickname, avatar, signature, message }) => {
-    await updateMyProfile({ nickname, avatar, signature, message });
+  const update = useCallback(async ({ nickname, avatar, social, signature, message }) => {
+    await updateMyProfile({ nickname, avatar, social, signature, message });
     await refresh();
   }, [refresh]);
 

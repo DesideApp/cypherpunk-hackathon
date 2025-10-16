@@ -70,15 +70,16 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     injectWalletAdapterStyles();
   }, [injectWalletAdapterStyles]);
 
-  useEffect(() => {
-    const preferred = localStorage.getItem('theme') as ThemeMode | null;
-    const fallback = window.matchMedia('(prefers-color-scheme: dark)').matches
-      ? 'dark'
-      : 'light';
-    const active = preferred === 'light' || preferred === 'dark' ? preferred : fallback;
-    setTheme(active);
-    applyTheme(active);
-  }, [applyTheme]);
+  // COMENTADO para evitar conflicto con theme.js
+  // useEffect(() => {
+  //   const preferred = localStorage.getItem('theme') as ThemeMode | null;
+  //   const fallback = window.matchMedia('(prefers-color-scheme: dark)').matches
+  //     ? 'dark'
+  //     : 'light';
+  //   const active = preferred === 'light' || preferred === 'dark' ? preferred : fallback;
+  //   setTheme(active);
+  //   applyTheme(active);
+  // }, [applyTheme]);
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';

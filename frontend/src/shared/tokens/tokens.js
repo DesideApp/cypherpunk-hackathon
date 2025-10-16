@@ -9,6 +9,26 @@ const TOKENS = {
     decimals: 6,
     ui: { min: 2, max: 2 },
   },
+  BONK: {
+    symbol: "BONK",
+    decimals: 5,
+    ui: { min: 0, max: 2 },
+  },
+  JUP: {
+    symbol: "JUP",
+    decimals: 6,
+    ui: { min: 0, max: 2 },
+  },
+  PENGU: {
+    symbol: "PENGU",
+    decimals: 6,
+    ui: { min: 0, max: 2 },
+  },
+  WIF: {
+    symbol: "WIF",
+    decimals: 6,
+    ui: { min: 0, max: 2 },
+  },
 };
 
 const DECIMAL_RE = /^\d+(?:\.\d+)?$/;
