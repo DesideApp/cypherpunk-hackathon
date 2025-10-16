@@ -1,0 +1,33 @@
+/* 🎯 Wallet Adapter Global Utilities */
+/* Import this file once in your main App */
+
+.wa-ghost-input,
+.wa-ghost-button {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  box-shadow: none;
+  outline: none;
+}
+
+.wa-ghost-button:active,
+.wa-ghost-input:active {
+  transform: none;
+  box-shadow: none !important; /* evita "pressed" */
+}
+
+.wa-ghost-button:focus-visible,
+.wa-ghost-input:focus-visible {
+  outline: 0;
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
+.wa-chip {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--chip-bg);
+  border: 1px solid var(--chip-border);
+  color: var(--chip-text);
+  line-height: 1.2;
+}

@@ -1,0 +1,129 @@
+.connections-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.connections-overview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.connections-overview-header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.connections-peak {
+  color: #4caf50;
+  font-weight: 600;
+}
+
+.connections-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.connections-stat {
+  background: #f7f8ff;
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid rgba(102, 126, 234, 0.15);
+}
+
+.stat-label {
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.stat-value {
+  color: #333;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.connections-overview-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.connections-overview-summary .summary-card {
+  background: #eff7f1;
+  border-radius: 8px;
+  padding: 12px 14px;
+  border: 1px solid rgba(76, 175, 80, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.connections-overview-summary .summary-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.connections-overview-summary .summary-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.connections-table-wrapper {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.connections-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 300px;
+}
+
+.connections-table th,
+.connections-table td {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.connections-table thead th {
+  background: #ecfdf3;
+  color: #166534;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+}
+
+.connections-table tbody tr:nth-child(odd) {
+  background: #f6fef8;
+}
+
+.connections-table tbody tr:hover {
+  background: #dcfce7;
+}
+
+.connections-table-note {
+  padding: 8px 14px;
+  font-size: 0.8rem;
+  color: #4b5563;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.connections-footer {
+  display: flex;
+  justify-content: space-between;
+  color: #999;
+  font-size: 0.85rem;
+}
