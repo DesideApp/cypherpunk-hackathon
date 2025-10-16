@@ -23,7 +23,7 @@
   inset: 0;
   background-color: var(--text-primary);
   border-radius: 14px;
-  transition: background-color 0.2s ease;
+  transition: var(--transition-all);
 }
 
 .themetoggle--switch .themetoggle__thumb {
@@ -34,7 +34,7 @@
   bottom: 2px;
   background-color: var(--window-background);
   border-radius: 50%;
-  transition: transform 0.2s ease;
+  transition: var(--transition-all);
 }
 
 .themetoggle--switch.is-dark .themetoggle__thumb {
@@ -63,8 +63,8 @@
 }
 
 .themetoggle__label {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--font-caption-size);
+  font-weight: var(--font-title-weight);
 }
 
 /* ===============================

@@ -1,6 +1,7 @@
 // src/features/messaging/ui/ChatHeader.jsx
-import React, { useMemo } from "react";
-import { MoreVertical, Info } from "lucide-react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
+import { MoreVertical, Search } from "lucide-react";
+import SearchModal from "./SearchModal";
 import "./ChatHeader.css";
 
 function normalizeContact(sel) {
@@ -13,13 +14,44 @@ function normalizeContact(sel) {
   };
 }
 
-const ChatHeader = ({ selectedContact, peerOnline = false, isTyping = false, onOpenInfo }) => {
+const ChatHeader = ({ selectedContact, peerOnline = false, isTyping = false, messages = [], onSearchSelect }) => {
   const contact = useMemo(() => normalizeContact(selectedContact), [selectedContact]);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const menuRef = useRef(null);
+
+  // Cerrar menú al hacer click fuera
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowMenu(false);
+      }
+    };
+
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showMenu]);
 
   const getDisplayName = () => {
     if (contact.nickname) return contact.nickname;
-    if (contact.pubkey) return `${contact.pubkey.slice(0, 6)}...${contact.pubkey.slice(-4)}`;
+    if (contact.pubkey) return `${contact.pubkey.slice(0, 4)}...${contact.pubkey.slice(-4)}`;
     return "No contact selected";
+  };
+
+  const getTruncatedPubkey = () => {
+    if (!contact.pubkey) return null;
+    return `${contact.pubkey.slice(0, 4)}...${contact.pubkey.slice(-4)}`;
+  };
+
+  const handleCopyPubkey = () => {
+    if (contact.pubkey) {
+      navigator.clipboard.writeText(contact.pubkey);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   const presenceLabel = contact.pubkey
@@ -57,8 +89,8 @@ const ChatHeader = ({ selectedContact, peerOnline = false, isTyping = false, onO
             {getDisplayName()}
           </span>
 
-          {presenceLabel && (
-            <span className="status-row">
+          <div className="status-row">
+            {presenceLabel && (
               <span
                 className={`status-pill ${presenceVariant}`}
                 title={presenceLabel}
@@ -67,18 +99,75 @@ const ChatHeader = ({ selectedContact, peerOnline = false, isTyping = false, onO
               >
                 {presenceLabel}
               </span>
-            </span>
-          )}
+            )}
+            
+            {contact.pubkey && (
+              <>
+                <span className="status-separator">·</span>
+                <span
+                  className={`pubkey-pill ${copied ? 'copied' : ''}`}
+                  title={copied ? "Copied!" : contact.pubkey}
+                  onClick={handleCopyPubkey}
+                >
+                  {copied ? "Copied!" : getTruncatedPubkey()}
+                </span>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
       <div className="chat-header-actions">
-        <button className="chat-header-btn" aria-label="Contact info" type="button" onClick={onOpenInfo} title="Info">
-          <Info size={18} />
+        <button 
+          className="chat-header-btn" 
+          aria-label="Search messages" 
+          type="button" 
+          title="Search"
+          onClick={() => setShowSearch(true)}
+        >
+          <Search size={18} strokeWidth={2.5} />
         </button>
-        <button className="chat-header-btn" aria-label="More options" type="button">
-          <MoreVertical size={18} />
-        </button>
+        
+        <div className="menu-wrapper" ref={menuRef}>
+          <button 
+            className="chat-header-btn" 
+            aria-label="More options" 
+            type="button"
+            onClick={() => setShowMenu(!showMenu)}
+          >
+            <MoreVertical size={18} />
+          </button>
+          
+          {showMenu && (
+            <div className="chat-menu">
+              <button className="menu-item" onClick={handleCopyPubkey}>
+                📋 Copy address
+              </button>
+              <button className="menu-item" onClick={() => setShowMenu(false)}>
+                🔍 Search messages
+              </button>
+              <button className="menu-item" onClick={() => setShowMenu(false)}>
+                🔕 Mute
+              </button>
+              <button className="menu-item danger" onClick={() => setShowMenu(false)}>
+                🗑️ Delete conversation
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Panel de búsqueda - posicionado absolutamente */}
+        {showSearch && (
+          <SearchModal
+            messages={messages}
+            onClose={() => setShowSearch(false)}
+            onSelectMessage={(msg) => {
+              if (onSearchSelect) {
+                onSearchSelect(msg);
+              }
+            }}
+          />
+        )}
       </div>
     </div>
   );

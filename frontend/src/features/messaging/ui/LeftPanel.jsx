@@ -73,8 +73,8 @@ const LeftPanel = ({ onSelectContact }) => {
 
   const [selectedContactWallet, setSelectedContactWallet] = useState(null);
   const [selectedConversationPubkey, setSelectedConversationPubkey] = useState(null);
-  const [activeSocial, setActiveSocial] = useState(null); // 'add' | 'notis' | null
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [addContactModalOpen, setAddContactModalOpen] = useState(false);
+  const [notificationsModalOpen, setNotificationsModalOpen] = useState(false);
 
   const isLoading = !!conversationsLoading;
 
@@ -140,26 +140,19 @@ const LeftPanel = ({ onSelectContact }) => {
     onSelectContact?.(buildContactDescriptor(wallet));
   }, [ensureReadyOnce, buildContactDescriptor, onSelectContact]);
 
-  const toggleSocial = useCallback(async (panel) => {
-    const isOpening = panel && panel !== activeSocial;
-    if (isOpening) {
-      const ready = await ensureReadyOnce();
-      if (!ready) return;
-    }
+  const openAddContactModal = useCallback(async () => {
+    const ready = await ensureReadyOnce();
+    if (!ready) return;
+    try { await loadContacts(); } catch {}
+    setAddContactModalOpen(true);
+  }, [ensureReadyOnce, loadContacts]);
 
-    setActiveSocial((prev) => {
-      if (prev === panel || panel === null) {
-        setIsExpanded(false);
-        return null;
-      }
-      setIsExpanded(true);
-      return panel;
-    });
-
-    if (panel) {
-      try { await loadContacts(); } catch {}
-    }
-  }, [activeSocial, ensureReadyOnce, loadContacts]);
+  const openNotificationsModal = useCallback(async () => {
+    const ready = await ensureReadyOnce();
+    if (!ready) return;
+    try { await loadContacts(); } catch {}
+    setNotificationsModalOpen(true);
+  }, [ensureReadyOnce, loadContacts]);
 
   const handleDemoReset = useCallback((event) => {
     if (event) event.stopPropagation();
@@ -169,35 +162,29 @@ const LeftPanel = ({ onSelectContact }) => {
   return (
     <div className="left-panel">
       {/* Header */}
-      <div
-        className={`social-header ${isExpanded ? "expanded" : ""}`}
-        onClick={(e) => {
-          if (!e.target.closest(".social-button")) {
-            setActiveSocial(null);
-            setIsExpanded(false);
-          }
-        }}
-      >
+      <div className="social-header">
         <h2 className="left-panel-title">Chat</h2>
 
         <div className="social-header-buttons">
           <button
-            className={`social-button ${activeSocial === "add" ? "active" : ""}`}
-            onClick={(e) => { e.stopPropagation(); toggleSocial("add"); }}
+            className="social-button"
+            onClick={openAddContactModal}
             aria-label="Add Contact"
             type="button"
+            title="Add Contact"
           >
-            <UserPlus size={20} />
+            <UserPlus size={18} />
           </button>
 
           <button
-            className={`social-button ${activeSocial === "notis" ? "active" : ""}`}
-            onClick={(e) => { e.stopPropagation(); toggleSocial("notis"); }}
+            className="social-button"
+            onClick={openNotificationsModal}
             aria-label="Notifications"
             type="button"
+            title="Contact Requests"
           >
             <div className="icon-wrapper">
-              <Bell size={20} />
+              <Bell size={18} />
               {(receivedRequests?.length || 0) > 0 && (
                 <span className="badge">{receivedRequests.length}</span>
               )}
@@ -218,29 +205,8 @@ const LeftPanel = ({ onSelectContact }) => {
         </div>
       </div>
 
-      {/* Panel social */}
-      <div className={`left-panel-social ${isExpanded ? "expanded" : "collapsed"}`}>
-        <div className="social-content-wrapper">
-          <div className={`social-tab ${activeSocial === "add" ? "visible" : ""}`}>
-            <AddContactForm
-              onContactAdded={handleAddContact}
-              resetTrigger={activeSocial}
-              refreshContacts={loadContacts}
-            />
-          </div>
-
-          <div className={`social-tab ${activeSocial === "notis" ? "visible" : ""}`}>
-            <NotificationPanel
-              receivedRequests={receivedRequests}
-              onAcceptRequest={handleAcceptRequest}
-              onRejectRequest={handleRejectRequest}
-            />
-          </div>
-        </div>
-      </div>
-
       {/* Lista principal */}
-      <div className={`left-panel-main ${isExpanded ? "with-social-expanded" : "with-social-collapsed"}`}>
+      <div className="left-panel-main">
         {isLoading && <p className="left-panel-loading">Loading...</p>}
 
         {!isLoading && (
@@ -257,6 +223,57 @@ const LeftPanel = ({ onSelectContact }) => {
           />
         )}
       </div>
+
+      {/* Modal: Add Contact */}
+      {addContactModalOpen && (
+        <div className="modal-overlay" onClick={() => setAddContactModalOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Add Contact</h3>
+              <button
+                className="modal-close"
+                onClick={() => setAddContactModalOpen(false)}
+                aria-label="Close"
+                type="button"
+              >
+                ✕
+              </button>
+            </div>
+            <AddContactForm
+              onContactAdded={(contact) => {
+                handleAddContact(contact);
+                setAddContactModalOpen(false);
+              }}
+              resetTrigger={addContactModalOpen}
+              refreshContacts={loadContacts}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Notifications */}
+      {notificationsModalOpen && (
+        <div className="modal-overlay" onClick={() => setNotificationsModalOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Contact Requests</h3>
+              <button
+                className="modal-close"
+                onClick={() => setNotificationsModalOpen(false)}
+                aria-label="Close"
+                type="button"
+              >
+                ✕
+              </button>
+            </div>
+            <NotificationPanel
+              receivedRequests={receivedRequests}
+              onAcceptRequest={handleAcceptRequest}
+              onRejectRequest={handleRejectRequest}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

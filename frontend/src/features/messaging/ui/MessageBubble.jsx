@@ -1,8 +1,11 @@
 // src/features/messaging/ui/MessageBubble.jsx
 import React from "react";
 import { Lock } from "lucide-react";
+import TextBubble from "../../../shared/ui/bubbles/TextBubble.jsx";
 import AgreementCard from "./AgreementCard.jsx";
 import PaymentRequestCard from "./PaymentRequestCard.jsx";
+import ActionBubbleShell from "../../../shared/ui/bubbles/ActionBubbleShell.jsx";
+import BlinkActionCard from "./BlinkActionCard.jsx";
 import "./MessageBubble.css";
 
 function resolveTransport(via) {
@@ -103,11 +106,42 @@ const MessageBubble = ({ msg = {}, isMe, position }) => {
       position,
     ].join(" ");
     return (
-      <div className={bubbleClasses} role="listitem">
-        <PaymentRequestCard msg={msg} />
+      <div
+        className={bubbleClasses}
+        role="listitem"
+        data-status={msg.status || (msg.deliveredAt ? "delivered" : "sent")}
+        data-via={resolveTransport(msg?.via) || ""}
+      >
+        <div className="message-content">
+          <ActionBubbleShell
+            timestamp={msg?.timestamp || msg?.createdAt || Date.now()}
+            isMe={isMe}
+            encrypted={!!msg?.isEncrypted}
+            transport={msg?.via || null}
+          >
+            <PaymentRequestCard msg={msg} />
+          </ActionBubbleShell>
+        </div>
       </div>
     );
   }
+
+  if (msg?.kind === "blink-action" && msg?.blinkAction) {
+    const bubbleClasses = [
+      "message-bubble",
+      "blink-action-wrapper",
+      isMe ? "sent" : "received",
+      position,
+    ].join(" ");
+    return (
+      <div className={bubbleClasses} role="listitem">
+        <BlinkActionCard msg={msg} />
+      </div>
+    );
+  }
+
+  const ts = msg?.timestamp || Date.now();
+  const tsIso = new Date(ts).toISOString();
 
   return (
     <div
@@ -131,16 +165,15 @@ const MessageBubble = ({ msg = {}, isMe, position }) => {
             <Footer msg={msg} overlay />
           </div>
         ) : (
-          <>
-            <span
-              className={`message-text ${msg.isPlaceholder ? "placeholder" : ""} ${
-                isTiny ? "tiny" : ""
-              }`}
-            >
-              {hasText ? msg.text : msg.isPlaceholder ? "🔒 Encrypted message" : " "}
-            </span>
-            <Footer msg={msg} />
-          </>
+          <TextBubble
+            text={hasText ? msg.text : ""}
+            timestamp={ts}
+            isMe={isMe}
+            encrypted={!!(msg?.isEncrypted || msg?.media?.isEncrypted)}
+            transport={msg?.via || null}
+            isTiny={isTiny}
+            isPlaceholder={!!msg?.isPlaceholder}
+          />
         )}
         {hasMedia && hasText && <div className="message-caption">{msg.text}</div>}
       </div>

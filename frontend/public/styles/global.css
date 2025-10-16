@@ -1,30 +1,36 @@
 :root {
+  /* ============================================
+     🎨 TIPOGRAFÍA UNIFICADA
+     Una sola familia (Inter) para consistencia visual
+     Solo variamos peso, tamaño y transform
+  ============================================ */
+  
   /* Title (Grandes títulos, header, panel titles) */
-  --font-title-family: 'Montserrat', sans-serif;
+  --font-title-family: 'Inter', sans-serif;
   --font-title-size: 18px;
   --font-title-weight: 600;
 
- /* 🔸 Subtitle → Para subtítulos, encabezados suaves de secciones */
-  --font-subtitle-family: 'Montserrat', sans-serif;
+  /* Subtitle → Para subtítulos, encabezados suaves de secciones */
+  --font-subtitle-family: 'Inter', sans-serif;
   --font-subtitle-size: 16px;
-  --font-subtitle-weight: 550;
+  --font-subtitle-weight: 500;
 
-  /* 🔹 UI Text → Para etiquetas, botones, cabeceras internas */
-  --font-ui-family: 'Montserrat', sans-serif;
+  /* UI Text → Para etiquetas, botones, cabeceras internas */
+  --font-ui-family: 'Inter', sans-serif;
   --font-ui-size: 14px;
-  --font-ui-weight: 450;
+  --font-ui-weight: 500;
 
   /* Body (texto normal, chat, párrafos) */
-  --font-body-family: 'Roboto', sans-serif;
-  --font-body-size: 16px;
-  --font-body-weight: 500;
-  --line-height: 1.45;
+  --font-body-family: 'Inter', sans-serif;
+  --font-body-size: 15px;
+  --font-body-weight: 400;
+  --line-height: 1.5;
 
   /* Navigation (leftbar, wallet menu) */
-  --font-navigation-family: 'IBM Plex Sans', sans-serif;
+  --font-navigation-family: 'Inter', sans-serif;
   --font-navigation-size: 14px;
-  --font-navigation-weight: 400;
-  --font-navigation-transform: uppercase;
+  --font-navigation-weight: 500;
+  --font-navigation-transform: none;
 
   /* Data (Cifras, direcciones, valores crudos, técnicos) */
   --font-data-family: 'IBM Plex Mono', monospace;
@@ -34,9 +40,10 @@
 
   /* Caption (tooltips, microtext, etiquetas muy pequeñas) */
   --font-caption-family: 'Inter', sans-serif;
-  --font-caption-size: 11px;
-  --font-caption-weight: 400;
+  --font-caption-size: 12px;
+  --font-caption-weight: 500;
   --font-caption-transform: uppercase;
+  --font-caption-letter-spacing: 0.05em;
 }
 
 /* ==============================

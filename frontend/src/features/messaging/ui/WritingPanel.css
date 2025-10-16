@@ -1,18 +1,36 @@
 /* CONTENEDOR PRINCIPAL (coincide con JSX: div.writing-panel) */
 .writing-panel {
   display: flex;
+  flex-direction: column;
   align-items: flex-end;
-  justify-content: flex-end;
-  gap: 12px;
+  gap: 0; /* Sin gap, usamos margin en el botón */
   width: 100%;
-  background-color: var(--window-background);
-  padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
-  min-height: 60px;
-  border-top: 1px solid var(--border-color);
+  max-width: 840px; /* Ancho TOTAL (input + margin + botón) - Reducido para mejor balance visual */
+  margin: 0 auto; /* Centrado */
+  background-color: transparent;
+  padding: 0;
+  min-height: auto;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  border-top: none;
   box-sizing: border-box;
   flex: 0 0 auto;
   position: relative;
-  z-index: 3;
+  box-shadow: none;
+}
+
+/* Contenedor para previews de blinks */
+.blink-previews-container {
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 0 4px;
+}
+
+/* Fila del input y botón de envío */
+.input-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  width: 100%;
 }
 
 /* Animación tipo resorte (más suave) */
@@ -26,32 +44,65 @@
   100% { padding-top: 6px; }
 }
 
-/* WRAPPER DEL INPUT */
+/* WRAPPER DEL INPUT - Estilo Telegram */
 .input-wrapper {
   position: relative;
-  flex: 1;
+  flex: 1; /* Ocupa el espacio disponible en la fila */
+  min-width: 0; /* Permite que flex shrink funcione correctamente */
   display: flex;
   align-items: center;
+  background: var(--window-background);
+  border-radius: 18px;
+  padding: 8px 12px;
+  box-sizing: border-box;
+  box-shadow: none;
+  border: none;
+  transition: var(--transition-all);
+}
+
+.input-wrapper:focus-within {
+  box-shadow: none;
+  border: none;
+}
+
+/* Borde de color acento cuando se detecta blink */
+.input-wrapper.blink-detected {
+  border: 1px solid var(--accent-color, #3b82f6);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 
 /* TEXTAREA (coincide con JSX: textarea.writing-input) */
 .writing-input, .chat-input {
   width: 100%;
   font-family: var(--font-body-family);
-  font-size: var(--font-body-size);
+  font-size: 15px;
   color: var(--text-primary);
-  background-color: var(--background-color);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
+  background-color: transparent;
+  border: none;
+  border-radius: 0;
   outline: none;
-  padding: 10px 14px;
-  line-height: var(--line-height);
-  padding-left: 50px; /* espacio sólo para emoji */
-  padding-right: 50px;
-  /* 👇 límite duro de altura como red de seguridad; la lógica JS ya controla 40vh */
+  padding: 3px 0; /* Reducido de 4px a 3px */
+  line-height: 1.35; /* Reducido de 1.4 a 1.35 */
+  padding-left: 36px; /* espacio para emoji */
+  padding-right: 28px; /* solo espacio para clear icon (X) */
   max-height: 40vh;
-  min-height: 42px;
+  min-height: 28px; /* Reducido de 32px a 28px */
   resize: none;
+  transition: var(--transition-all);
+}
+
+.writing-input:focus, .chat-input:focus {
+  outline: none;
+}
+
+.writing-input::placeholder, .chat-input::placeholder {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.writing-input:focus::placeholder, .chat-input:focus::placeholder {
+  color: var(--text-muted);
+  opacity: 0.7; /* Más apagado en focus */
 }
 
 .writing-input.scrolling, .chat-input.scrolling { overflow-y: auto; }
@@ -65,20 +116,25 @@
 /* CONTENEDOR DE ICONOS IZQUIERDOS */
 .left-icons-container {
   position: absolute;
-  left: 16px;
-  bottom: 6px;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 /* ICONO EMOJI */
 .emoji-icon {
   cursor: pointer;
-  color: var(--border-color-active);
-  transition: transform 0.1s ease, color 0.1s ease;
+  color: var(--text-secondary); /* Mismo color que botones */
+  transition: var(--transition-all);
+  padding: 2px;
+  border-radius: 50%;
 }
-.emoji-icon:hover { transform: scale(1.1); color: var(--text-secondary); }
+.emoji-icon:hover { 
+  color: rgba(255, 255, 255, 0.95); /* Hover más claro */
+}
 
 /* ICONO PAPERCLIP */
 /* Adjuntos deshabilitados en este MVP: estilos removidos */
@@ -93,62 +149,86 @@
 /* CLEAR ICON (X) */
 .clear-icon {
   position: absolute;
-  right: 22px;
-  bottom: 10px;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
   font-size: 0.9rem;
-  color: var(--border-color);
-  opacity: 1;
+  color: rgba(255, 255, 255, 0.3);
+  opacity: 0;
   pointer-events: none;
   cursor: default;
   background: none;
-  transition: color 0.2s ease-in-out, transform 0.1s ease;
+  transition: var(--transition-all);
 }
 .input-wrapper:not(.has-text) .clear-icon {
-  color: var(--border-color);
   opacity: 0;
   pointer-events: none;
 }
 .input-wrapper.has-text .clear-icon {
   opacity: 1;
   pointer-events: auto;
-  color: var(--border-color-active);
+  color: rgba(255, 255, 255, 0.4);
   cursor: pointer;
 }
 .input-wrapper.has-text .clear-icon:hover {
   color: var(--text-secondary);
-  transform: scale(1.1);
+  transform: translateY(-50%) scale(1.1);
 }
 
-/* BOTÓN ENVIAR */
-/* Área de envío agrupada (no usada en este MVP) */
-/* .send-area { display: inline-flex; gap: 8px; align-items: center; } */
-
+/* BOTÓN ENVIAR - Estilo Telegram (FUERA del input) */
 .send-button {
-  display: flex;
+  display: inline-flex;
   justify-content: center;
   align-items: center;
-  background: none;
-  width: 46px;
-  height: 46px;
-  padding-right: 6px;
+  background: var(--window-background);
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  margin: 0;
+  margin-left: 10px; /* Separación del input (reemplaza gap) */
+  margin-bottom: 1px;
   border: none;
+  outline: none; /* Sin outline invisible */
   cursor: pointer;
-  border-radius: 8px;
-  transition: transform 0.1s ease;
+  border-radius: 50%;
+  transition: var(--transition-all);
+  box-shadow: none !important; /* Forzar sin shadow */
+  flex: 0 0 42px; /* Ancho fijo, no crece ni se encoge */
+  box-sizing: border-box; /* Asegurar que borders no añadan ancho */
 }
-.send-button.cancel { background: #f5f5f5; }
-.send-button:disabled { cursor: default; }
-.send-button:disabled:active { transform: none; }
 
-.send-button:active { transform: scale(0.9); }
-.send-button:disabled svg { fill: none; stroke: var(--border-color); }
-.send-button:not(:disabled) svg {
-  stroke: var(--border-color-active);
-  transition: all 0.15s ease;
+.send-button svg {
+  display: block;
+  margin: 0 auto;
+  flex-shrink: 0;
 }
-.send-button:not(:disabled):hover svg { stroke: var(--text-primary); }
-.send-button svg { transform: rotate(+45deg); transition: transform 0.15s ease; }
-.send-button:active svg { transform: rotate(+45deg) scale(0.95); }
+
+/* FASE 1: DISABLED (sin texto) - Gris relleno */
+.send-button:disabled {
+  cursor: default;
+  background: var(--window-background);
+  color: var(--text-muted); /* Mismo que placeholder */
+}
+
+.send-button:disabled:active {
+  transform: none;
+}
+
+/* FASE 2: ENABLED (con texto) - MORADO relleno */
+.send-button:not(:disabled) {
+  background: var(--window-background);
+  color: var(--accent-color);
+}
+
+/* FASE 3: HOVER - MISMO morado, AUMENTA tamaño */
+.send-button:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.12);
+  transform: scale(1.08);
+}
+
+.send-button:not(:disabled):active {
+  transform: scale(0.95);
+}
 
 /* Indicador escribiendo */
 .typing-indicator {
@@ -157,6 +237,93 @@
   left: 16px;
   font-size: 0.75rem;
   color: var(--text-secondary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .writing-panel {
+    /* Sin cambios, mismo max-width */
+  }
+}
+
+/* Blink Detection - Texto dinámico que se mueve con la escritura */
+.input-wrapper {
+  position: relative;
+}
+
+.dynamic-text-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  z-index: 1;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.user-text {
+  color: transparent; /* Hace que el texto del usuario sea invisible aquí */
+}
+
+.blink-suggestion-inline {
+  color: var(--text-secondary);
+  opacity: 0.6;
+  user-select: none;
+  font-size: 14px; /* Fuente más pequeña como los botones de acción */
+  font-weight: 500; /* Peso similar a los botones */
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  position: absolute; /* Para posicionamiento dinámico */
+}
+
+.blink-suggestion-inline .blink-icon {
+  color: var(--accent-color);
+  stroke: var(--accent-color);
+  fill: none; /* Solo borde, sin relleno */
+}
+
+.input-wrapper .chat-input {
+  position: relative;
+  z-index: 2;
+  background: transparent; /* Para que se vea el texto dinámico detrás */
+  color: var(--text-primary); /* Color del texto que escribes */
+}
+
+/* Animación de éxito - Solo latido del rayo */
+.blink-icon.success-fill {
+  animation: heartbeatFill 0.6s ease-out;
+}
+
+@keyframes heartbeatFill {
+  0% {
+    fill: none;
+    stroke: var(--accent-color);
+    transform: scale(1);
+  }
+  30% {
+    fill: var(--accent-color);
+    stroke: var(--accent-color);
+    transform: scale(1.2);
+  }
+  60% {
+    fill: var(--accent-color);
+    stroke: var(--accent-color);
+    transform: scale(1.1);
+  }
+  100% {
+    fill: var(--accent-color);
+    stroke: var(--accent-color);
+    transform: scale(1);
+  }
 }
 
 /* UI de adjuntos (settings) removida en este MVP */

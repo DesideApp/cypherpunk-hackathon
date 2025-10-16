@@ -40,7 +40,7 @@
   font-family: var(--font-data-family);
   font-size: var(--font-data-size);
   color: var(--text-on-window);
-  transition: background-color 0.2s ease;
+  transition: var(--transition-all);
 }
 
 .contact-request-item:hover {
@@ -69,15 +69,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s ease;
+  transition: var(--transition-all);
 }
 
 .contact-request-approve {
-  color: #00c853;
+  color: var(--success-color);
 }
 
 .contact-request-reject {
-  color: #fc554f;
+  color: var(--error-color);
 }
 
 .contact-request-approve:hover,

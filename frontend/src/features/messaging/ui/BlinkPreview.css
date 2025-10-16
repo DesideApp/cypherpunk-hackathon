@@ -1,0 +1,235 @@
+/* Estilos para el componente BlinkPreview */
+
+.blink-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--bg-secondary, #f8f9fa);
+  border: 1px solid var(--border-color, #e9ecef);
+  border-radius: 8px;
+  margin: 4px 0;
+  transition: all 0.2s ease;
+}
+
+.blink-preview:hover {
+  background: var(--bg-hover, #e9ecef);
+  border-color: var(--border-hover, #dee2e6);
+}
+
+.blink-preview--compact {
+  padding: 8px;
+  gap: 8px;
+}
+
+.blink-preview--loading {
+  opacity: 0.7;
+}
+
+.blink-preview--error {
+  background: var(--error-bg, #fff5f5);
+  border-color: var(--error-border, #fed7d7);
+  color: var(--error-text, #c53030);
+}
+
+.blink-preview--valid {
+  background: var(--success-bg, #f0fff4);
+  border-color: var(--success-border, #c6f6d5);
+}
+
+.blink-preview__skeleton {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.blink-preview__skeleton-icon {
+  width: 16px;
+  height: 16px;
+  background: var(--skeleton-bg, #e2e8f0);
+  border-radius: 4px;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+.blink-preview__skeleton-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.blink-preview__skeleton-title {
+  height: 16px;
+  width: 60%;
+  background: var(--skeleton-bg, #e2e8f0);
+  border-radius: 4px;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+.blink-preview__skeleton-description {
+  height: 12px;
+  width: 80%;
+  background: var(--skeleton-bg, #e2e8f0);
+  border-radius: 4px;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.blink-preview__image {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.blink-preview__image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.blink-preview__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--primary-color, #3182ce);
+}
+
+.blink-preview--error .blink-preview__icon {
+  color: var(--error-color, #e53e3e);
+}
+
+.blink-preview__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.blink-preview__title {
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.2;
+  margin-bottom: 2px;
+  color: var(--text-primary, #1a202c);
+}
+
+.blink-preview__description {
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--text-secondary, #718096);
+  margin-bottom: 2px;
+}
+
+.blink-preview__type {
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--text-muted, #a0aec0);
+  letter-spacing: 0.5px;
+}
+
+.blink-preview__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.blink-preview__execute {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: var(--primary-color, #3182ce);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.blink-preview__execute:hover {
+  background: var(--primary-hover, #2c5aa0);
+  transform: translateY(-1px);
+}
+
+.blink-preview__execute:active {
+  transform: translateY(0);
+}
+
+.blink-preview--compact .blink-preview__execute {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+.blink-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .blink-preview {
+    padding: 10px;
+    gap: 10px;
+  }
+  
+  .blink-preview__execute {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+  
+  .blink-preview__title {
+    font-size: 13px;
+  }
+  
+  .blink-preview__description {
+    font-size: 11px;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .blink-preview {
+    background: var(--bg-secondary-dark, #2d3748);
+    border-color: var(--border-color-dark, #4a5568);
+  }
+  
+  .blink-preview:hover {
+    background: var(--bg-hover-dark, #4a5568);
+    border-color: var(--border-hover-dark, #718096);
+  }
+  
+  .blink-preview__title {
+    color: var(--text-primary-dark, #f7fafc);
+  }
+  
+  .blink-preview__description {
+    color: var(--text-secondary-dark, #a0aec0);
+  }
+  
+  .blink-preview__type {
+    color: var(--text-muted-dark, #718096);
+  }
+}
+
+
+
+
+

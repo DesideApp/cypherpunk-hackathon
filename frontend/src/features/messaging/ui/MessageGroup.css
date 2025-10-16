@@ -8,9 +8,9 @@
 /* Divider de fecha */
 .date-divider {
   align-self: center;
-  font-size: 12px;
-  padding: 4px 12px;
-  margin: 12px 0; /* acompasa con spacing de burbujas */
+  font-size: var(--font-caption-size);
+  padding: 4px var(--font-caption-size);
+  margin: var(--font-caption-size) 0; /* acompasa con spacing de burbujas */
   color: var(--text-secondary);
   background: var(--background-overlay);
   border-radius: 10px;

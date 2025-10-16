@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import PropTypes from "prop-types";
-import { VersionedTransaction, Transaction } from "@solana/web3.js";
+import { VersionedTransaction, Transaction, TransactionInstruction, PublicKey } from "@solana/web3.js";
 import { Buffer } from "buffer";
 import { useWallet } from "@wallet-adapter/core/contexts/WalletProvider";
 import { useRpc } from "@wallet-adapter/core/contexts/RpcProvider";
@@ -18,6 +18,7 @@ import { assertAllowed } from "@features/messaging/config/blinkSecurity.js";
 import { formatAmountForDisplay } from "@shared/tokens/tokens.js";
 import { actions } from "@features/messaging/store/messagesStore.js";
 import { IS_DEMO, FEATURES } from "@shared/config/env.js";
+import { executeBlink } from "@features/messaging/services/blinkExecutionService.js";
 import SettlementModal from "./modals/SettlementModal.jsx";
 import "./AgreementCard.css";
 
@@ -128,14 +129,14 @@ function AgreementCard({ msg }) {
     if (!adapter) throw new Error("Wallet not connected");
     const tx = deserializeTransaction(serializedTx);
 
-    if (typeof adapter.sendTransaction === "function") {
-      return adapter.sendTransaction(tx, connection, { preflightCommitment: "confirmed" });
-    }
-
     if (typeof adapter.signTransaction === "function") {
       const signed = await adapter.signTransaction(tx);
       const raw = signed.serialize();
       return connection.sendRawTransaction(raw, { skipPreflight: false });
+    }
+
+    if (typeof adapter.sendTransaction === "function") {
+      return adapter.sendTransaction(tx, connection, { preflightCommitment: "confirmed" });
     }
 
     throw new Error("Wallet adapter does not support sending transactions");
@@ -160,7 +161,57 @@ function AgreementCard({ msg }) {
 
       if (requiresWallet) {
         notify("Opening your wallet…", "info");
-        signature = await sendThroughWallet(prepare.transaction);
+        let serializedTx = prepare.transaction;
+        if (prepare?.memo && adapter?.signTransaction && connection) {
+          try {
+            const memoInstruction = new TransactionInstruction({
+              programId: MEMO_PROGRAM_ID,
+              keys: [
+                {
+                  pubkey: new PublicKey(walletPk),
+                  isSigner: true,
+                  isWritable: false,
+                },
+              ],
+              data: Buffer.from(prepare.memo, "utf8"),
+            });
+            const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+            const localTx = new Transaction({ feePayer: new PublicKey(walletPk), recentBlockhash: blockhash });
+            localTx.add(memoInstruction);
+            const signedTx = await adapter.signTransaction(localTx);
+            const raw = signedTx.serialize();
+            const sig = await connection.sendRawTransaction(raw, { skipPreflight: false });
+            const confirmation = await connection.confirmTransaction(
+              { signature: sig, blockhash, lastValidBlockHeight },
+              "confirmed"
+            );
+            if (!confirmation?.value || confirmation.value.err) {
+              throw new Error("settlement-tx-not-confirmed");
+            }
+            signature = sig;
+          } catch (rebuildError) {
+            debug("sign-rebuild-fallback", { error: rebuildError?.message });
+            signature = await sendThroughWallet(serializedTx);
+            try {
+              const confirmation = await connection.confirmTransaction(signature, "confirmed");
+              if (!confirmation?.value || confirmation.value.err) {
+                throw new Error("wallet-tx-not-confirmed");
+              }
+            } catch (confirmError) {
+              throw confirmError;
+            }
+          }
+        } else {
+          signature = await sendThroughWallet(serializedTx);
+          try {
+            const confirmation = await connection.confirmTransaction(signature, "confirmed");
+            if (!confirmation?.value || confirmation.value.err) {
+              throw new Error("wallet-tx-not-confirmed");
+            }
+          } catch (confirmError) {
+            throw confirmError;
+          }
+        }
       } else {
         signature = prepare?.payload?.hash
           ? `ack-${prepare.payload.hash}`
@@ -209,11 +260,107 @@ function AgreementCard({ msg }) {
     }
   };
 
-  const handleSettle = () => {
+  const inlineEnabled = FEATURES.PAYMENT_INLINE_EXEC;
+  const inlineCapable = inlineEnabled && adapter && connection && isPayer && !!token && !!amount;
+
+  const executeSettlementInline = async (builder) => {
+    const blink = builder();
+    assertAllowed(blink.actionUrl, { feature: "agreement-settle" });
+
+    const executeTransaction = async (serializedTx) => {
+      const tx = deserializeTransaction(serializedTx);
+      let signature = null;
+      if (typeof adapter.sendTransaction === "function") {
+        signature = await adapter.sendTransaction(tx, connection, {
+          skipPreflight: false,
+          preflightCommitment: "confirmed",
+        });
+      } else if (typeof adapter.signTransaction === "function") {
+        const signed = await adapter.signTransaction(tx);
+        const raw = signed.serialize();
+        signature = await connection.sendRawTransaction(raw, { skipPreflight: false });
+      } else {
+        throw new Error("Wallet adapter cannot send transactions.");
+      }
+
+      if (!signature) {
+        throw new Error("Wallet did not return a signature.");
+      }
+
+      await connection.confirmTransaction(signature, "confirmed");
+      return signature;
+    };
+
+    notify("Opening your wallet…", "info");
+    const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const timeout = controller ? setTimeout(() => controller.abort(), 15000) : null;
+
+    try {
+      const payload = await executeBlink(blink.actionUrl, walletPk, { signal: controller?.signal });
+      const signatures = [];
+      if (payload?.type === "transaction" && typeof payload.transaction === "string") {
+        signatures.push(await executeTransaction(payload.transaction));
+      } else if (payload?.type === "transactions" && Array.isArray(payload.transactions)) {
+        for (const serialized of payload.transactions) {
+          if (typeof serialized !== "string") continue;
+          signatures.push(await executeTransaction(serialized));
+        }
+      } else {
+        throw new Error("Unexpected response from settlement action.");
+      }
+
+      const primarySig = signatures[signatures.length - 1] || signatures[0] || null;
+      if (!primarySig) {
+        notify("Payment sent, but signature is missing.", "warning");
+        return null;
+      }
+      return primarySig;
+    } catch (error) {
+      if (error?.name === "AbortError") {
+        notify("Settlement request timed out. Opening Dialect…", "warning");
+        openBlink(() => blink);
+        return null;
+      }
+      if (error?.message?.toLowerCase().includes("reject") || error?.code === 4001) {
+        notify("Signature cancelled in wallet.", "warning");
+      } else {
+        notify(error?.message || "Couldn't complete settlement. Opening Dialect…", "warning");
+        openBlink(() => blink);
+      }
+      return null;
+    } finally {
+      if (timeout) clearTimeout(timeout);
+    }
+  };
+
+  const handleSettle = async () => {
     if (!amount || !token || !payee) return;
     setSettling(true);
-    openBlink(() => buildTransfer({ token, to: payee, amount }));
-    setSettling(false);
+    try {
+      let signature = null;
+      if (inlineCapable) {
+        signature = await executeSettlementInline(() => buildTransfer({ token, to: payee, amount }));
+      } else {
+        openBlink(() => buildTransfer({ token, to: payee, amount }));
+      }
+      if (signature) {
+        try {
+          const res = await markAgreementSettled(agreement.id, { txSig: signature });
+          applyReceiptUpdate({
+            settlement: {
+              status: 'settled',
+              txSig: res?.txSig || signature,
+              recordedAt: res?.settlement?.recordedAt || new Date().toISOString(),
+            },
+          });
+          notify("Payment recorded.", "success");
+        } catch (error) {
+          notify(error?.message || "Failed to register payment.", "error");
+        }
+      }
+    } finally {
+      setSettling(false);
+    }
   };
 
   const handleRequestSettle = () => {
@@ -424,3 +571,4 @@ AgreementCard.propTypes = {
 };
 
 export default AgreementCard;
+const MEMO_PROGRAM_ID = new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");

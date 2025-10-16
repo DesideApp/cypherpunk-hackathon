@@ -5,7 +5,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--font-caption-size);
   opacity: .85;
 }
 
@@ -28,7 +28,7 @@
 /* ✓✓ leído (destacado) */
 .read .bubble-state .icon::after {
   content: "✓✓";
-  color: var(--accent-color, #2563eb);
+  color: var(--accent-color);
   font-weight: 700;
 }
 
@@ -40,8 +40,8 @@
 /* Indicador de typing (puedes usar <p class="typing-indicator">...) */
 .typing-indicator {
   margin: 4px 0 2px;
-  font-size: 12px;
-  color: var(--secondary-text, #6b7280);
+  font-size: var(--font-caption-size);
+  color: var(--text-secondary);
 }
 
 .typing-dots {
@@ -55,7 +55,7 @@
   width: 4px;
   height: 4px;
   margin: 0 1px;
-  background: var(--secondary-text, #6b7280);
+  background: var(--text-secondary);
   border-radius: 50%;
   animation: blink 1.2s infinite ease-in-out both;
 }

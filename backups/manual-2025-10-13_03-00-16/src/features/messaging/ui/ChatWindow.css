@@ -1,0 +1,484 @@
+/* =========================================
+   📦 CONTENEDOR PRINCIPAL DEL CHAT
+========================================= */
+.chat-window {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0; /* ✅ permite que el hijo scrollee dentro de un contenedor flex */
+  background-color: var(--background-color);
+}
+
+.chat-window-inner {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding-inline: clamp(16px, 4vw, 32px);
+  box-sizing: border-box;
+  min-height: 0;
+  background-color: var(--background-color);
+}
+
+@media (max-width: 1024px) {
+  .chat-window-inner {
+    max-width: 100%;
+    padding-inline: clamp(12px, 4vw, 24px);
+  }
+}
+
+@media (max-width: 640px) {
+  .chat-window-inner {
+    padding-inline: 12px;
+  }
+}
+
+/* =========================================
+   🧩 BODY (Mensajes + Writing Panel)
+========================================= */
+.chat-window-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0; /* ✅ crítico para que el área de mensajes tenga scroll propio */
+  background-color: var(--background-color);
+  position: relative;
+}
+
+.chat-composer-zone {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-action-bar-shell {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 8px);
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.chat-action-bar-shell .action-bar {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  width: 100%;
+  max-width: none;
+}
+
+.action-bar-left {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.action-bar-right {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+}
+
+.action-bar-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--border-color) 65%, transparent);
+  background: color-mix(in srgb, var(--window-background) 70%, transparent);
+  backdrop-filter: blur(8px);
+  color: var(--text-on-window, var(--text-secondary));
+  font-size: 0.85rem;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.action-bar-button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--background-color) 82%, transparent);
+  color: var(--text-primary);
+  border-color: var(--border-color-active);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.16);
+}
+
+.action-bar-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.action-bar-button.pending {
+  border-color: var(--border-color-active);
+  color: var(--text-primary);
+}
+
+.action-bar-button.disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ===== Fund chip (saldo + pelota +) ===== */
+.action-bar-fund-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 6px 0 10px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--border-color) 60%, transparent);
+  background: color-mix(in srgb, var(--window-background) 70%, transparent);
+  color: var(--text-on-window, var(--text-secondary));
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.10);
+}
+
+.action-bar-fund-chip.disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.fund-balance-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  padding: 0 6px 0 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.fund-balance-btn:hover {
+  color: var(--text-primary);
+}
+
+.fund-plus-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-color, #4c6ef5);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+  transition: transform 0.08s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.fund-plus-btn:hover { background: var(--accent-color-strong, #3554dd); }
+.fund-plus-btn:active { transform: translateY(1px) scale(0.98); }
+
+@media (max-width: 640px) {
+  .fund-balance-btn { display: none; }
+  .action-bar-fund-chip { padding: 0 4px; height: 40px; }
+  .fund-plus-btn { width: 36px; height: 36px; }
+}
+
+@media (max-width: 640px) {
+  .chat-action-bar-shell {
+    bottom: calc(100% + 4px);
+  }
+
+  .chat-action-bar-shell .action-bar {
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .action-bar-button {
+    flex: 0 0 auto;
+    min-width: 32%;
+  }
+}
+
+/* =========================================
+   💬 CONTENEDOR DE MENSAJES
+   👉 el scroll lo gestiona .chat-messages (hijo)
+========================================= */
+.chat-window-messages {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;  /* ✅ sin esto, el hijo no puede scrollear en flex */
+  overflow: hidden; /* el hijo hace scroll */
+  padding: 0;
+  gap: 10px;
+}
+
+.chat-window-messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-window-messages::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+}
+
+/* Loader de historial */
+.loading-history {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: var(--font-caption-size);
+  padding: 10px 0;
+}
+
+/* Hint de estado del DataChannel (opcional, discreto) */
+.dc-status-hint {
+  align-self: center;
+  margin: 4px 0 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* =========================================
+   📭 ESTADO VACÍO
+========================================= */
+.chat-empty-state {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-empty-content {
+  max-width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: center;
+}
+
+.chat-empty-content h2 {
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: var(--text-on-window);
+}
+
+.chat-empty-content p {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+/* =========================================
+   ✅ Responsive
+========================================= */
+@media (max-width: 768px) {
+  .chat-empty-content h2 {
+    font-size: 1.05rem;
+  }
+
+  .chat-empty-content p {
+    font-size: 0.8rem;
+  }
+}
+
+/* =========================================
+   ⚡ Modal de acciones Blink
+========================================= */
+.chat-action-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.chat-action-modal {
+  background: var(--window-background);
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+  width: min(340px, 92vw);
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  gap: 16px;
+  color: var(--text-primary);
+}
+
+.chat-action-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.chat-action-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.chat-action-close {
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  font-size: 1.4rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px;
+}
+
+.chat-action-close:hover {
+  color: var(--text-primary);
+}
+
+.chat-action-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.chat-action-description {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.chat-action-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.chat-action-summary span {
+  background: color-mix(in srgb, var(--window-background) 75%, transparent);
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
+.chat-action-help {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.agreement-modal textarea {
+  resize: vertical;
+  min-height: 90px;
+}
+
+.agreement-payer-toggle {
+  display: inline-flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.agreement-toggle {
+  border-radius: 999px;
+  padding: 6px 14px;
+  border: 1px solid var(--border-color);
+  background: color-mix(in srgb, var(--window-background) 70%, transparent);
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.agreement-toggle.active {
+  background: color-mix(in srgb, var(--background-color) 85%, transparent);
+  border-color: var(--border-color-active);
+  color: var(--text-primary);
+}
+
+.agreement-toggle:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.chat-action-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.9rem;
+}
+
+.chat-action-field span {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.chat-action-field select,
+.chat-action-field input {
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: var(--background-color);
+  padding: 10px 12px;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.chat-action-field select:focus,
+.chat-action-field input:focus {
+  outline: none;
+  border-color: var(--border-color-active);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--border-color-active) 25%, transparent);
+}
+
+.chat-action-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.chat-action-secondary,
+.chat-action-primary {
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.chat-action-secondary {
+  background: transparent;
+  border-color: var(--border-color);
+  color: var(--text-secondary);
+}
+
+.chat-action-secondary:hover {
+  color: var(--text-primary);
+  border-color: var(--border-color-active);
+}
+
+.chat-action-primary {
+  background: var(--accent-color, #4c6ef5);
+  color: #fff;
+}
+
+.chat-action-primary:hover {
+  background: var(--accent-color-strong, #3554dd);
+}
+
+@media (max-width: 600px) {
+  .chat-action-modal {
+    width: min(360px, 94vw);
+  }
+
+  .chat-action-footer {
+    flex-direction: column-reverse;
+  }
+
+  .chat-action-secondary,
+  .chat-action-primary {
+    width: 100%;
+    text-align: center;
+  }
+}

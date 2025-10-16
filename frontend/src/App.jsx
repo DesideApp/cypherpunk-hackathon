@@ -2,6 +2,8 @@
 import React from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 
+import "@shared/ui";
+
 import { ServerProvider, useServer } from "@features/auth/contexts/ServerContext.jsx";
 import { LayoutProvider } from "@features/layout/contexts/LayoutContext.jsx";
 import { ThemeProvider, RpcProvider, WalletProvider } from '@wallet-adapter';

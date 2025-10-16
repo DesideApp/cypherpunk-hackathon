@@ -78,3 +78,9 @@ docker-data/
 
 # Personal guide files
 GIT_GUIDE.txt
+
+# Internal development tools (not part of hackathon features)
+ai-style-agent/
+ 
+# Private docs
+docs/telegram-bots-inventory.md

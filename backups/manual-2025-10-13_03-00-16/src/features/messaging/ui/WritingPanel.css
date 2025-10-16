@@ -1,0 +1,162 @@
+/* CONTENEDOR PRINCIPAL (coincide con JSX: div.writing-panel) */
+.writing-panel {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 12px;
+  width: 100%;
+  background-color: var(--background-color);
+  padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
+  min-height: 60px;
+  border-top: 1px solid var(--border-color);
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  position: relative;
+  z-index: 3;
+}
+
+/* Animación tipo resorte (más suave) */
+.writing-panel.spring {
+  animation: spring-padding 0.28s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+@keyframes spring-padding {
+  0% { padding-top: 8px; }
+  60% { padding-top: 5px; }
+  100% { padding-top: 6px; }
+}
+
+/* WRAPPER DEL INPUT */
+.input-wrapper {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+/* TEXTAREA (coincide con JSX: textarea.writing-input) */
+.writing-input, .chat-input {
+  width: 100%;
+  font-family: var(--font-body-family);
+  font-size: var(--font-body-size);
+  color: var(--text-primary);
+  background-color: var(--background-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  outline: none;
+  padding: 10px 14px;
+  line-height: var(--line-height);
+  padding-left: 50px; /* espacio sólo para emoji */
+  padding-right: 50px;
+  /* 👇 límite duro de altura como red de seguridad; la lógica JS ya controla 40vh */
+  max-height: 40vh;
+  min-height: 42px;
+  resize: none;
+}
+
+.writing-input.scrolling, .chat-input.scrolling { overflow-y: auto; }
+.writing-input::-webkit-scrollbar, .chat-input::-webkit-scrollbar { width: 6px; }
+.writing-input::-webkit-scrollbar-thumb, .chat-input::-webkit-scrollbar-thumb {
+  background-color: var(--border-color-active);
+  border-radius: 4px;
+}
+.writing-input, .chat-input { -ms-overflow-style: none; scrollbar-width: thin; }
+
+/* CONTENEDOR DE ICONOS IZQUIERDOS */
+.left-icons-container {
+  position: absolute;
+  left: 16px;
+  bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ICONO EMOJI */
+.emoji-icon {
+  cursor: pointer;
+  color: var(--border-color-active);
+  transition: transform 0.1s ease, color 0.1s ease;
+}
+.emoji-icon:hover { transform: scale(1.1); color: var(--text-secondary); }
+
+/* ICONO PAPERCLIP */
+/* Adjuntos deshabilitados en este MVP: estilos removidos */
+
+.emoji-picker-wrapper {
+  position: absolute;
+  bottom: 50px;
+  left: 0;
+  z-index: 1000;
+}
+
+/* CLEAR ICON (X) */
+.clear-icon {
+  position: absolute;
+  right: 22px;
+  bottom: 10px;
+  font-size: 0.9rem;
+  color: var(--border-color);
+  opacity: 1;
+  pointer-events: none;
+  cursor: default;
+  background: none;
+  transition: color 0.2s ease-in-out, transform 0.1s ease;
+}
+.input-wrapper:not(.has-text) .clear-icon {
+  color: var(--border-color);
+  opacity: 0;
+  pointer-events: none;
+}
+.input-wrapper.has-text .clear-icon {
+  opacity: 1;
+  pointer-events: auto;
+  color: var(--border-color-active);
+  cursor: pointer;
+}
+.input-wrapper.has-text .clear-icon:hover {
+  color: var(--text-secondary);
+  transform: scale(1.1);
+}
+
+/* BOTÓN ENVIAR */
+/* Área de envío agrupada (no usada en este MVP) */
+/* .send-area { display: inline-flex; gap: 8px; align-items: center; } */
+
+.send-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: none;
+  width: 46px;
+  height: 46px;
+  padding-right: 6px;
+  border: none;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: transform 0.1s ease;
+}
+.send-button.cancel { background: #f5f5f5; }
+.send-button:disabled { cursor: default; }
+.send-button:disabled:active { transform: none; }
+
+.send-button:active { transform: scale(0.9); }
+.send-button:disabled svg { fill: none; stroke: var(--border-color); }
+.send-button:not(:disabled) svg {
+  stroke: var(--border-color-active);
+  transition: all 0.15s ease;
+}
+.send-button:not(:disabled):hover svg { stroke: var(--text-primary); }
+.send-button svg { transform: rotate(+45deg); transition: transform 0.15s ease; }
+.send-button:active svg { transform: rotate(+45deg) scale(0.95); }
+
+/* Indicador escribiendo */
+.typing-indicator {
+  position: absolute;
+  top: -18px;
+  left: 16px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+/* UI de adjuntos (settings) removida en este MVP */

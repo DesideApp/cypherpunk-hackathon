@@ -1,4 +1,5 @@
 // src/middleware/adminProtect.js
+import logger from '#config/logger.js';
 
 /**
  * Verifica privilegios de administrador.
@@ -26,11 +27,11 @@ export const adminProtect = (req, res, next) => {
     if (byRole || byWallet) return next();
 
     // Log de seguridad y 403
-      'UNAUTHORIZED_ADMIN_ACCESS',
-      `Intento de acceso admin por ${wallet || 'desconocido'}`,
-      req.ip,
-      wallet || null
-    );
+    try {
+      logger.warn(
+        `UNAUTHORIZED_ADMIN_ACCESS: intento de acceso admin por ${wallet || 'desconocido'} desde ${req.ip}`
+      );
+    } catch {}
     return res.status(403).json({ error: 'Admin privileges required' });
   } catch (error) {
     console.error('❌ AdminProtect Error:', error.message);
