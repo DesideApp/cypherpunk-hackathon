@@ -70,6 +70,12 @@ const createAccessToken = (pubkey) => {
   if (!privateKey || typeof privateKey !== 'string' || privateKey.length < 100) {
     throw new Error('❌ Clave privada inválida o vacía');
   }
+  // Debug temporal para ver el formato de la clave
+  console.log('🔍 DEBUG - Private key length:', privateKey.length);
+  console.log('🔍 DEBUG - Private key first 50 chars:', privateKey.substring(0, 50));
+  console.log('🔍 DEBUG - Private key includes BEGIN:', privateKey.includes('BEGIN'));
+  console.log('🔍 DEBUG - Private key includes END:', privateKey.includes('END'));
+  
   const opts = { algorithm: 'RS256', expiresIn: '15m', ...buildClaims() };
   return jwt.sign({ pubkey }, privateKey, opts);
 };
