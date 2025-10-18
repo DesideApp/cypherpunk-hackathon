@@ -1,5 +1,6 @@
 import RelayMessage from '#modules/relay/models/relayMessage.model.js';
 import User from '#modules/users/models/user.model.js';
+import Stats from '#modules/stats/models/stats.model.js';
 
 const DEFAULT_BUCKET_MINUTES = 5;
 const DEFAULT_BUCKET_COUNT = 12;
@@ -214,6 +215,83 @@ const countNewParticipantsSince = async (startDate, endDate) => {
   return results[0]?.count ?? 0;
 };
 
+const aggregateCounters = async () => {
+  const [row] = await Stats.aggregate([
+    {
+      $group: {
+        _id: null,
+        tokensAdded: { $sum: '$tokensAdded' },
+        blinkMetadataHits: { $sum: '$blinkMetadataHits' },
+        blinkExecutes: { $sum: '$blinkExecutes' },
+        blinkVolume: { $sum: '$blinkVolume' },
+        naturalCommandsParsed: { $sum: '$naturalCommandsParsed' },
+        naturalCommandsExecuted: { $sum: '$naturalCommandsExecuted' },
+        naturalCommandsRejected: { $sum: '$naturalCommandsRejected' },
+        naturalCommandsFailed: { $sum: '$naturalCommandsFailed' },
+        dmStarted: { $sum: '$dmStarted' },
+        dmAccepted: { $sum: '$dmAccepted' },
+        relayMessages: { $sum: '$relayMessages' }
+      }
+    }
+  ]);
+  return row || {
+    tokensAdded: 0,
+    blinkMetadataHits: 0,
+    blinkExecutes: 0,
+    blinkVolume: 0,
+    naturalCommandsParsed: 0,
+    naturalCommandsExecuted: 0,
+    naturalCommandsRejected: 0,
+    naturalCommandsFailed: 0,
+    dmStarted: 0,
+    dmAccepted: 0,
+    relayMessages: 0
+  };
+};
+
+const countEventsInRange = async (type, startDate, endDate) => {
+  const match = { 'events.type': type };
+  if (startDate || endDate) {
+    match['events.timestamp'] = {};
+    if (startDate) match['events.timestamp'].$gte = startDate;
+    if (endDate) match['events.timestamp'].$lte = endDate;
+  }
+
+  const [row] = await Stats.aggregate([
+    { $unwind: '$events' },
+    { $match: match },
+    { $group: { _id: null, total: { $sum: 1 } } }
+  ]);
+
+  return row?.total ?? 0;
+};
+
+const sumEventFieldInRange = async (type, field, startDate, endDate) => {
+  const match = { 'events.type': type };
+  if (startDate || endDate) {
+    match['events.timestamp'] = {};
+    if (startDate) match['events.timestamp'].$gte = startDate;
+    if (endDate) match['events.timestamp'].$lte = endDate;
+  }
+
+  const [row] = await Stats.aggregate([
+    { $unwind: '$events' },
+    { $match: match },
+    {
+      $group: {
+        _id: null,
+        total: {
+          $sum: {
+            $ifNull: [`$events.data.${field}`, 0]
+          }
+        }
+      }
+    }
+  ]);
+
+  return row?.total ?? 0;
+};
+
 export const computeStatsOverview = async (options = {}) => {
   const now = new Date();
   const rangeEnd = normalizeDate(options.rangeEnd) || now;
@@ -277,13 +355,26 @@ export const computeStatsOverview = async (options = {}) => {
   }
 
   const buckets = buildBucketSeries(bucketSeriesStart, bucketMinutes, bucketCount);
+  const last24hStart = new Date(rangeEnd.getTime() - 24 * 60 * 60 * 1000);
 
   const [
     messageHistoryMap,
     connectionHistoryMap,
     messagesLastMinute,
     messagesLastHour,
-    messagesToday
+    messagesToday,
+    counters,
+    tokensAdded24h,
+    blinkMetadataHits24h,
+    blinkExecutes24h,
+    blinkVolume24h,
+    naturalCommandsParsed24h,
+    naturalCommandsExecuted24h,
+    naturalCommandsRejected24h,
+    naturalCommandsFailed24h,
+    dmStarted24h,
+    dmAccepted24h,
+    relayMessages24h
   ] = await Promise.all([
     aggregateMessageHistory(rangeStart, rangeEnd, bucketMinutes),
     aggregateConnectionHistory(rangeStart, rangeEnd, bucketMinutes),
@@ -304,7 +395,19 @@ export const computeStatsOverview = async (options = {}) => {
         $gte: new Date(rangeEnd.getFullYear(), rangeEnd.getMonth(), rangeEnd.getDate()),
         $lte: rangeEnd
       }
-    })
+    }),
+    aggregateCounters(),
+    countEventsInRange('token_added', last24hStart, rangeEnd),
+    countEventsInRange('blink_metadata_hit', last24hStart, rangeEnd),
+    countEventsInRange('blink_execute', last24hStart, rangeEnd),
+    sumEventFieldInRange('blink_execute', 'volume', last24hStart, rangeEnd),
+    countEventsInRange('natural_command_parsed', last24hStart, rangeEnd),
+    countEventsInRange('natural_command_executed', last24hStart, rangeEnd),
+    countEventsInRange('natural_command_rejected', last24hStart, rangeEnd),
+    countEventsInRange('natural_command_failed', last24hStart, rangeEnd),
+    countEventsInRange('dm_started', last24hStart, rangeEnd),
+    countEventsInRange('dm_accepted', last24hStart, rangeEnd),
+    countEventsInRange('relay_message', last24hStart, rangeEnd)
   ]);
 
   const messageHistory = mapHistory(buckets, messageHistoryMap, rangeEnd);
@@ -356,6 +459,11 @@ export const computeStatsOverview = async (options = {}) => {
     }
   });
 
+  const blinkSuccessRate24h = blinkMetadataHits24h > 0
+    ? Number(((blinkExecutes24h / blinkMetadataHits24h) * 100).toFixed(2))
+    : null;
+  const blinkVolume24hValue = Number(blinkVolume24h) || 0;
+
   return {
     generatedAt: rangeEnd.toISOString(),
     period: {
@@ -387,6 +495,39 @@ export const computeStatsOverview = async (options = {}) => {
       totalInteractions: connectionTotal,
       dau,
       history: connectionHistory
+    },
+    productInsights: {
+      tokens: {
+        total: counters.tokensAdded || 0,
+        last24h: tokensAdded24h
+      },
+      blinks: {
+        metadataHits: counters.blinkMetadataHits || 0,
+        metadataHits24h: blinkMetadataHits24h,
+        executes: counters.blinkExecutes || 0,
+        executes24h: blinkExecutes24h,
+        successRate24h: blinkSuccessRate24h,
+        volumeTotal: counters.blinkVolume || 0,
+        volume24h: Number(blinkVolume24hValue.toFixed(4))
+      },
+      naturalCommands: {
+        parsed: counters.naturalCommandsParsed || 0,
+        executed: counters.naturalCommandsExecuted || 0,
+        rejected: counters.naturalCommandsRejected || 0,
+        failed: counters.naturalCommandsFailed || 0,
+        parsed24h: naturalCommandsParsed24h,
+        executed24h: naturalCommandsExecuted24h,
+        rejected24h: naturalCommandsRejected24h,
+        failed24h: naturalCommandsFailed24h
+      },
+      messaging: {
+        dmStarted: counters.dmStarted || 0,
+        dmAccepted: counters.dmAccepted || 0,
+        relayMessages: counters.relayMessages || 0,
+        dmStarted24h,
+        dmAccepted24h,
+        relayMessages24h
+      }
     }
   };
 };

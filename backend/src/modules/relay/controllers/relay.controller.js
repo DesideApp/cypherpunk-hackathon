@@ -5,6 +5,7 @@ import RelayMessage from "../models/relayMessage.model.js";
 import { io as ioExport, isWalletOnlineWithTTL } from "#shared/services/websocketServer.js";
 import cfg from "#config/runtimeConfig.js";
 import config from "#config/appConfig.js";
+import logEvent from '#modules/stats/services/eventLogger.service.js';
 
 const MAX_BOX_BYTES = (cfg?.relay?.maxBoxBytes ?? config.relayMaxBoxBytes);
 const OFFLINE_ONLY  = (cfg?.relay?.offlineOnly ?? config.relayOfflineOnly);
@@ -132,6 +133,7 @@ export const enqueueMessage = async (req, res) => {
       ioInstance?.to?.(dest)?.emit?.("relay:flush", [_id]);
     }
 
+    await safeLog(sender, 'relay_message', { to: dest, bytes: boxSize });
 
     const nowUsed = willUse;
     const isOverflow = nowUsed > quota && nowUsed <= allowedWithGrace;
@@ -215,6 +217,7 @@ export const fetchMessages = async (req, res) => {
     }));
 
     if (messages.length > 0) {
+      await safeLog(wallet, 'relay_fetch', { count: messages.length });
     }
 
     return res.status(200).json({ data: { messages: formatted } });
@@ -261,6 +264,8 @@ export const ackMessages = async (req, res) => {
     if (totalBytes > 0) {
       await User.updateOne({ wallet }, { $inc: { relayUsedBytes: -totalBytes } });
     }
+
+    await safeLog(wallet, 'relay_ack', { count: result.deletedCount || 0, freedBytes: totalBytes || 0 });
 
     return res.status(200).json({
       message: "✅ Mensajes confirmados",
@@ -384,3 +389,12 @@ export const purgeRelayMailbox = async (req, res) => {
     return res.status(500).json({ error: "FAILED_TO_PURGE", details: error.message });
   }
 };
+
+async function safeLog(userId, eventType, data) {
+  try {
+    if (!userId) return;
+    await logEvent(userId, eventType, data);
+  } catch (error) {
+    console.warn(`[Relay] Failed to log ${eventType}: ${error.message}`);
+  }
+}

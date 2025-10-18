@@ -3,6 +3,7 @@ import logger from '#config/logger.js';
 import { env } from '#config/env.js';
 import { BlinkExecutionError } from '#shared/services/dialectBlinkService.js';
 import { getTokenInfo } from '#shared/services/blinkValidationService.js';
+import logEvent from '#modules/stats/services/eventLogger.service.js';
 
 const INPUT_MINT = 'So11111111111111111111111111111111111111112';
 const INPUT_DECIMALS = 9;
@@ -219,6 +220,10 @@ export async function getBuyBlinkMetadata(req, res) {
     };
 
     applyBlinkHeaders(res);
+    await safeLog(req.user?.wallet || req.user?.pubkey, 'blink_metadata_hit', {
+      token,
+      amount,
+    });
     return res.status(200).json(payload);
   } catch (error) {
     logger.error('❌ [buy] metadata error', { error: error?.message });
@@ -299,9 +304,20 @@ export async function executeBuyBlink(req, res) {
       },
     };
     applyBlinkHeaders(res);
+    await safeLog(account, 'blink_execute', {
+      token,
+      amountInSol: amount,
+      expectedOut,
+      volume: expectedOut ? Number(expectedOut) : 0,
+    });
     return res.status(200).json(payload);
   } catch (error) {
     logger.error('❌ [buy] execution error', { error: error?.message, details: error?.body });
+    await safeLog(req.user?.wallet || account, 'blink_execute_failed', {
+      token,
+      amount: amountRaw,
+      error: error?.message,
+    });
     if (error instanceof BlinkExecutionError) {
       applyBlinkHeaders(res);
       return res.status(error.status || 500).json({
@@ -311,5 +327,14 @@ export async function executeBuyBlink(req, res) {
     }
     applyBlinkHeaders(res);
     return res.status(500).json({ error: 'BUY_EXECUTION_FAILED', details: { message: error?.message } });
+  }
+}
+
+async function safeLog(userId, eventType, data) {
+  try {
+    if (!userId) return;
+    await logEvent(userId, eventType, data);
+  } catch (error) {
+    logger.warn(`⚠️ [buy] Failed to log ${eventType}`, { error: error.message });
   }
 }

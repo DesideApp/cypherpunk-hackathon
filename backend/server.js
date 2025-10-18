@@ -12,7 +12,6 @@ import { fileURLToPath } from 'url';
 import { detectCountry } from '#middleware/geoMiddleware.js';
 
 // ── Config / validación (carga .env dentro)
-import '#config/demoMode.js';
 import logger from '#config/logger.js';
 import { env } from '#config/env.js';         // valida/envía defaults al cargar
 import config from '#config/appConfig.js';    // configuración central (tiers, etc.)
@@ -24,8 +23,6 @@ import { mountApi } from '#apps/api/index.js';           // monta /api (v1, v1_1
 
 // Temporary WebSocket import (original implementation)
 import createWebSocketServer from '#shared/services/websocketServer.js';
-
-import { seedDemoData } from '#utils/demoSeeder.js';
 
 // 🗓️ Jobs/cron (Solana status/TPS/price y limpieza relay)
 import '#jobs/eventScheduler.js';
@@ -139,9 +136,7 @@ const startServer = async () => {
     await mongoose.connect(mongoUri, mongooseOpts);
     logger.info('✅ MongoDB connected');
 
-    await seedDemoData();
-
-        logger.info('⚙️ Setting up middleware...');
+    logger.info('⚙️ Setting up middleware...');
     // 2) Middlewares
     app.use(
       helmet({

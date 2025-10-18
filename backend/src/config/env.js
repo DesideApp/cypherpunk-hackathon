@@ -37,9 +37,9 @@ export const env = cleanEnv(process.env, {
   MINT_WIF:                 str({ default: '' }),
   MINT_JitoSOL:             str({ default: '' }),
 
-  SOLANA_RPC_URL:           str({ default: 'https://api.devnet.solana.com' }),
+  SOLANA_RPC_URL:           str({ default: 'https://api.mainnet-beta.solana.com' }),
   SOLANA_COMMITMENT:        str({ default: 'confirmed' }),
-  SOLANA_CLUSTER:           str({ default: 'devnet' }),
+  SOLANA_CLUSTER:           str({ default: 'mainnet-beta' }),
   SOLANA_TIMEOUT_MS:        num({ default: 20_000 }),
 
   // Auth para pruebas (Bearer)

@@ -242,11 +242,271 @@ export async function createSwapAction(params, userId) {
 /**
  * Registry de handlers disponibles
  */
+/**
+ * Handler para crear acción de depósito
+ */
+export async function createDepositAction(params, userId) {
+  try {
+    const { amount, token, protocol } = params;
+    
+    if (!amount || !token || !protocol) {
+      throw new Error('Amount, token and protocol are required for deposit action');
+    }
+    
+    // Construir URL de Blink del protocolo
+    const protocolUrls = {
+      kamino: `https://kamino.finance/deposit?token=${token}&amount=${amount}`,
+      marginfi: `https://app.marginfi.com/deposit?token=${token}&amount=${amount}`,
+      jupiter: `https://jup.ag/deposit?token=${token}&amount=${amount}`
+    };
+    
+    const actionUrl = protocolUrls[protocol.toLowerCase()] || protocolUrls.kamino;
+    
+    logger.info('✅ [natural-commands] Deposit action created', {
+      userId,
+      token,
+      amount,
+      protocol,
+      actionUrl
+    });
+    
+    return {
+      success: true,
+      action: {
+        actionUrl,
+        type: 'deposit',
+        token: token.toUpperCase(),
+        amount: parseFloat(amount),
+        protocol: protocol.toLowerCase()
+      },
+      type: 'deposit',
+      message: `Deposit ${amount} ${token} in ${protocol}`,
+      blinkUrl: actionUrl
+    };
+    
+  } catch (error) {
+    logger.error('❌ [natural-commands] Deposit action failed', {
+      userId,
+      params,
+      error: error.message
+    });
+    
+    throw new Error(`Failed to create deposit action: ${error.message}`);
+  }
+}
+
+/**
+ * Handler para crear acción de retiro
+ */
+export async function createWithdrawAction(params, userId) {
+  try {
+    const { amount, token, protocol } = params;
+    
+    if (!amount || !token || !protocol) {
+      throw new Error('Amount, token and protocol are required for withdraw action');
+    }
+    
+    const protocolUrls = {
+      kamino: `https://kamino.finance/withdraw?token=${token}&amount=${amount}`,
+      marginfi: `https://app.marginfi.com/withdraw?token=${token}&amount=${amount}`,
+      jupiter: `https://jup.ag/withdraw?token=${token}&amount=${amount}`
+    };
+    
+    const actionUrl = protocolUrls[protocol.toLowerCase()] || protocolUrls.kamino;
+    
+    logger.info('✅ [natural-commands] Withdraw action created', {
+      userId,
+      token,
+      amount,
+      protocol,
+      actionUrl
+    });
+    
+    return {
+      success: true,
+      action: {
+        actionUrl,
+        type: 'withdraw',
+        token: token.toUpperCase(),
+        amount: parseFloat(amount),
+        protocol: protocol.toLowerCase()
+      },
+      type: 'withdraw',
+      message: `Withdraw ${amount} ${token} from ${protocol}`,
+      blinkUrl: actionUrl
+    };
+    
+  } catch (error) {
+    logger.error('❌ [natural-commands] Withdraw action failed', {
+      userId,
+      params,
+      error: error.message
+    });
+    
+    throw new Error(`Failed to create withdraw action: ${error.message}`);
+  }
+}
+
+/**
+ * Handler para crear acción de préstamo
+ */
+export async function createBorrowAction(params, userId) {
+  try {
+    const { amount, token, protocol } = params;
+    
+    if (!amount || !token || !protocol) {
+      throw new Error('Amount, token and protocol are required for borrow action');
+    }
+    
+    const protocolUrls = {
+      kamino: `https://kamino.finance/borrow?token=${token}&amount=${amount}`,
+      marginfi: `https://app.marginfi.com/borrow?token=${token}&amount=${amount}`
+    };
+    
+    const actionUrl = protocolUrls[protocol.toLowerCase()] || protocolUrls.marginfi;
+    
+    logger.info('✅ [natural-commands] Borrow action created', {
+      userId,
+      token,
+      amount,
+      protocol,
+      actionUrl
+    });
+    
+    return {
+      success: true,
+      action: {
+        actionUrl,
+        type: 'borrow',
+        token: token.toUpperCase(),
+        amount: parseFloat(amount),
+        protocol: protocol.toLowerCase()
+      },
+      type: 'borrow',
+      message: `Borrow ${amount} ${token} from ${protocol}`,
+      blinkUrl: actionUrl
+    };
+    
+  } catch (error) {
+    logger.error('❌ [natural-commands] Borrow action failed', {
+      userId,
+      params,
+      error: error.message
+    });
+    
+    throw new Error(`Failed to create borrow action: ${error.message}`);
+  }
+}
+
+/**
+ * Handler para crear acción de pago
+ */
+export async function createRepayAction(params, userId) {
+  try {
+    const { amount, token, protocol } = params;
+    
+    if (!amount || !token || !protocol) {
+      throw new Error('Amount, token and protocol are required for repay action');
+    }
+    
+    const protocolUrls = {
+      kamino: `https://kamino.finance/repay?token=${token}&amount=${amount}`,
+      marginfi: `https://app.marginfi.com/repay?token=${token}&amount=${amount}`
+    };
+    
+    const actionUrl = protocolUrls[protocol.toLowerCase()] || protocolUrls.marginfi;
+    
+    logger.info('✅ [natural-commands] Repay action created', {
+      userId,
+      token,
+      amount,
+      protocol,
+      actionUrl
+    });
+    
+    return {
+      success: true,
+      action: {
+        actionUrl,
+        type: 'repay',
+        token: token.toUpperCase(),
+        amount: parseFloat(amount),
+        protocol: protocol.toLowerCase()
+      },
+      type: 'repay',
+      message: `Repay ${amount} ${token} to ${protocol}`,
+      blinkUrl: actionUrl
+    };
+    
+  } catch (error) {
+    logger.error('❌ [natural-commands] Repay action failed', {
+      userId,
+      params,
+      error: error.message
+    });
+    
+    throw new Error(`Failed to create repay action: ${error.message}`);
+  }
+}
+
+/**
+ * Handler para crear acción de reclamar
+ */
+export async function createClaimAction(params, userId) {
+  try {
+    const { protocol } = params;
+    
+    if (!protocol) {
+      throw new Error('Protocol is required for claim action');
+    }
+    
+    const protocolUrls = {
+      kamino: 'https://kamino.finance/rewards',
+      marginfi: 'https://app.marginfi.com/rewards',
+      jupiter: 'https://jup.ag/rewards'
+    };
+    
+    const actionUrl = protocolUrls[protocol.toLowerCase()] || protocolUrls.kamino;
+    
+    logger.info('✅ [natural-commands] Claim action created', {
+      userId,
+      protocol,
+      actionUrl
+    });
+    
+    return {
+      success: true,
+      action: {
+        actionUrl,
+        type: 'claim',
+        protocol: protocol.toLowerCase()
+      },
+      type: 'claim',
+      message: `Claim rewards from ${protocol}`,
+      blinkUrl: actionUrl
+    };
+    
+  } catch (error) {
+    logger.error('❌ [natural-commands] Claim action failed', {
+      userId,
+      params,
+      error: error.message
+    });
+    
+    throw new Error(`Failed to create claim action: ${error.message}`);
+  }
+}
+
 export const ACTION_HANDLERS = {
   createSendAction,
   createRequestAction,
   createBuyAction,
-  createSwapAction
+  createSwapAction,
+  createDepositAction,
+  createWithdrawAction,
+  createBorrowAction,
+  createRepayAction,
+  createClaimAction
 };
 
 /**

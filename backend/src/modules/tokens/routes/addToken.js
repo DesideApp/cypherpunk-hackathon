@@ -4,6 +4,7 @@ import { addTokenToConfig } from '../services/tokenService.js';
 import { validateTokenComplete } from '../../../../../ai-token-agent/src/jupiterValidator.js';
 import { calculateMaxAmount } from '../../../../../ai-token-agent/src/codeGenerator.js';
 import logger from '#config/logger.js';
+import logEvent from '#modules/stats/services/eventLogger.service.js';
 
 const router = Router();
 
@@ -110,6 +111,7 @@ router.post('/search', async (req, res) => {
 router.post('/add', async (req, res) => {
   try {
     const { mint, code } = req.body;
+    const wallet = req.user?.wallet || req.user?.id;
     
     if (!mint || typeof mint !== 'string') {
       return res.status(400).json({
@@ -145,7 +147,7 @@ router.post('/add', async (req, res) => {
       label: result.tokenData?.label 
     });
     
-    res.status(200).json({
+    const response = {
       success: true,
       message: `Token ${result.tokenData.code} added successfully`,
       token: {
@@ -161,12 +163,25 @@ router.post('/add', async (req, res) => {
         frontend: result.frontend?.success || false,
         logo: result.logo?.success || false,
       },
+    };
+
+    res.status(200).json(response);
+
+    await safeLog(wallet, 'token_added', {
+      mint: result.tokenData?.mint,
+      code: result.tokenData?.code,
     });
     
   } catch (error) {
     logger.error('❌ [tokens] Error adding token (unified)', {
       error: error.message,
       stack: error.stack 
+    });
+    
+    await safeLog(req.user?.wallet || req.user?.id, 'token_add_failed', {
+      mint: req.body?.mint,
+      code: req.body?.code,
+      message: error.message,
     });
     
     res.status(500).json({
@@ -179,3 +194,12 @@ router.post('/add', async (req, res) => {
 });
 
 export default router;
+
+async function safeLog(userId, eventType, data) {
+  try {
+    if (!userId) return;
+    await logEvent(userId, eventType, data);
+  } catch (error) {
+    logger.warn('⚠️ [tokens] Failed to log event', { eventType, error: error.message });
+  }
+}

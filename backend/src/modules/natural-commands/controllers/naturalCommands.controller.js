@@ -4,6 +4,7 @@
 import { NaturalCommandParser } from '../parser.js';
 import { executeCommand } from '../handlers/index.js';
 import logger from '#config/logger.js';
+import logEvent from '#modules/stats/services/eventLogger.service.js';
 
 const parser = new NaturalCommandParser();
 
@@ -45,12 +46,22 @@ export async function parseNaturalCommand(req, res) {
     // Validar el comando
     const validation = parser.validateCommand(command);
     if (!validation.valid) {
+      await logSafe(userId, 'natural_command_rejected', {
+        action: command.action,
+        reason: validation.error,
+      });
+
       return res.status(400).json({
         error: 'INVALID_COMMAND',
         message: validation.error,
         command: command.action
       });
     }
+
+    await logSafe(userId, 'natural_command_parsed', {
+      action: command.action,
+      originalMessage: message,
+    });
     
     // Ejecutar el comando
     const result = await executeCommand(command, userId);
@@ -59,6 +70,11 @@ export async function parseNaturalCommand(req, res) {
       userId,
       action: command.action,
       originalMessage: message
+    });
+
+    await logSafe(userId, 'natural_command_executed', {
+      action: command.action,
+      resultType: result.type,
     });
     
     return res.status(200).json({
@@ -80,6 +96,11 @@ export async function parseNaturalCommand(req, res) {
       error: error.message,
       userId: req.user?.wallet || req.user?.id,
       message: req.body?.message
+    });
+
+    await logSafe(req.user?.wallet || req.user?.id, 'natural_command_failed', {
+      message: req.body?.message,
+      error: error.message,
     });
     
     return res.status(500).json({
@@ -153,6 +174,10 @@ export async function registerAction(req, res) {
       actionName,
       config: Object.keys(config)
     });
+
+    await logSafe(userId, 'natural_command_registered', {
+      actionName,
+    });
     
     return res.status(200).json({
       success: true,
@@ -168,6 +193,11 @@ export async function registerAction(req, res) {
       error: error.message,
       userId: req.user?.wallet || req.user?.id,
       actionName: req.body?.actionName
+    });
+
+    await logSafe(req.user?.wallet || req.user?.id, 'natural_command_register_failed', {
+      actionName: req.body?.actionName,
+      error: error.message,
     });
     
     return res.status(500).json({
@@ -191,6 +221,15 @@ function getCommandSuggestions() {
   });
   
   return suggestions;
+}
+
+async function logSafe(userId, eventType, data) {
+  try {
+    if (!userId) return;
+    await logEvent(userId, eventType, data);
+  } catch (error) {
+    logger.warn('⚠️ [natural-commands] Failed to log event', { eventType, error: error.message });
+  }
 }
 
 /**
@@ -244,6 +283,11 @@ export async function validateCommand(req, res) {
     });
   }
 }
+
+
+
+
+
 
 
 
