@@ -1,9 +1,9 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "Realtime messaging backend",
-  "main": "server.js",
+  "description": "Realtime messaging backend for Deside Hackathon",
   "type": "module",
+  "main": "server.js",
   "imports": {
     "#apps/*": "./src/apps/*",
     "#root/*": "./src/*",
@@ -19,19 +19,24 @@
     "start": "node --require dotenv/config server.js",
     "dev": "NODE_OPTIONS='--trace-uncaught' nodemon dev-bootstrap.mjs",
     "endpoints": "node scripts/list-endpoints.js",
+    "endpoints:stats": "node scripts/list-endpoints.js --module stats",
     "docs": "node scripts/list-endpoints.js --docs",
     "indexes:sync": "node scripts/ops/ensure-indexes.mjs",
     "indexes:verify": "node scripts/ops/verify-indexes.mjs",
     "ttl:update": "node scripts/ops/update-ttl.mjs"
   },
-  "author": "",
-  "license": "ISC",
+  "engines": {
+    "node": "20.x"
+  },
   "dependencies": {
     "@solana/web3.js": "^1.98.4",
+    "axios": "^1.7.9",
+    "bs58": "^5.0.0",
     "cheerio": "^1.0.0-rc.12",
     "compression": "^1.7.5",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "crypto-js": "^4.2.0",
     "dotenv": "^16.6.1",
     "envalid": "^8.1.0",
     "express": "^4.21.1",
@@ -48,11 +53,11 @@
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
     "tweetnacl": "^1.0.3",
-    "typescript": "^5.9.2",
     "winston": "^3.17.0",
     "winston-daily-rotate-file": "^5.0.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.9"
+    "nodemon": "^3.1.9",
+    "typescript": "^5.9.2"
   }
 }

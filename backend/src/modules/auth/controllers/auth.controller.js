@@ -260,9 +260,19 @@ export const checkAuthStatus = async (req, res) => {
       return res.status(403).json({ isAuthenticated: false, nextStep: 'CONTACT_SUPPORT' });
     }
 
+    const role = (user.role || '').toString().trim().toLowerCase() || 'user';
+    const walletLower = decoded.pubkey.toLowerCase();
+    const adminList = (process.env.ADMIN_WALLETS || '')
+      .split(',')
+      .map(s => s.trim().toLowerCase())
+      .filter(Boolean);
+    const isAdmin = role === 'admin' || user.isAdmin === true || adminList.includes(walletLower);
+
     return res.status(200).json({
       isAuthenticated: true,
       wallet: decoded.pubkey,
+      role,
+      isAdmin,
       expiresIn: 900000,
       nextStep: 'ACCESS_GRANTED',
       csrfToken: user.csrfToken || null,

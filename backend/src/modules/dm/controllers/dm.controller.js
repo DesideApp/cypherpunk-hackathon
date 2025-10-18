@@ -3,6 +3,7 @@ import Contact from "#modules/contacts/models/contact.model.js";
 import User from "#modules/users/models/user.model.js";
 import { io as ioExport } from "#shared/services/websocketServer.js";
 import { isValidSolanaPubkey } from "#utils/pubkey.js";
+import logEvent from '#modules/stats/services/eventLogger.service.js';
 import {
   ContactStatus,
   CONTACT_TTL_DAYS,
@@ -82,6 +83,8 @@ export async function sendInitialMessage(req, res, next) {
       io.to(to_pubkey).emit("contact_request", { from: me });
     }
 
+    await safeLog(me, 'dm_started', { to: to_pubkey });
+
     return res.status(201).json({
       registered: true,
       conversation_id: rel._id,
@@ -129,6 +132,8 @@ export async function acceptDMRequest(req, res, next) {
       io.to(pubkey).emit("contact_accepted", { from: me });
     }
 
+    await safeLog(me, 'dm_accepted', { with: pubkey });
+
     return res.json({ ok: true });
   } catch (e) {
     if (e?.status === 404) return res.status(404).json({ error: "not_found" });
@@ -166,6 +171,8 @@ export async function rejectDMRequest(req, res, next) {
       io.to(pubkey).emit("contact_removed", { from: me });
     }
 
+    await safeLog(me, 'dm_rejected', { with: pubkey });
+
     return res.json({ ok: true });
   } catch (e) { next(e); }
 }
@@ -187,6 +194,7 @@ export async function cancelDMRequest(req, res, next) {
 
     const io = getIO(req);
     io.to(pubkey).emit("dm_canceled", { from: me });
+    await safeLog(me, 'dm_canceled', { with: pubkey });
     return res.json({ ok: true });
   } catch (e) { next(e); }
 }
@@ -214,6 +222,7 @@ export async function blockPeer(req, res, next) {
     if (DM_LEGACY_EVENTS_ENABLED) {
       io.to(pubkey).emit("contact_blocked", { from: me });
     }
+    await safeLog(me, 'dm_blocked', { with: pubkey });
     return res.json({ ok: true });
   } catch (e) { next(e); }
 }
@@ -239,4 +248,13 @@ export async function listDMs(req, res, next) {
 
     return res.json({ items });
   } catch (e) { next(e); }
+}
+
+async function safeLog(userId, eventType, data) {
+  try {
+    if (!userId) return;
+    await logEvent(userId, eventType, data);
+  } catch (error) {
+    console.warn(`[DM] Failed to log ${eventType}: ${error.message}`);
+  }
 }

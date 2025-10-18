@@ -1,8 +1,8 @@
 import { env } from '#config/env.js';
 
-export const SOLANA_RPC_URL = env.SOLANA_RPC_URL || 'https://api.devnet.solana.com';
+export const SOLANA_RPC_URL = env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
 export const SOLANA_COMMITMENT = env.SOLANA_COMMITMENT || 'confirmed';
-export const SOLANA_CLUSTER = env.SOLANA_CLUSTER || 'devnet';
+export const SOLANA_CLUSTER = env.SOLANA_CLUSTER || 'mainnet-beta';
 export const SOLANA_TIMEOUT_MS = Number.isFinite(env.SOLANA_TIMEOUT_MS)
   ? env.SOLANA_TIMEOUT_MS
   : 20_000;

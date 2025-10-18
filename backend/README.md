@@ -64,6 +64,18 @@ Además, en `scripts/` hay herramientas operativas (listar endpoints, sincroniza
 - Comandos útiles (ver `backend/package.json`): `endpoints`/`docs` para listar rutas, `indexes:sync`/`indexes:verify` para índices, `ttl:update` para expiraciones.
 - Variables de entorno y ejemplos: consulta los `.env.example` del repositorio (no se duplican aquí).
 
+### Métricas y stats
+
+- `GET /api/v1/stats/overview` ahora requiere JWT (`protectRoute`) y ofrece el resumen dinámico para el dashboard del hackathon.
+- El subrouter `/api/v1/stats/admin` queda reservado para futuras exportaciones y métricas avanzadas; por ahora responde `501` hasta que definamos los nuevos KPIs específicos del concurso (ideas: adopción de blinks, tokens añadidos vía AI agent, uso de natural commands).
+- Cuando decidas qué métricas exponer, añade los controladores correspondientes en `src/modules/stats/controllers` y móntalos dentro de `routes/v1/admin.js` o nuevas audiencias (`/me`, `/public`).
+
+### Administración del bot de Telegram
+
+- Las rutas de control (`/api/v1/telegram-bot/stats|start|stop|tokens`) utilizan un guard machine-to-machine. Envía el header `X-Telegram-Admin-Token` con el valor de `TELEGRAM_BOT_ADMIN_TOKEN` definido en tu `.env`.
+- El webhook (`/api/v1/telegram-bot/webhook`) permanece sin autenticación porque aún no se usa en producción; si más adelante sirve para callbacks reales, aplica el mismo guard u otro esquema basado en firma/HMAC.
+- Genera y rota la clave cuando sea necesario; puedes consultar el valor actual en `.env` y compartirlo de forma segura con el bot o scripts operativos.
+
 ## Extender con nuevos módulos
 
 - Crea `src/modules/<tu-modulo>/{controllers,routes,models?,services?}`.

@@ -12,6 +12,22 @@ function normalizeWallet(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+function normalizeSignatureContext(ctx) {
+  if (!ctx || typeof ctx !== 'object') return null;
+  const blockhash = typeof ctx.blockhash === 'string' && ctx.blockhash.trim()
+    ? ctx.blockhash.trim()
+    : null;
+  const lvhRaw = ctx.lastValidBlockHeight;
+  const hasLvh = lvhRaw !== undefined && lvhRaw !== null && String(lvhRaw).trim() !== '';
+  const parsedLvh = hasLvh ? Number(lvhRaw) : null;
+  const lastValidBlockHeight = Number.isFinite(parsedLvh) ? parsedLvh : null;
+  if (!blockhash && lastValidBlockHeight === null) return null;
+  return {
+    ...(blockhash ? { blockhash } : {}),
+    ...(lastValidBlockHeight !== null ? { lastValidBlockHeight } : {}),
+  };
+}
+
 function pickParticipants({ participants = [], payer, payee, createdBy, selfWallet, peerWallet }) {
   const set = new Set(
     []
@@ -181,13 +197,18 @@ export async function prepareAgreementSignature(req, res) {
 export async function confirmAgreementSignature(req, res) {
   try {
     const { id } = req.params;
-    const { signerPubkey, txSig } = req.body || {};
+    const { signerPubkey, txSig, context: contextRaw } = req.body || {};
     const agreement = await Agreement.findById(id);
     if (!agreement) return res.status(404).json({ error: 'AGREEMENT_NOT_FOUND' });
 
     const normalizedSigner = normalizeWallet(signerPubkey);
-    if (!normalizedSigner || !agreement.participants.includes(normalizedSigner)) {
+    if (!normalizedSigner) {
       return res.status(403).json({ error: 'NOT_PARTICIPANT' });
+    }
+
+    if (!agreement.participants.includes(normalizedSigner)) {
+      agreement.participants = Array.from(new Set([...(agreement.participants || []), normalizedSigner]));
+      await agreement.save();
     }
 
     if (isExpired(agreement)) {
@@ -209,10 +230,12 @@ export async function confirmAgreementSignature(req, res) {
     }
 
     const nowSig = txSig.trim();
+    const signatureContext = normalizeSignatureContext(contextRaw);
     const verification = await verifySignatureTransaction({
       txSig: nowSig,
       agreement,
       signer: normalizedSigner,
+      context: signatureContext,
     });
 
     if (!verification.ok) {

@@ -2,15 +2,40 @@
 // Rutas para administrar el bot de Telegram
 
 import { Router } from 'express';
+import telegramBotGuard from '#middleware/telegramBotGuard.js';
 import logger from '../../../config/logger.js';
 import { listTokens } from '../services/tokenCatalog.service.js';
 
 const router = Router();
 
 /**
- * GET /api/v1/telegram-bot/stats
- * Obtiene estadísticas del bot
+ * POST /api/v1/telegram-bot/webhook
+ * Webhook opcional para integraciones futuras con Telegram.
+ * Se mantiene sin auth porque hoy no se utiliza en producción.
  */
+router.post('/webhook', async (req, res) => {
+  try {
+    // Por ahora usamos polling, pero esta ruta está preparada
+    // para implementar webhooks en el futuro si es necesario
+    res.json({
+      success: true,
+      message: 'Webhook received (not implemented yet)'
+    });
+  } catch (error) {
+    logger.error('❌ [telegram-bot] Error handling webhook', {
+      error: error.message
+    });
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to handle webhook'
+    });
+  }
+});
+
+// A partir de aquí, todas las rutas requieren la API key del bot.
+router.use(telegramBotGuard);
+
 router.get('/stats', async (req, res) => {
   try {
     // Importar dinámicamente para evitar errores si no está configurado
@@ -89,33 +114,6 @@ router.post('/stop', async (req, res) => {
 });
 
 /**
- * POST /api/v1/telegram-bot/webhook
- * Webhook para recibir actualizaciones de Telegram
- * (Opcional - para usar webhooks en lugar de polling)
- */
-router.post('/webhook', async (req, res) => {
-  try {
-    // Por ahora usamos polling, pero esta ruta está preparada
-    // para implementar webhooks en el futuro si es necesario
-    
-    res.json({
-      success: true,
-      message: 'Webhook received (not implemented yet)'
-    });
-    
-  } catch (error) {
-    logger.error('❌ [telegram-bot] Error handling webhook', {
-      error: error.message
-    });
-    
-    res.status(500).json({
-      success: false,
-      error: 'Failed to handle webhook'
-    });
-  }
-});
-
-/**
  * GET /api/v1/telegram-bot/tokens
  * Obtiene el catálogo de tokens disponible para el bot
  */
@@ -139,6 +137,3 @@ router.get('/tokens', async (req, res) => {
 });
 
 export default router;
-
-
-
