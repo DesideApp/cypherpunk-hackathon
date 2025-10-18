@@ -125,6 +125,13 @@ export default function TrafficControl() {
     history: []
   };
 
+  const product = overview?.productInsights ?? {
+    tokens: { last24h: 0 },
+    blinks: { executes24h: 0, successRate24h: null },
+    naturalCommands: { executed24h: 0 },
+    messaging: { relayMessages24h: 0 }
+  };
+
   const bucketMinutes = overview?.bucket?.minutes ?? periodMeta.bucketMinutes;
   const bucketMode = periodMeta.bucketMode;
 
@@ -289,6 +296,28 @@ export default function TrafficControl() {
             {formatCount(p95MessageBucket?.value ?? 0)}
           </span>
           <span className="summary-note">spikes per {bucketLabel}</span>
+        </div>
+      </div>
+
+      <div className="product-summary">
+        <div className="summary-card">
+          <span className="summary-label">Tokens added (24h)</span>
+          <span className="summary-value">{formatCount(product.tokens.last24h)}</span>
+        </div>
+        <div className="summary-card">
+          <span className="summary-label">Blink executes (24h)</span>
+          <span className="summary-value">{formatCount(product.blinks.executes24h)}</span>
+          <span className="summary-note">
+            {product.blinks.successRate24h != null ? `${product.blinks.successRate24h}% success` : 'no data'}
+          </span>
+        </div>
+        <div className="summary-card">
+          <span className="summary-label">Commands executed (24h)</span>
+          <span className="summary-value">{formatCount(product.naturalCommands.executed24h)}</span>
+        </div>
+        <div className="summary-card">
+          <span className="summary-label">Relay messages (24h)</span>
+          <span className="summary-value">{formatCount(product.messaging.relayMessages24h)}</span>
         </div>
       </div>
 

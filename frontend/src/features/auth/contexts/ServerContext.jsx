@@ -23,6 +23,7 @@ export const useServer = () => {
 export const ServerProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isReady, setIsReady] = useState(false);
+  const [user, setUser] = useState({ wallet: null, role: null, isAdmin: false });
   const lastChecked = useRef(0);
   const checking = useRef(false);
   const lastReset = useRef(0);
@@ -44,16 +45,24 @@ export const ServerProvider = ({ children }) => {
         // Si devuelve la forma normalizada de "anónimo"
         if (authStatus && authStatus.isAuthenticated === false) {
           setIsAuthenticated(false);
+          setUser({ wallet: null, role: null, isAdmin: false });
         } else if (authStatus && authStatus.isAuthenticated === true) {
           setIsAuthenticated(true);
+          setUser({
+            wallet: authStatus.wallet ?? null,
+            role: authStatus.role ?? null,
+            isAdmin: !!authStatus.isAdmin,
+          });
         } else if (authStatus && authStatus.error === true) {
           // Otros errores → por seguridad, consideramos no autenticado
           console.warn("[ServerContext] /status error:", authStatus);
           setIsAuthenticated(false);
+          setUser({ wallet: null, role: null, isAdmin: false });
         }
       } catch (error) {
         console.warn("[ServerContext] ❌ Error comprobando estado de auth:", error);
         setIsAuthenticated(false);
+        setUser({ wallet: null, role: null, isAdmin: false });
       } finally {
         setIsReady(true);
         lastChecked.current = now;
@@ -76,6 +85,7 @@ export const ServerProvider = ({ children }) => {
 
     setIsAuthenticated(false);
     setIsReady(true);
+    setUser({ wallet: null, role: null, isAdmin: false });
     lastChecked.current = 0;
   }, []);
 
@@ -101,10 +111,14 @@ export const ServerProvider = ({ children }) => {
     () => ({
       isAuthenticated,
       isReady,
+      user,
+      isAdmin: user?.isAdmin ?? false,
+      wallet: user?.wallet ?? null,
+      role: user?.role ?? null,
       syncAuthStatus,
       resetAuth,
     }),
-    [isAuthenticated, isReady, syncAuthStatus, resetAuth]
+    [isAuthenticated, isReady, user, syncAuthStatus, resetAuth]
   );
 
   return (

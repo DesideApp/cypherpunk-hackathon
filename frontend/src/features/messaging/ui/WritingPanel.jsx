@@ -117,10 +117,10 @@ const WritingPanel = React.memo(function WritingPanel({
       setIsProcessingCommand(true);
       
       // ✅ DETECCIÓN DE COMANDO "enviar X sol"
-      const sendCommand = trimmed.match(/enviar\s+(\d+(?:\.\d+)?)\s+sol/i);
+      const sendCommand = trimmed.match(/\b(?:enviar|mandar|send(?:\s+(?:me|to))?)\s+(\d+(?:[.,]\d+)?)\s+sol\b/i);
       
       if (sendCommand) {
-        const amount = sendCommand[1];
+        const amount = sendCommand[1]?.replace(',', '.');
         console.log('🚀 Send command detected:', amount, 'SOL');
         
         // Abrir modal de Send con campos pre-rellenados
@@ -202,10 +202,13 @@ const WritingPanel = React.memo(function WritingPanel({
      }
      
      // Detectar si hay un blink en el mensaje
-     const blinkDetected = message.toLowerCase().includes('buy ') || 
-                          message.toLowerCase().includes('transfer ') ||
-                          message.toLowerCase().includes('swap ') ||
-                          message.toLowerCase().includes('enviar ');
+     const lowered = message.toLowerCase();
+     const blinkDetected = lowered.includes('buy ') || 
+                          lowered.includes('transfer ') ||
+                          lowered.includes('swap ') ||
+                          lowered.includes('enviar ') ||
+                          lowered.includes('mandar ') ||
+                          lowered.includes('send ');
      
      if (blinkDetected) {
        return "Enter para enviar blink";

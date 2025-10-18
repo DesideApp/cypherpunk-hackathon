@@ -1,13 +1,14 @@
 // src/components/layout/LeftBar.jsx
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { MessageCircle, User as UserIcon, ArrowLeftRight, Settings } from 'lucide-react';
+import { MessageCircle, User as UserIcon, ArrowLeftRight, Settings, BarChart3 } from 'lucide-react';
 import { useLayout } from '@features/layout/contexts/LayoutContext';
 import { panelEvents } from '@wallet-adapter/ui/system/panel-bus';
 import { useWallet } from '@wallet-adapter/core/contexts/WalletProvider';
 import { useRpc } from '@wallet-adapter/core/contexts/RpcProvider';
 import { PublicKey } from '@solana/web3.js';
 import { useAuth, AUTH_STATUS } from '@features/auth/contexts/AuthContext.jsx';
+import { useAuthManager } from '@features/auth/hooks/useAuthManager.js';
 import ThemeToggle from '@features/layout/components/ThemeToggle.jsx';
 import SettingsPanel from '@features/settings/components/SettingsPanel.jsx';
 import './LeftBar.css';
@@ -101,7 +102,7 @@ export default function LeftBar() {
   } = useWallet();
   const { endpoint, connection } = useRpc();
   // Jupiter endpoint aislado del core: usa sus propias env vars (no rompe RTC/WS)
-  const J_MODE_RAW = (import.meta.env?.VITE_JUPITER_MODE || 'devnet');
+  const J_MODE_RAW = (import.meta.env?.VITE_JUPITER_MODE || 'mainnet');
   const J_MODE = String(J_MODE_RAW).toLowerCase();
   const J_RPC_MAIN = import.meta.env?.VITE_JUPITER_RPC_MAINNET;
   const J_RPC_DEV = import.meta.env?.VITE_JUPITER_RPC_DEVNET;
@@ -115,6 +116,7 @@ export default function LeftBar() {
 
   const location = useLocation();
   const navigate = useNavigate();
+  const { isAdmin } = useAuthManager();
 
   const isDrawerOpen = (isTablet || isMobile) && leftbarExpanded;
 
@@ -393,10 +395,32 @@ export default function LeftBar() {
 
   const pages = [
     { path: '/', icon: <MessageCircle size={ICON_SIZE} strokeWidth={STROKE} />, label: 'Chat' },
-    ...(swapEnabled ? [{ action: () => openJupiterSwap(), icon: <ArrowLeftRight size={ICON_SIZE} strokeWidth={STROKE} />, label: 'Swap' }] : []),
+    ...(swapEnabled
+      ? [
+          {
+            action: () => openJupiterSwap(),
+            icon: <ArrowLeftRight size={ICON_SIZE} strokeWidth={STROKE} />,
+            label: 'Swap',
+          },
+        ]
+      : []),
+    ...(isAdmin
+      ? [
+          {
+            path: '/admin/stats',
+            navigatePath: '/admin/stats/dashboard',
+            icon: <BarChart3 size={ICON_SIZE} strokeWidth={STROKE} />,
+            label: 'Stats',
+          },
+        ]
+      : []),
   ];
 
-  const isActive = (path) => location.pathname === path;
+  const isActive = (path) => {
+    if (!path) return false;
+    if (path === '/') return location.pathname === '/';
+    return location.pathname.startsWith(path);
+  };
 
   return (
     <aside className={`leftbar ${isDrawerOpen ? 'expanded' : ''}`}>
@@ -428,8 +452,9 @@ export default function LeftBar() {
                   } else if (link.path) {
                     // Cerrar todos los modales y volver a Chat
                     returnToChat();
-                    navigate(link.path);
-                    if (isDev) console.debug('[LeftBar] Navigate', link.path);
+                    const target = link.navigatePath || link.path;
+                    navigate(target);
+                    if (isDev) console.debug('[LeftBar] Navigate', target);
                   }
                 }}
               >

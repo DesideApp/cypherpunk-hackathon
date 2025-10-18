@@ -1,6 +1,6 @@
 import './StatCard.css';
 
-export default function StatCard({ title, value, icon, color, trend }) {
+export default function StatCard({ title, value, icon, color, trend, subtitle }) {
   return (
     <div className="stat-card">
       <div className="stat-header">
@@ -14,10 +14,12 @@ export default function StatCard({ title, value, icon, color, trend }) {
       </div>
       
       <div className="stat-footer">
-        <span className={`stat-trend ${trend.startsWith('+') ? 'positive' : trend.startsWith('-') ? 'negative' : 'neutral'}`}>
-          {trend}
-        </span>
-        <span className="stat-period">vs last hour</span>
+        {trend != null && (
+          <span className={`stat-trend ${trend.startsWith('+') ? 'positive' : trend.startsWith('-') ? 'negative' : 'neutral'}`}>
+            {trend}
+          </span>
+        )}
+        <span className="stat-period">{subtitle || 'vs last hour'}</span>
       </div>
     </div>
   );

@@ -95,6 +95,21 @@
   margin-bottom: 30px;
 }
 
+.stats-grid.secondary {
+  margin-top: -10px;
+}
+
+.stats-grid.secondary .stat-card {
+  background: linear-gradient(135deg, #f8fafc 0%, #e8f1ff 100%);
+  box-shadow: none;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.stats-grid.secondary .stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(100, 116, 139, 0.18);
+}
+
 .dashboard-panels {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));

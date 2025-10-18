@@ -147,6 +147,12 @@ export default function UserManagement() {
 
   const statsConnections = stats?.connections ?? {};
   const statsMessages = stats?.messages ?? {};
+  const product = stats?.productInsights ?? {
+    tokens: { total: 0, last24h: 0 },
+    blinks: { executes24h: 0, successRate24h: null },
+    naturalCommands: { executed24h: 0, failed24h: 0 },
+    messaging: { dmStarted24h: 0, dmAccepted24h: 0 }
+  };
   const statsBucketLabel = formatBucketDuration(stats?.bucket?.minutes ?? statsMeta.bucketMinutes);
   const statsRangeLabel =
     statsMeta.rangeLabel || formatRangeLabel(stats?.period?.start, stats?.period?.end) || '';
@@ -302,6 +308,35 @@ export default function UserManagement() {
               <div className="meta-card">
                 <span className="meta-label">Messages last minute</span>
                 <span className="meta-value">{formatStat(statsMessages.lastMinute)}</span>
+              </div>
+            </div>
+
+            <div className="user-product-summary">
+              <div className="summary-card">
+                <span className="summary-label">Tokens added (24h)</span>
+                <span className="summary-value">{formatStat(product.tokens.last24h)}</span>
+                <span className="summary-note">Total {formatStat(product.tokens.total)}</span>
+              </div>
+              <div className="summary-card">
+                <span className="summary-label">Blink executes (24h)</span>
+                <span className="summary-value">{formatStat(product.blinks.executes24h)}</span>
+                <span className="summary-note">
+                  {product.blinks.successRate24h != null ? `${product.blinks.successRate24h}% success` : 'No data'}
+                </span>
+              </div>
+              <div className="summary-card">
+                <span className="summary-label">Commands executed (24h)</span>
+                <span className="summary-value">{formatStat(product.naturalCommands.executed24h)}</span>
+                <span className="summary-note">
+                  Failures {formatStat(product.naturalCommands.failed24h)}
+                </span>
+              </div>
+              <div className="summary-card">
+                <span className="summary-label">DM requests (24h)</span>
+                <span className="summary-value">{formatStat(product.messaging.dmStarted24h)}</span>
+                <span className="summary-note">
+                  Accepted {formatStat(product.messaging.dmAccepted24h)}
+                </span>
               </div>
             </div>
           </>

@@ -138,8 +138,15 @@ export async function authenticateWithServer(pubkey, signature, message) {
 
 export async function checkAuthStatus() {
   const res = await apiRequest("/api/v1/auth/status", { method: "GET" });
-  // Siempre devolvemos el shape uniforme
-  return { isAuthenticated: !!res?.isAuthenticated };
+  if (!res || res.error === true) {
+    return { isAuthenticated: false, wallet: null, role: null, isAdmin: false };
+  }
+  return {
+    isAuthenticated: !!res?.isAuthenticated,
+    wallet: res?.wallet ?? null,
+    role: res?.role ?? null,
+    isAdmin: !!res?.isAdmin,
+  };
 }
 
 export async function checkWalletRegistered(pubkey) {

@@ -7,4 +7,5 @@ export { UiCard } from "./UiCard.jsx";
 export { UiSearchInput } from "./UiSearchInput.jsx";
 export { UiActionModal } from "./UiActionModal.jsx";
 export { UiActionCard } from "./UiActionCard.jsx";
+export { UiSelectionCard } from "./UiSelectionCard.jsx";
 export * as tokens from "./tokens.js";

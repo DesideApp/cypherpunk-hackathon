@@ -50,7 +50,7 @@ import WalletPanelHost from "@features/wallet/components/WalletPanelHost.jsx";
 
 
 export default function App() {
-  const endpoint = import.meta.env.VITE_SOLANA_RPC || 'https://api.devnet.solana.com';
+  const endpoint = import.meta.env.VITE_SOLANA_RPC || 'https://api.mainnet-beta.solana.com';
 
   return (
     <ServerProvider>

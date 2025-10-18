@@ -95,11 +95,27 @@ npm run dev
 - `npm run lint`: ESLint on frontend
 - `npm run test`: run test suites
 
+## Messaging Actions
+
+The chat UI ships with wallet-aware quick actions and natural command detection. Every action resolves to a Blink URL so the recipient can open the flow in their wallet.
+
+| Action | How to trigger | Flow | Backend role | Status |
+| --- | --- | --- | --- | --- |
+| `Send` | Action bar or typing “envía 5 SOL” | Inline transfer preview → wallet signs (fallback opens Dialect) | Validates and proxies Blink execution at `/api/v1/blinks/execute` | ✅ production-ready |
+| `Request` | Action bar or typing “pídeme 10 USDC” | Shares Dialect payment request to peer | Generates same Blink server-side for parity | ✅ production-ready |
+| `Buy` | Action bar (“Buy”) | Jupiter quote + swap via `/api/v1/blinks/buy` | Fetches quote/swap, enforces token allow list | ✅ production-ready |
+| `Fund` | Action bar (“Fund”) | Demo on-ramp walkthrough | — | 🧪 demo UI only |
+| `Agreement` | Action bar (“Agreement”) | On-chain agreement draft between peers | Persists / signs via `/api/v1/agreements` | ⚠️ under repair |
+
+Typing intent (send/request/buy/swap) is available in both the client and the API. Parser metadata is being consolidated so future actions stay in sync across frontend and backend.
+
 ## Technical Details
 
 **Demo Mode:** Uses in-memory MongoDB, mock WebRTC services, pre-seeded data  
 **Dev Mode:** Requires `.env` with real API keys (MongoDB, Twilio, etc.)  
 **Ports:** Backend on `:3001`, Frontend on `:3000`
+
+**Solana RPC:** Defaults to mainnet (`https://api.mainnet-beta.solana.com`). Override with `SOLANA_RPC_URL` (backend) and `VITE_SOLANA_RPC` (frontend) if you need a dedicated endpoint.
 
 ### 🔐 E2EE Grade-1 Configuration
 

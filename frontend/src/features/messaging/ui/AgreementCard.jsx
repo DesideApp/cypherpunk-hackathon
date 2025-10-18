@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import PropTypes from "prop-types";
 import { VersionedTransaction, Transaction, TransactionInstruction, PublicKey } from "@solana/web3.js";
 import { Buffer } from "buffer";
@@ -53,8 +53,20 @@ function AgreementCard({ msg }) {
   const adapter = walletCtx?.adapter;
   const walletPk = walletCtx?.publicKey?.toBase58?.() || walletCtx?.publicKey || myWallet;
 
-  const agreement = msg?.agreement || {};
-  const receipt = msg?.receipt || {};
+  const initialAgreement = msg?.agreement || {};
+  const initialReceipt = msg?.receipt || {};
+
+  const [agreement, setAgreement] = useState(initialAgreement);
+  const [receipt, setReceipt] = useState(initialReceipt);
+
+  useEffect(() => {
+    setAgreement(initialAgreement);
+  }, [initialAgreement]);
+
+  useEffect(() => {
+    setReceipt(initialReceipt);
+  }, [initialReceipt]);
+
   const participants = Array.isArray(agreement.participants) ? agreement.participants : [];
   const creator = agreement.createdBy || participants[0];
   const counterparty = participants.find((p) => p && p !== creator);
@@ -115,14 +127,32 @@ function AgreementCard({ msg }) {
   const convId = msg?.convId;
   const clientId = msg?.clientId || msg?.id;
 
-  const applyReceiptUpdate = (nextReceipt) => {
+  const applyReceiptUpdate = (nextReceipt, nextAgreement = null) => {
+    const mergedReceipt = { ...receipt, ...nextReceipt };
+    const mergedAgreement = nextAgreement ? nextAgreement : agreement;
+
+    setReceipt(mergedReceipt);
+    if (nextAgreement) setAgreement(mergedAgreement);
+
     actions.upsertMessage?.(convId, {
       clientId,
-      receipt: {
-        ...receipt,
-        ...nextReceipt,
-      },
+      receipt: mergedReceipt,
+      ...(nextAgreement ? { agreement: mergedAgreement } : {}),
     });
+
+    return { mergedReceipt, mergedAgreement };
+  };
+
+  const broadcastAgreementUpdate = (nextReceipt, nextAgreement = null) => {
+    if (!convId || !clientId) return;
+    window.dispatchEvent(new CustomEvent('chat:agreement:update', {
+      detail: {
+        convId,
+        clientId,
+        agreement: nextAgreement || agreement,
+        receipt: nextReceipt,
+      },
+    }));
   };
 
   const sendThroughWallet = async (serializedTx) => {
@@ -231,7 +261,12 @@ function AgreementCard({ msg }) {
         hash,
       };
 
-      applyReceiptUpdate(nextReceipt);
+      const updatedAgreement = confirm?.agreement
+        ? { ...agreement, ...confirm.agreement }
+        : agreement;
+
+      const { mergedReceipt, mergedAgreement } = applyReceiptUpdate(nextReceipt, updatedAgreement);
+      broadcastAgreementUpdate(mergedReceipt, mergedAgreement);
       notify(requiresWallet ? "Agreement signed." : "Agreement accepted.", "success");
     } catch (error) {
       debug('sign-error', { message: error?.message });
@@ -346,13 +381,15 @@ function AgreementCard({ msg }) {
       if (signature) {
         try {
           const res = await markAgreementSettled(agreement.id, { txSig: signature });
-          applyReceiptUpdate({
+          const settlementUpdate = {
             settlement: {
               status: 'settled',
               txSig: res?.txSig || signature,
               recordedAt: res?.settlement?.recordedAt || new Date().toISOString(),
             },
-          });
+          };
+          const { mergedReceipt } = applyReceiptUpdate(settlementUpdate);
+          broadcastAgreementUpdate(mergedReceipt);
           notify("Payment recorded.", "success");
         } catch (error) {
           notify(error?.message || "Failed to register payment.", "error");
@@ -416,12 +453,14 @@ function AgreementCard({ msg }) {
     try {
       const res = await markAgreementSettled(agreement.id, { txSig });
       const outcomeSig = res?.txSig || txSig;
-      applyReceiptUpdate({
+      const settlementUpdate = {
         settlement: {
           status: 'settled',
           txSig: outcomeSig,
         },
-      });
+      };
+      const { mergedReceipt } = applyReceiptUpdate(settlementUpdate);
+      broadcastAgreementUpdate(mergedReceipt);
       notify("Pago registrado.", "success");
       setSettlementModalOpen(false);
     } catch (error) {

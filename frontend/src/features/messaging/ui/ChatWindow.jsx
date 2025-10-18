@@ -1,14 +1,18 @@
 // src/features/messaging/ui/ChatWindow.jsx
 import React, { useMemo, useCallback, useEffect, useState, useRef } from "react";
+import { VersionedTransaction, Transaction } from "@solana/web3.js";
+import { Buffer } from "buffer";
 import ChatHeader from "./ChatHeader";
 import WritingPanel from "./WritingPanel";
 import ChatMessages from "./ChatMessages";
 import ActionBar from "./ActionBar.jsx";
 
 import useMessaging from "@features/messaging/hooks/useMessaging";
-import { ENV, MESSAGING, MOCKS } from "@shared/config/env.js";
+import { ENV, MESSAGING, MOCKS, FEATURES } from "@shared/config/env.js";
 import { useAuthManager } from "@features/auth/hooks/useAuthManager.js";
 import { useRtcDialer } from "@features/messaging/hooks/useRtcDialer.js";
+import { useWallet } from "@wallet-adapter/core/contexts/WalletProvider";
+import { useRpc } from "@wallet-adapter/core/contexts/RpcProvider";
 import { base64ToUtf8 } from "@shared/utils/base64.js";
 import { subscribe, getState, convId as canonicalConvId } from "@features/messaging/store/messagesStore.js";
 import { buildTransfer, buildRequest } from "@features/messaging/actions/blinkUrlBuilder.js";
@@ -19,6 +23,8 @@ import {
 } from "@shared/tokens/tokens.js";
 import { notify } from "@shared/services/notificationService.js";
 import { createDebugLogger } from "@shared/utils/debug.js";
+import { assertAllowed } from "@features/messaging/config/blinkSecurity.js";
+import { executeBlink } from "@features/messaging/services/blinkExecutionService.js";
 import "./ChatWindow.css";
 import AgreementModal from "./modals/AgreementModal.jsx";
 import BuyTokenModal from "./modals/BuyTokenModal.jsx";
@@ -37,6 +43,20 @@ function normalizeSelected(sel) {
   if (typeof sel === "string") return { pubkey: sel, nickname: null, avatar: null };
   const key = sel.pubkey || sel.wallet || sel.id || null;
   return { pubkey: key, nickname: sel.nickname || sel.name || null, avatar: sel.avatar || null };
+}
+
+function deserializeTransaction(base64) {
+  const raw = Buffer.from(base64, "base64");
+  try {
+    return VersionedTransaction.deserialize(raw);
+  } catch (_) {
+    return Transaction.from(raw);
+  }
+}
+
+function isUserCancelled(error) {
+  const message = String(error?.message || error || "").toLowerCase();
+  return message.includes("reject") || message.includes("cancel") || message.includes("decline") || error?.code === 4001;
 }
 
 // Mapear mensaje genérico → shape UI (usa text/media; no 'payload')
@@ -155,6 +175,30 @@ const MAX_REASON_LEN = 120;
 export default function ChatWindow({ selectedContact, activePanel, setActivePanel }) {
   const { pubkey: myWallet } = useAuthManager();
   const { closeRtc } = useRtcDialer();
+  const walletCtx = useWallet();
+  const { connection } = useRpc();
+  const adapter = walletCtx?.adapter || null;
+
+  const walletPublicKey = walletCtx?.publicKey;
+  const walletAddress = useMemo(() => {
+    if (walletPublicKey?.toBase58) {
+      try {
+        return walletPublicKey.toBase58();
+      } catch (_) {
+        return myWallet || null;
+      }
+    }
+    if (typeof walletPublicKey === "string" && walletPublicKey) {
+      return walletPublicKey;
+    }
+    return myWallet || null;
+  }, [walletPublicKey, myWallet]);
+
+  const inlinePaymentsEnabled = FEATURES.PAYMENT_INLINE_EXEC;
+  const inlineSendCapable = useMemo(
+    () => inlinePaymentsEnabled && adapter && connection && walletAddress,
+    [inlinePaymentsEnabled, adapter, connection, walletAddress]
+  );
 
   // Contacto activo
   const selected = useMemo(() => normalizeSelected(selectedContact), [selectedContact]);
@@ -175,6 +219,7 @@ export default function ChatWindow({ selectedContact, activePanel, setActivePane
     sendPaymentRequest,
     sendBlinkAction,
     sendAgreement,
+    shareAgreementUpdate,
     setTyping,
     e2ee,
   } = useMessaging({
@@ -196,10 +241,127 @@ export default function ChatWindow({ selectedContact, activePanel, setActivePane
     } catch {}
   }, [peerWallet]);
 
+  const handleAgreementUpdateEvent = useCallback((event) => {
+    const detail = event?.detail || {};
+    if (!detail?.agreement || !detail?.receipt) return;
+    if (detail.convId && convId && detail.convId !== convId) return;
+
+    shareAgreementUpdate({
+      agreement: detail.agreement,
+      receipt: detail.receipt,
+      clientId: detail.clientId || null,
+    });
+  }, [shareAgreementUpdate, convId]);
+
+  useEffect(() => {
+    window.addEventListener('chat:agreement:update', handleAgreementUpdateEvent);
+    return () => window.removeEventListener('chat:agreement:update', handleAgreementUpdateEvent);
+  }, [handleAgreementUpdateEvent]);
+
   // Mapear a shape UI
   const messages = useMemo(
     () => (Array.isArray(rawMessages) ? rawMessages.map((m) => toUiMessage(m, myWallet)).filter(Boolean) : []),
     [rawMessages, myWallet]
+  );
+
+  const executeInlineTransfer = useCallback(
+    async (blink) => {
+      if (!adapter || !connection || !walletAddress) {
+        console.warn("[blink] inline send fallback: missing adapter/connection", {
+          hasAdapter: !!adapter,
+          hasConnection: !!connection,
+          walletAddress,
+        });
+        notify("Connect your wallet before sending.", "warning");
+        return null;
+      }
+
+      try {
+        assertAllowed(blink.actionUrl, { feature: "payment-send" });
+      } catch (error) {
+        const message = error?.message || "Payment link not allowed.";
+        notify(message, message.includes("not allowed") ? "error" : "warning");
+        return null;
+      }
+
+      const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+      const timeout = controller ? setTimeout(() => controller.abort(), 15000) : null;
+
+      const executeTransaction = async (serializedTx) => {
+        const tx = deserializeTransaction(serializedTx);
+        let signature = null;
+        if (typeof adapter.sendTransaction === "function") {
+          signature = await adapter.sendTransaction(tx, connection, {
+            skipPreflight: false,
+            preflightCommitment: "confirmed",
+          });
+        } else if (typeof adapter.signTransaction === "function") {
+          const signed = await adapter.signTransaction(tx);
+          const raw = signed.serialize();
+          signature = await connection.sendRawTransaction(raw, { skipPreflight: false });
+        } else {
+          throw new Error("Wallet adapter cannot send transactions.");
+        }
+
+        if (!signature) {
+          throw new Error("Wallet did not return a signature.");
+        }
+
+        await connection.confirmTransaction(signature, "confirmed");
+        return signature;
+      };
+
+      try {
+        notify("Opening your wallet…", "info");
+        const payload = await executeBlink(blink.actionUrl, walletAddress, { signal: controller?.signal });
+        const signatures = [];
+        if (payload?.type === "transaction" && typeof payload.transaction === "string") {
+          signatures.push(await executeTransaction(payload.transaction));
+        } else if (payload?.type === "transactions" && Array.isArray(payload.transactions)) {
+          for (const serialized of payload.transactions) {
+            if (typeof serialized !== "string") continue;
+            signatures.push(await executeTransaction(serialized));
+          }
+        } else {
+          throw new Error("Unexpected response from payment action.");
+        }
+
+        const primarySig = signatures[signatures.length - 1] || signatures[0] || null;
+        return primarySig || null;
+      } catch (error) {
+        if (error?.name === "AbortError") {
+          notify("Payment request timed out. Opening Dialect…", "warning");
+          if (blink?.dialToUrl) {
+            window.open(blink.dialToUrl, "_blank", "noopener,noreferrer");
+          }
+          console.warn("[blink] inline send aborted; falling back to Dialect", {
+            actionUrl: blink?.actionUrl,
+            reason: "abort",
+          });
+          return null;
+        }
+        if (isUserCancelled(error)) {
+          notify("Signature cancelled in wallet.", "warning");
+          console.info("[blink] inline send cancelled in wallet", {
+            actionUrl: blink?.actionUrl,
+          });
+          return null;
+        }
+        notify(error?.message || "Couldn't complete payment. Opening Dialect…", "warning");
+        if (blink?.dialToUrl) {
+          window.open(blink.dialToUrl, "_blank", "noopener,noreferrer");
+        }
+        console.warn("[blink] inline send failed; falling back to Dialect", {
+          actionUrl: blink?.actionUrl,
+          message: error?.message,
+          code: error?.code,
+        });
+        return null;
+      } finally {
+        if (timeout) clearTimeout(timeout);
+      }
+    },
+    [adapter, connection, walletAddress]
   );
 
   const debugBlink = useMemo(
@@ -384,12 +546,56 @@ export default function ChatWindow({ selectedContact, activePanel, setActivePane
         amount: result.amount,
         to: result.to,
         dialToUrl: result.dialToUrl,
+        inlineCapable: inlineSendCapable,
       });
 
       if (kind === "send") {
-        window.open(result.dialToUrl, "_blank", "noopener,noreferrer");
-        notify("Opening your wallet…", "info");
+        if (!inlineSendCapable) {
+          console.info("[blink] inline send fallback: capability disabled", {
+            inlinePaymentsEnabled,
+            hasAdapter: !!adapter,
+            hasConnection: !!connection,
+            walletAddress,
+          });
+          if (result?.dialToUrl) {
+            window.open(result.dialToUrl, "_blank", "noopener,noreferrer");
+            notify("Opening your wallet…", "info");
+          } else {
+            notify("Payment link not available.", "warning");
+          }
+          setActionModal(null);
+          return;
+        }
+
+        const signature = await executeInlineTransfer(result);
         setActionModal(null);
+
+        if (signature) {
+          notify("Payment sent.", "success");
+          try {
+            await sendBlinkAction({
+              kind: "transfer",
+              token: result.token,
+              amount: result.amount,
+              amountInSol: result.token === "SOL" ? result.amount : null,
+              actionUrl: result.actionUrl,
+              solanaActionUrl: result.solanaActionUrl,
+              dialToUrl: result.dialToUrl,
+              blinkApiUrl: result.blinkApiUrl,
+              txSig: signature,
+              source: "inline-send",
+              meta: trimmedReason ? { note: trimmedReason } : null,
+            });
+          } catch (shareError) {
+            debugBlink('share-error', {
+              context: 'inline-send',
+              error: shareError?.message || 'unknown',
+            });
+            console.warn("[blink] inline send share error", {
+              message: shareError?.message,
+            });
+          }
+        }
         return;
       }
 
@@ -418,8 +624,14 @@ export default function ChatWindow({ selectedContact, activePanel, setActivePane
       } else {
         notify(message || "Unable to open the payment link. Please try again.", "error");
       }
+      if (kind === "send" && inlineSendCapable) {
+        console.warn("[blink] inline send fallback: exception during submission", {
+          message: error?.message,
+          code: error?.code,
+        });
+      }
     }
-  }, [actionModal, peerWallet, myWallet, debugBlink, sendPaymentRequest]);
+  }, [actionModal, peerWallet, myWallet, debugBlink, sendPaymentRequest, inlineSendCapable, executeInlineTransfer, sendBlinkAction, inlinePaymentsEnabled, adapter, connection, walletAddress]);
 
   const closeAgreementModal = useCallback(() => setAgreementModalOpen(false), []);
 

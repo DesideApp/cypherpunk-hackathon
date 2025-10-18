@@ -45,6 +45,7 @@
     "token:update-prices": "node ai-token-agent/src/index.js update-prices",
     "token:watch": "node ai-token-agent/src/index.js watch",
     "token": "npm run token:add",
+    "endpoints": "npm run endpoints --workspace backend",
     "stats:api": "DATA_MODE=memory ALLOWED_ORIGINS=http://localhost:3002 PORT=3001 npm run dev --workspace backend",
     "stats:panel": "bash -lc 'set -a; [ -f frontend/.env ] && . frontend/.env; VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost:3001} VITE_ADMIN_JWT=\"$VITE_ADMIN_JWT\" npm --prefix admin-panel run dev -- --host --port 3002'",
     "stats": "concurrently \"npm:stats:api\" \"npm:stats:panel\"",
@@ -52,7 +53,8 @@
     "telegram:bot": "node backend/src/modules/telegram-bot/startBot.js",
     "telegram:dev": "nodemon backend/src/modules/telegram-bot/startBot.js",
     "telegram:test": "node scripts/test-telegram-bot.mjs",
-    "telegram:setup": "./scripts/quick-telegram-setup.sh"
+    "telegram:setup": "./scripts/quick-telegram-setup.sh",
+    "generate-intents": "node scripts/generate-intents.mjs"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.1",

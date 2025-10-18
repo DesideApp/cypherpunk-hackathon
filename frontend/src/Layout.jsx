@@ -3,6 +3,7 @@ import { Routes, Route } from "react-router-dom";
 
 import LeftBar from "@features/layout/components/LeftBar.jsx";
 import Chat from "@pages/chat/Chat.jsx";
+import StatsDashboard from "@pages/admin/StatsDashboard.jsx";
 
 import "./Layout.css";
 
@@ -20,6 +21,7 @@ export default function Layout() {
       <main className="layout-content">
         <Routes>
           <Route path="/" element={<Chat />} />
+          <Route path="/admin/stats/*" element={<StatsDashboard />} />
           {/* más rutas… */}
         </Routes>
       </main>

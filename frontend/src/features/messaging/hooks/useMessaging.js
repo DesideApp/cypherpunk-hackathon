@@ -618,7 +618,43 @@ export default function useMessaging({
         debugAgreement('create-error', { message: error?.message });
         return { ok: false, reason: error?.message || 'agreement-create-failed' };
       }
-    }, [convId, selfWallet, peerWallet, convKey, registerRecent, debugAgreement]);
+  }, [convId, selfWallet, peerWallet, convKey, registerRecent, debugAgreement]);
+
+  const shareAgreementUpdate = useCallback(
+    async ({ agreement, receipt, clientId }) => {
+      if (!convId || !selfWallet || !peerWallet) {
+        return { ok: false, reason: "missing-context" };
+      }
+      if (!convKey) {
+        debugE2EE('agreement:key-missing', { convId });
+        return { ok: false, reason: "e2e-key-missing" };
+      }
+      try {
+        const aad = buildAAD({ convId, from: selfWallet, to: peerWallet, isMedia: false });
+        const envelope = await encryptPayload({ type: 'agreement', agreement, receipt }, convKey, aad);
+
+        await relay.sendEnvelope({
+          toWallet: peerWallet,
+          clientId: clientId || nextClientMsgId(),
+          envelope,
+          meta: {
+            kind: 'agreement',
+            convId,
+            from: selfWallet,
+            to: peerWallet,
+            agreementId: agreement?.id || null,
+          },
+          force: true,
+        });
+
+        return { ok: true };
+      } catch (error) {
+        debugAgreement('update-share-error', { message: error?.message });
+        return { ok: false, reason: error?.message || 'agreement-update-share-failed' };
+      }
+    },
+    [convId, selfWallet, peerWallet, convKey, debugAgreement],
+  );
 
   const sendAttachmentInline = useCallback(async ({ base64, mime, kind, w, h, durMs }, { clientId, forceRelayIfOnline = true } = {}) => {
     const localId = clientId || (globalThis?.crypto?.randomUUID?.() || `f_${Date.now()}`);
@@ -892,7 +928,8 @@ export default function useMessaging({
     sendAgreement,
     sendAttachment,
     sendAttachmentInline,
+    shareAgreementUpdate,
     setTyping,
     e2ee: { keyReady },
-  }), [decMessages, presence, isTyping, dataChannelReady, lastError, keyReady, sendText, sendPaymentRequest, sendBlinkAction, sendAgreement, sendAttachment, sendAttachmentInline, setTyping]);
+  }), [decMessages, presence, isTyping, dataChannelReady, lastError, keyReady, sendText, sendPaymentRequest, sendBlinkAction, sendAgreement, sendAttachment, sendAttachmentInline, shareAgreementUpdate, setTyping]);
 }

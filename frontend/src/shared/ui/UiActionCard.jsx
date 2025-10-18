@@ -3,10 +3,7 @@ import PropTypes from "prop-types";
 import { UiChip } from "@shared/ui";
 
 export const UiActionCard = ({
-  variant = "simple", // simple, premium, compact
-  status = "completed", // pending, completed, error
-  layout = "vertical", // horizontal, vertical
-  sender = "own", // own, contact
+  // Basic props
   title,
   subtitle,
   date,
@@ -17,46 +14,88 @@ export const UiActionCard = ({
   primaryAction,
   secondaryAction,
   explorerUrl,
+  // Advanced props
+  icon,
+  iconStyle = {},
+  quote,
+  quoteCaption,
+  stats = [], // [{ label, value, variant }]
+  hint,
   className,
   children,
   ...rest
 }) => {
   const wrapperClasses = [
     "ui-action-card-wrapper",
-    `ui-action-card-wrapper--${sender}`,
-    `ui-action-card-wrapper--${layout}`,
     className
   ].filter(Boolean).join(" ");
 
   const cardClasses = [
     "ui-action-card",
-    `ui-action-card--${variant}`,
-    `ui-action-card--${status}`,
-    `ui-action-card--${sender}`,
-    `ui-action-card--${layout}`
+    className
   ].filter(Boolean).join(" ");
 
   return (
     <div className={wrapperClasses} role="group" aria-label="Action card" {...rest}>
       <div className={cardClasses}>
         {/* Header */}
-        {(title || date || type) && (
+        {(title || date || type || icon) && (
           <header className="ui-action-card-header">
             <div className="ui-action-card-heading">
-              {title && <p className="ui-action-card-title">{title}</p>}
-              {date && <span className="ui-action-card-date">{date}</span>}
+              {icon && (
+                <span className="ui-action-card-icon" style={iconStyle}>
+                  <span className="ui-action-card-icon-inner">
+                    {typeof icon === "string" ? (
+                      <img src={icon} alt={title || "Action"} />
+                    ) : (
+                      icon
+                    )}
+                  </span>
+                </span>
+              )}
+              <div className="ui-action-card-titles">
+                {title && <p className="ui-action-card-title">{title}</p>}
+                {date && <span className="ui-action-card-date">{date}</span>}
+              </div>
             </div>
-            {type && (
-              <UiChip as="span" className="ui-action-card-type" role="presentation">
-                {type.toUpperCase()}
-              </UiChip>
-            )}
+            <div className="ui-action-card-header-right">
+              {type && (
+                <UiChip as="span" className="ui-action-card-type" role="presentation">
+                  {type.toUpperCase()}
+                </UiChip>
+              )}
+              {quote && (
+                <div className="ui-action-card-quote">
+                  <span className="ui-action-card-quote-value">{quote}</span>
+                  {quoteCaption && (
+                    <span className="ui-action-card-quote-caption">{quoteCaption}</span>
+                  )}
+                </div>
+              )}
+            </div>
           </header>
         )}
 
         {/* Subtitle */}
         {subtitle && (
           <p className="ui-action-card-subtitle">{subtitle}</p>
+        )}
+
+        {/* Stats */}
+        {stats.length > 0 && (
+          <div className="ui-action-card-stats">
+            {stats.map((stat, idx) => (
+              <div 
+                key={idx} 
+                className={`ui-action-card-stat${stat.variant ? ` ui-action-card-stat--${stat.variant}` : ""}`}
+              >
+                <span className="ui-action-card-stat-label">{stat.label}</span>
+                <span className={`ui-action-card-stat-value${stat.variant ? ` ui-action-card-stat-value--${stat.variant}` : ""}`}>
+                  {stat.value}
+                </span>
+              </div>
+            ))}
+          </div>
         )}
 
         {/* Meta information */}
@@ -76,8 +115,13 @@ export const UiActionCard = ({
           <p className="ui-action-card-note">{note}</p>
         )}
 
-        {/* Quick Actions (only for contact sender) */}
-        {sender === "contact" && quickActions.length > 0 && (
+        {/* Hint */}
+        {hint && (
+          <p className="ui-action-card-hint">{hint}</p>
+        )}
+
+        {/* Quick Actions */}
+        {quickActions.length > 0 && (
           <div className="ui-action-card-quick-actions">
             {quickActions.map(({ label, multiplier, onClick }, idx) => (
               <button
@@ -136,10 +180,7 @@ export const UiActionCard = ({
 };
 
 UiActionCard.propTypes = {
-  variant: PropTypes.oneOf(["simple", "premium", "compact"]),
-  status: PropTypes.oneOf(["pending", "completed", "error"]),
-  layout: PropTypes.oneOf(["horizontal", "vertical"]),
-  sender: PropTypes.oneOf(["own", "contact"]),
+  // Basic props
   title: PropTypes.string,
   subtitle: PropTypes.string,
   date: PropTypes.string,
@@ -165,6 +206,17 @@ UiActionCard.propTypes = {
     disabled: PropTypes.bool,
   }),
   explorerUrl: PropTypes.string,
+  // Advanced props
+  icon: PropTypes.oneOfType([PropTypes.string, PropTypes.node]),
+  iconStyle: PropTypes.object,
+  quote: PropTypes.string,
+  quoteCaption: PropTypes.string,
+  stats: PropTypes.arrayOf(PropTypes.shape({
+    label: PropTypes.string.isRequired,
+    value: PropTypes.string.isRequired,
+    variant: PropTypes.oneOf(["positive", "negative"]),
+  })),
+  hint: PropTypes.string,
   className: PropTypes.string,
   children: PropTypes.node,
 };

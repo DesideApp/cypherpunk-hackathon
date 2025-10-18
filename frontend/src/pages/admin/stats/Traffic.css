@@ -1,0 +1,174 @@
+.traffic-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  width: 100%;
+}
+
+.traffic-panel__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-lg);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: var(--space-sm);
+}
+
+.traffic-panel__header h2 {
+  margin: 0;
+  font-size: 1.7rem;
+  color: var(--text-primary);
+}
+
+.traffic-panel__header p {
+  margin: var(--space-xs) 0 0;
+  color: var(--text-secondary);
+}
+
+.traffic-period {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.traffic-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-md);
+}
+
+.traffic-summary__card {
+  background: color-mix(in srgb, var(--surface-actions) 85%, transparent);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md) var(--space-lg);
+  border: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.traffic-summary__label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.traffic-summary__value {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.traffic-panels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--space-xl);
+}
+
+.panel-card {
+  background: color-mix(in srgb, var(--surface-color) 94%, transparent);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  box-shadow: var(--card-shadow);
+}
+
+.panel-card.panel-chart {
+  min-height: 320px;
+}
+
+.panel-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-sm);
+}
+
+.panel-title {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.panel-subtitle {
+  color: var(--text-muted);
+}
+
+.traffic-highlights {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.traffic-highlights li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface-actions) 82%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
+}
+
+.traffic-highlights strong {
+  color: var(--text-primary);
+  font-size: 1.05rem;
+}
+
+.traffic-highlights .meta {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.panel-card.panel-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.panel-card.panel-table th,
+.panel-card.panel-table td {
+  padding: var(--space-sm) var(--space-md);
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.panel-card.panel-table thead th {
+  background: color-mix(in srgb, var(--surface-actions) 90%, transparent);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+}
+
+.panel-card.panel-table tbody tr:nth-child(odd) {
+  background: color-mix(in srgb, var(--surface-actions) 86%, transparent);
+}
+
+.panel-card.panel-table tbody tr:hover {
+  background: var(--hover-overlay);
+}
+
+.panel-table__wrapper {
+  overflow-x: auto;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+
+@media (max-width: 1024px) {
+  .traffic-panel__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-md);
+  }
+
+  .traffic-period {
+    flex-wrap: wrap;
+  }
+}

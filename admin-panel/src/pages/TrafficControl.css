@@ -80,6 +80,22 @@
   gap: 6px;
 }
 
+.product-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.product-summary .summary-card {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(14, 165, 233, 0.08));
+  border-radius: 12px;
+  padding: 16px 18px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .traffic-summary .summary-label {
   font-size: 0.75rem;
   color: #64748b;
@@ -96,6 +112,24 @@
 .traffic-summary .summary-note {
   font-size: 0.75rem;
   color: #94a3b8;
+}
+
+.product-summary .summary-label {
+  font-size: 0.75rem;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.product-summary .summary-value {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.product-summary .summary-note {
+  font-size: 0.75rem;
+  color: #1d4ed8;
 }
 
 .traffic-totals {

@@ -165,6 +165,13 @@ export default function AdminDashboard() {
     history: []
   };
 
+  const product = overview?.productInsights ?? {
+    tokens: { total: 0, last24h: 0 },
+    blinks: { metadataHits: 0, metadataHits24h: 0, executes: 0, executes24h: 0, successRate24h: null, volumeTotal: 0, volume24h: 0 },
+    naturalCommands: { parsed: 0, executed: 0, rejected: 0, failed: 0, parsed24h: 0, executed24h: 0, rejected24h: 0, failed24h: 0 },
+    messaging: { dmStarted: 0, dmAccepted: 0, relayMessages: 0, dmStarted24h: 0, dmAccepted24h: 0, relayMessages24h: 0 }
+  };
+
   const bucketMinutes = overview?.bucket?.minutes ?? periodMeta.bucketMinutes;
   const bucketMeta = { ...periodMeta, bucketMinutes };
 
@@ -286,6 +293,41 @@ export default function AdminDashboard() {
         />
       </div>
 
+      <div className="stats-grid secondary">
+        <StatCard
+          title="Tokens added (24h)"
+          value={product.tokens.last24h.toLocaleString('en-US')}
+          icon="🪙"
+          color="#7B1FA2"
+          trend={null}
+          subtitle={`Total: ${product.tokens.total.toLocaleString('en-US')}`}
+        />
+        <StatCard
+          title="Blink executes (24h)"
+          value={product.blinks.executes24h.toLocaleString('en-US')}
+          icon="⚡"
+          color="#F06292"
+          trend={null}
+          subtitle={`${product.blinks.metadataHits24h.toLocaleString('en-US')} hits • ${product.blinks.volume24h.toLocaleString('en-US')} vol • ${product.blinks.successRate24h != null ? `${product.blinks.successRate24h}% success` : 'no data'}`}
+        />
+        <StatCard
+          title="Commands executed (24h)"
+          value={product.naturalCommands.executed24h.toLocaleString('en-US')}
+          icon="🤖"
+          color="#0097A7"
+          trend={null}
+          subtitle={`${product.naturalCommands.parsed24h.toLocaleString('en-US')} parsed • ${product.naturalCommands.rejected24h.toLocaleString('en-US')} rejected`}
+        />
+        <StatCard
+          title="DM requests (24h)"
+          value={product.messaging.dmStarted24h.toLocaleString('en-US')}
+          icon="📨"
+          color="#8BC34A"
+          trend={null}
+          subtitle={`${product.messaging.dmAccepted24h.toLocaleString('en-US')} accepted • ${product.messaging.relayMessages24h.toLocaleString('en-US')} relay msgs`}
+        />
+      </div>
+
       <div className="dashboard-panels">
         <div className="panel-card panel-chart">
           <div className="panel-heading">
@@ -384,6 +426,54 @@ export default function AdminDashboard() {
                 Showing latest 30 buckets out of {messageHistory.length}.
               </div>
             )}
+          </div>
+        </div>
+
+        <div className="panel-card panel-table">
+          <h3 className="panel-title">Product insights</h3>
+          <div className="overview-table-wrapper">
+            <table className="overview-table">
+              <thead>
+                <tr>
+                  <th>Metric</th>
+                  <th>Total</th>
+                  <th>Last 24h</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Tokens added</td>
+                  <td>{product.tokens.total.toLocaleString('en-US')}</td>
+                  <td>{product.tokens.last24h.toLocaleString('en-US')}</td>
+                  <td>AI agent adds</td>
+                </tr>
+                <tr>
+                  <td>Blinks executed</td>
+                  <td>{product.blinks.executes.toLocaleString('en-US')}</td>
+                  <td>{product.blinks.executes24h.toLocaleString('en-US')}</td>
+                  <td>
+                    {product.blinks.successRate24h != null ? `${product.blinks.successRate24h}% success` : 'No executions yet'} · Volume 24h: {product.blinks.volume24h.toLocaleString('en-US')}
+                  </td>
+                </tr>
+                <tr>
+                  <td>Natural commands</td>
+                  <td>{product.naturalCommands.executed.toLocaleString('en-US')} executed</td>
+                  <td>{product.naturalCommands.executed24h.toLocaleString('en-US')}</td>
+                  <td>
+                    Parsed: {product.naturalCommands.parsed24h.toLocaleString('en-US')} · Rejected: {product.naturalCommands.rejected24h.toLocaleString('en-US')}
+                  </td>
+                </tr>
+                <tr>
+                  <td>DM requests</td>
+                  <td>{product.messaging.dmStarted.toLocaleString('en-US')}</td>
+                  <td>{product.messaging.dmStarted24h.toLocaleString('en-US')}</td>
+                  <td>
+                    Accepted 24h: {product.messaging.dmAccepted24h.toLocaleString('en-US')} · Relay msgs 24h: {product.messaging.relayMessages24h.toLocaleString('en-US')}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

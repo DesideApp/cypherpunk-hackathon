@@ -16,7 +16,15 @@ import { createDebugLogger } from "@shared/utils/debug.js";
 const LOG = createDebugLogger("AuthManager", { envKey: "VITE_DEBUG_AUTH_LOGS" });
 
 export const useAuthManager = () => {
-  const { isAuthenticated, isReady, syncAuthStatus, resetAuth } = useServer();
+  const {
+    isAuthenticated,
+    isReady,
+    syncAuthStatus,
+    resetAuth,
+    isAdmin: serverIsAdmin,
+    wallet: serverWallet,
+    role: serverRole,
+  } = useServer();
   const { publicKey, connected } = useWallet();
   const authenticateWallet = useAuthenticateWallet();
 
@@ -307,6 +315,9 @@ export const useAuthManager = () => {
     requiresLogin,
     selectedWallet,          // pubkey normalizada
     pubkey: selectedWallet,  // alias
+    isAdmin: serverIsAdmin,
+    serverWallet,
+    serverRole,
     ensureReady,
     ensureReadyOnce,
     handleAuthFailure,
