@@ -6,7 +6,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { PatternGenerator } from '../src/shared/natural-commands/PatternGenerator.mjs';
+import { PatternGenerator } from '../backend/src/shared/natural-commands/PatternGenerator.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,7 +14,7 @@ const __dirname = path.dirname(__filename);
 class IntentGenerator {
   constructor() {
     this.rootDir = path.resolve(__dirname, '..');
-    this.sharedDir = path.join(this.rootDir, 'src', 'shared', 'natural-commands');
+    this.sharedDir = path.join(this.rootDir, 'backend', 'src', 'shared', 'natural-commands');
     this.backendDir = path.join(this.rootDir, 'backend', 'src', 'modules', 'natural-commands');
     this.frontendDir = path.join(this.rootDir, 'frontend', 'src', 'utils');
     this.patternGenerator = new PatternGenerator();

@@ -2,7 +2,7 @@
 // Tests compartidos para validar migración
 
 import { describe, test, expect } from 'vitest';
-import { NaturalCommandParser } from '../../src/shared/natural-commands/NaturalCommandParser.js';
+import { NaturalCommandParser } from '../../backend/src/shared/natural-commands/NaturalCommandParser.js';
 
 describe('Natural Commands - Shared Tests', () => {
   let parser;
