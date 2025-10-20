@@ -363,3 +363,5 @@ export function extractMemo(text) {
 // Ejecutar generación
 const generator = new IntentGenerator();
 generator.generateAll().catch(console.error);
+
+

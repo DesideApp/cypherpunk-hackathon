@@ -49,7 +49,7 @@ export const LayoutProvider = ({ children }) => {
       const width = window.innerWidth;
       if (width > 1024) {
         setDevice("desktop");
-      } else if (width > 768) {
+      } else if (width > 640) {
         setDevice("tablet");
       } else {
         setDevice("mobile");
@@ -67,7 +67,7 @@ export const LayoutProvider = ({ children }) => {
   const expandedWidthDesktop = 350;
 
   const leftbarWidth =
-    device === "desktop"
+    device !== "mobile"
       ? leftbarExpanded
         ? expandedWidthDesktop
         : collapsedWidthDesktop
@@ -78,7 +78,7 @@ export const LayoutProvider = ({ children }) => {
   const expandedOffset = "300px";
 
   const headerTitleOffset =
-    device === "desktop"
+    device !== "mobile"
       ? leftbarExpanded
         ? expandedOffset
         : collapsedOffset
@@ -104,7 +104,7 @@ export const LayoutProvider = ({ children }) => {
         leftbarWidth,
         headerTitleOffset,
         device,
-        isDesktop: device === "desktop",
+        isDesktop: device !== "mobile",
         isTablet: device === "tablet",
         isMobile: device === "mobile",
         theme,

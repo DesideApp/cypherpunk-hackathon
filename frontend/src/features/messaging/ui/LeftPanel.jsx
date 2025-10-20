@@ -1,5 +1,5 @@
 import React, { useState, memo, useEffect, useCallback, useRef, useMemo } from "react";
-import { UserPlus, Bell } from "lucide-react";
+import { UserPlus, Bell, Menu } from "lucide-react";
 import useContactManager from "@features/contacts/hooks/useContactManager";
 import useConversationManager from "@features/contacts/hooks/useConversationManager";
 import NotificationPanel from "@features/messaging/ui/NotificationPanel";
@@ -12,9 +12,10 @@ import { IS_DEMO } from "@shared/config/env.js";
 import { loadRecent } from "@features/messaging/utils/recentConversations.js";
 import { wipeModeData } from "@shared/utils/cleanup.js";
 import { subscribe, getState } from "@features/messaging/store/messagesStore.js";
+import { useLayout } from "@features/layout/contexts/LayoutContext";
 import "./LeftPanel.css";
 
-const LeftPanel = ({ onSelectContact }) => {
+const LeftPanel = ({ onSelectContact, onClosePanel }) => {
   const {
     confirmedContacts = [],
     receivedRequests = [],
@@ -28,6 +29,8 @@ const LeftPanel = ({ onSelectContact }) => {
 
   // 🔐 Estado de auth (NO llamamos ensureReady en bucles de efecto)
   const { isAuthenticated, ensureReadyOnce } = useAuthManager();
+  const { isMobile, setLeftbarExpanded } = useLayout();
+  const isMobileLayout = isMobile;
 
   const localPreviews = useMemo(() => {
     if (!IS_DEMO || isAuthenticated) return [];
@@ -130,7 +133,10 @@ const LeftPanel = ({ onSelectContact }) => {
     setSelectedConversationPubkey(pubkey);
     setSelectedContactWallet(null);
     onSelectContact?.(buildContactDescriptor(pubkey));
-  }, [ensureReadyOnce, buildContactDescriptor, onSelectContact]);
+    if (isMobileLayout) {
+      onClosePanel?.();
+    }
+  }, [ensureReadyOnce, buildContactDescriptor, onSelectContact, onClosePanel, isMobileLayout]);
 
   const handleContactSelect = useCallback(async (wallet) => {
     const ready = await ensureReadyOnce();
@@ -138,7 +144,10 @@ const LeftPanel = ({ onSelectContact }) => {
     setSelectedContactWallet(wallet);
     setSelectedConversationPubkey(null);
     onSelectContact?.(buildContactDescriptor(wallet));
-  }, [ensureReadyOnce, buildContactDescriptor, onSelectContact]);
+    if (isMobileLayout) {
+      onClosePanel?.();
+    }
+  }, [ensureReadyOnce, buildContactDescriptor, onSelectContact, onClosePanel, isMobileLayout]);
 
   const openAddContactModal = useCallback(async () => {
     const ready = await ensureReadyOnce();
@@ -163,7 +172,21 @@ const LeftPanel = ({ onSelectContact }) => {
     <div className="left-panel">
       {/* Header */}
       <div className="social-header">
-        <h2 className="left-panel-title">Chat</h2>
+        <div className="social-header-left">
+          {isMobileLayout && (
+            <button
+              className="social-button social-menu-button"
+              onClick={toggleNav}
+              aria-label="Abrir navegación"
+              type="button"
+              title="Menú"
+            >
+              <Menu size={18} />
+            </button>
+          )}
+
+          <h2 className="left-panel-title">Chat</h2>
+        </div>
 
         <div className="social-header-buttons">
           <button
@@ -279,3 +302,8 @@ const LeftPanel = ({ onSelectContact }) => {
 };
 
 export default memo(LeftPanel);
+  const toggleNav = useCallback(() => {
+    if (typeof setLeftbarExpanded === "function") {
+      setLeftbarExpanded((prev) => !prev);
+    }
+  }, [setLeftbarExpanded]);

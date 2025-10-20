@@ -18,6 +18,12 @@
   gap: 16px; /* Un poco más de aire */
 }
 
+.chat-header-mobile-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 /* Avatar unificado (igual UnifiedList) */
 .chat-avatar-circle {
   width: 40px;
@@ -200,22 +206,24 @@
 }
 
 /* Responsive */
-@media (max-width: 1024px) {
+@media (max-width: 640px) {
   .chat-header { 
     height: 52px; 
     padding: 0 clamp(var(--font-caption-size), 4vw, 24px); 
   }
   .chat-header-left { gap: 8px; }
+  .chat-header-mobile-actions { gap: 4px; }
   .chat-avatar-circle { width: 32px; height: 32px; }
   .chat-contact-name { font-size: 0.9rem; }
   .connection-status { font-size: 0.75rem; }
 }
-@media (max-width: 768px) {
+@media (max-width: 480px) {
   .chat-header { 
     height: 50px; 
     padding: 0 var(--font-caption-size); 
   }
   .chat-header-left { gap: 6px; }
+  .chat-header-mobile-actions { gap: 4px; }
   .chat-avatar-circle { width: 30px; height: 30px; }
   .chat-info { gap: 0; }
   .chat-contact-name { font-size: 0.85rem; }

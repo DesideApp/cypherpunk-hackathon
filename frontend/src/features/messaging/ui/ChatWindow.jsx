@@ -25,6 +25,7 @@ import { notify } from "@shared/services/notificationService.js";
 import { createDebugLogger } from "@shared/utils/debug.js";
 import { assertAllowed } from "@features/messaging/config/blinkSecurity.js";
 import { executeBlink } from "@features/messaging/services/blinkExecutionService.js";
+import { useLayout } from "@features/layout/contexts/LayoutContext";
 import "./ChatWindow.css";
 import AgreementModal from "./modals/AgreementModal.jsx";
 import BuyTokenModal from "./modals/BuyTokenModal.jsx";
@@ -178,6 +179,8 @@ export default function ChatWindow({ selectedContact, activePanel, setActivePane
   const walletCtx = useWallet();
   const { connection } = useRpc();
   const adapter = walletCtx?.adapter || null;
+  const { isMobile, setLeftbarExpanded } = useLayout();
+  const isMobileLayout = isMobile;
 
   const walletPublicKey = walletCtx?.publicKey;
   const walletAddress = useMemo(() => {
@@ -673,6 +676,16 @@ export default function ChatWindow({ selectedContact, activePanel, setActivePane
     }));
   }, [peerWallet, myWallet]);
 
+  const openContactsPanel = useCallback(() => {
+    if (typeof setActivePanel === "function") {
+      setActivePanel("left");
+    }
+  }, [setActivePanel]);
+
+  const openLeftbarDrawer = useCallback(() => {
+    setLeftbarExpanded((prev) => !prev);
+  }, [setLeftbarExpanded]);
+
   // Función para abrir modal de Send desde comandos naturales
   const openSendModal = useCallback((params) => {
     if (!peerWallet || !myWallet) {
@@ -782,6 +795,9 @@ export default function ChatWindow({ selectedContact, activePanel, setActivePane
             // TODO: scroll al mensaje seleccionado
             console.log("Selected message:", msg);
           }}
+          isCompactLayout={isMobileLayout}
+          onOpenContacts={isMobileLayout ? openContactsPanel : undefined}
+          onOpenLeftbar={isMobileLayout ? openLeftbarDrawer : undefined}
         />
 
         <div className="chat-window-body">

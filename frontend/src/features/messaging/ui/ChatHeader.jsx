@@ -1,6 +1,6 @@
 // src/features/messaging/ui/ChatHeader.jsx
 import React, { useMemo, useState, useEffect, useRef } from "react";
-import { MoreVertical, Search } from "lucide-react";
+import { MoreVertical, Search, Menu, ChevronLeft } from "lucide-react";
 import SearchModal from "./SearchModal";
 import "./ChatHeader.css";
 
@@ -14,7 +14,16 @@ function normalizeContact(sel) {
   };
 }
 
-const ChatHeader = ({ selectedContact, peerOnline = false, isTyping = false, messages = [], onSearchSelect }) => {
+const ChatHeader = ({
+  selectedContact,
+  peerOnline = false,
+  isTyping = false,
+  messages = [],
+  onSearchSelect,
+  isCompactLayout = false,
+  onOpenContacts,
+  onOpenLeftbar,
+}) => {
   const contact = useMemo(() => normalizeContact(selectedContact), [selectedContact]);
   const [showMenu, setShowMenu] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
@@ -64,9 +73,37 @@ const ChatHeader = ({ selectedContact, peerOnline = false, isTyping = false, mes
     ? "variant-ok-soft"
     : "variant-muted";
 
+  const showMobileActions = Boolean(isCompactLayout);
+  const showContactsButton = typeof onOpenContacts === "function";
+  const showLeftbarButton = typeof onOpenLeftbar === "function";
   return (
     <div className="chat-header" role="banner" aria-label="Chat header">
       <div className="chat-header-left">
+        {showMobileActions && (
+          <div className="chat-header-mobile-actions">
+            {showLeftbarButton && (
+              <button
+                className="chat-header-btn"
+                aria-label="Open navigation"
+                type="button"
+                onClick={onOpenLeftbar}
+              >
+                <Menu size={18} />
+              </button>
+            )}
+            {showContactsButton && (
+              <button
+                className="chat-header-btn"
+                aria-label="Back to contacts"
+                type="button"
+                onClick={onOpenContacts}
+              >
+                <ChevronLeft size={18} />
+              </button>
+            )}
+          </div>
+        )}
+
         <div className="chat-avatar-circle" aria-hidden="true">
           {contact.avatar ? (
             <img src={contact.avatar} alt="" className="chat-avatar-image" />

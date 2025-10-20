@@ -19,7 +19,16 @@
   height: 56px;
   padding: 0 20px;
   flex-shrink: 0;
+  gap: 12px;
 }
+
+.social-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.social-menu-button { display: none; }
 
 /* 🔹 Título del header */
 .left-panel-title {
@@ -164,8 +173,35 @@
 }
 
 /* 📱 Responsive */
-@media (max-width: 1024px) {
+@media (max-width: 640px) {
   .left-panel-container {
-    width: 300px;
+    width: 100%;
+  }
+
+  .social-header {
+    padding: 0 16px;
+    height: 60px;
+  }
+
+  .social-header-left {
+    gap: 0;
+  }
+
+  .social-menu-button {
+    display: inline-flex;
+    margin-right: 8px;
+  }
+
+  .social-header-buttons {
+    gap: 4px;
+  }
+
+  .social-button {
+    width: 34px;
+    height: 34px;
+  }
+
+  .left-panel-title {
+    font-size: 18px;
   }
 }

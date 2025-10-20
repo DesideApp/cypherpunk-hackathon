@@ -148,3 +148,5 @@ describe('Natural Commands - Shared Tests', () => {
     expect(parser.parse('envía')).toBeNull();
   });
 });
+
+

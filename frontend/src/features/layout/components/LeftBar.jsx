@@ -32,8 +32,13 @@ const LeftBarLogo = () => {
 };
 
 export default function LeftBar() {
-  const { isTablet, isMobile, leftbarExpanded, theme } = useLayout();
+  const { isMobile, leftbarExpanded, setLeftbarExpanded, theme } = useLayout();
   const [activeModal, setActiveModal] = useState(null); // null = Chat (página), 'swap'/'user'/'settings' = Modal activo
+  const closeDrawerIfMobile = useCallback(() => {
+    if (isMobile) {
+      setLeftbarExpanded(false);
+    }
+  }, [isMobile, setLeftbarExpanded]);
   
   // Función para cerrar TODOS los modales antes de abrir uno nuevo
   const closeAllModals = useCallback(() => {
@@ -61,9 +66,10 @@ export default function LeftBar() {
   // Función para volver a Chat (cerrar modal activo)
   const returnToChat = useCallback(() => {
     if (isDev) console.debug('[LeftBar] Volviendo a Chat (sin modal)');
+    closeDrawerIfMobile();
     closeAllModals();
     setActiveModal(null); // null = Chat está activo
-  }, [closeAllModals]);
+  }, [closeAllModals, closeDrawerIfMobile]);
   
   // ESC para cerrar modal activo y volver a Chat
   useEffect(() => {
@@ -118,7 +124,7 @@ export default function LeftBar() {
   const navigate = useNavigate();
   const { isAdmin } = useAuthManager();
 
-  const isDrawerOpen = (isTablet || isMobile) && leftbarExpanded;
+  const isDrawerOpen = isMobile && leftbarExpanded;
 
   // ===== Jupiter Plugin integration =====
   const [scriptLoaded, setScriptLoaded] = useState(false);
@@ -341,6 +347,7 @@ export default function LeftBar() {
 
   const openJupiterSwap = async () => {
     if (!swapEnabled) return;
+    closeDrawerIfMobile();
     
     // Cerrar otros modales antes de abrir Jupiter
     closeAllModals();
@@ -449,6 +456,7 @@ export default function LeftBar() {
                   if (link.action) {
                     link.action();
                     if (isDev) console.debug('[LeftBar] Action', link.label);
+                    closeDrawerIfMobile();
                   } else if (link.path) {
                     // Cerrar todos los modales y volver a Chat
                     returnToChat();
@@ -493,6 +501,7 @@ export default function LeftBar() {
                   isReady,
                 });
               }
+              closeDrawerIfMobile();
             }}
           >
             <span className="icon-container">
@@ -515,6 +524,7 @@ export default function LeftBar() {
               setActiveModal('settings'); // Marcar como activo
               
               if (isDev) console.debug('[LeftBar] Settings opened');
+              closeDrawerIfMobile();
             }}
           >
             <span className="icon-container">

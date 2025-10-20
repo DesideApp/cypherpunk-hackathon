@@ -37,6 +37,18 @@
   min-width: 0; /* evita que el contenido "rompa" la columna y se cuele bajo el rail */
 }
 
+/* Overlay para drawer móvil */
+.leftbar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.48);
+  border: 0;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  z-index: 640; /* debajo del drawer (650) */
+}
+
 /* Bottom bar eliminado */
 
 /* ---------------------------------------------
@@ -44,8 +56,21 @@
    - El rail puede comportarse como overlay en su propio CSS;
      aquí no animamos el grid para evitar saltos.
 ---------------------------------------------- */
-@media (max-width: 1024px) {
+@media (max-width: 640px) {
   .layout-wrapper {
-    /* sin transiciones de grid */
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-height: 100vh;
+    height: auto;
+  }
+
+  .layout-content {
+    width: 100%;
+    min-height: 100vh;
+  }
+
+  .leftbar {
+    grid-area: initial;
   }
 }

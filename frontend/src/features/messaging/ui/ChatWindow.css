@@ -296,7 +296,7 @@
 /* =========================================
    ✅ Responsive
 ========================================= */
-@media (max-width: 768px) {
+@media (max-width: 480px) {
   .chat-empty-content h2 {
     font-size: 1.05rem;
   }

@@ -73,23 +73,18 @@ body {
    ✅ Tablet + Mobile (≤ 1024px)
 -------------------------------- */
 
-@media (max-width: 1024px) {
+@media (max-width: 640px) {
   .left-panel-container {
-    flex: 0 0 300px;
-    width: 300px;
-    min-width: 260px;
-  }
-
-  /* Cuando se oculta un panel lateral */
-  .left-panel-container.hidden {
-    display: none;
+    flex: 0 0 auto;
+    width: 100%;
+    min-width: 0;
   }
 }
 
 /* -------------------------------
    ✅ Desactivar animaciones en Tablet + Mobile
 -------------------------------- */
-@media (max-width: 1024px) {
+@media (max-width: 640px) {
   .chat-page-container,
   .chat-layout-flex,
   .chat-window-container,
@@ -103,8 +98,27 @@ body {
 /* -------------------------------
    ✅ Fijar ChatWindow en Tablet + Mobile
 -------------------------------- */
-@media (max-width: 1024px) {
+@media (max-width: 640px) {
+  .chat-page-container {
+    min-height: 100vh;
+    height: auto;
+  }
+
+  .chat-layout-flex {
+    flex-direction: column;
+  }
+
+  .left-panel-container {
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+  }
+
   .chat-window-container {
+    flex: 1 1 auto;
     position: relative !important;
     left: 0 !important;
     right: 0 !important;
