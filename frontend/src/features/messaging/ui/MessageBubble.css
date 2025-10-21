@@ -1,10 +1,4 @@
 /* =============== Burbuja =============== */
-:root {
-  --icon-size: 10px;            /* tamaño de lock/dot (entrantes/salientes) */
-  --bubble-gap: 4px;            /* separación entre meta items */
-  --bubble-right-pad: 8px;      /* aire hasta el borde derecho */
-  --time-ch: 5ch;               /* ancho aproximado de "13:10" */
-}
 .message-bubble {
   display: flex;
   flex-direction: column;
@@ -40,37 +34,81 @@
   margin-left: 2px; /* Pequeño ajuste visual para compensar border-radius */
 }
 
+
 /* Caja interna */
 .message-content {
   --bubble-max-width: 62vw;
   /* Por defecto (salientes): hora + lock + dot + aire */
-  --bubble-meta-width: calc(var(--time-ch) + var(--icon-size) + var(--bubble-gap) + var(--icon-size) + var(--bubble-gap) + var(--bubble-right-pad));
-  padding: calc(var(--font-caption-size) - 2px) 12px calc(var(--font-navigation-size) - 2px) 12px; /* -2px arriba/abajo */
-  border-radius: 18px; /* mismo border-radius que input-wrapper para alineación visual */
-  font-size: var(--font-navigation-size);
-  line-height: 1.4;
+  --bubble-meta-width: calc(
+    var(--time-width) + var(--bubble-meta-icon-size) + var(--bubble-gap) + var(--bubble-meta-icon-size) + var(--bubble-gap) + var(--bubble-right-pad)
+  );
   position: relative;
   overflow-wrap: anywhere;
   max-width: var(--bubble-max-width);
   min-height: 36px; /* asegura espacio para meta inferior en líneas cortas */
 }
 
-/* Entrantes: hora + dot (reserva más estrecha, pero fija) */
-.message-bubble.received .message-content {
-  --bubble-meta-width: calc(var(--time-ch) + var(--icon-size) + var(--bubble-gap) + var(--bubble-right-pad));
-}
-
-.message-bubble.sent .message-content {
-  background: var(--sent-bubble, var(--sent-message));
-  color: var(--sent-text);
+.message-content--text {
+  padding: calc(var(--font-caption-size) - 2px) 12px calc(var(--font-navigation-size) - 2px) 12px; /* -2px arriba/abajo */
+  border-radius: 18px; /* mismo border-radius que input-wrapper para alineación visual */
+  font-size: var(--font-navigation-size);
+  line-height: 1.4;
+  background: var(--bubble-received, #F3F4F6);
+  color: var(--text-on-surface, #111827);
   font-family: var(--font-body-family);
   font-size: var(--font-body-size);
   font-weight: var(--font-body-weight);
 }
 
-.message-bubble.received .message-content {
-  background: var(--bubble-received, #F3F4F6);
-  color: var(--text-on-surface, #111827);
+.message-content--action {
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  --bubble-max-width: 100%;
+  --bubble-meta-width: calc(var(--time-width) + var(--bubble-meta-icon-size) + var(--bubble-gap) + var(--bubble-right-pad));
+  min-height: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: max-content;
+  max-width: 100%;
+}
+
+.message-content--action .bubble-inner {
+  display: inline-flex;
+  flex-direction: column;
+  align-self: flex-start;
+  width: auto;
+  max-width: 100%;
+}
+
+.message-bubble.sent .message-content--action {
+  align-items: flex-end;
+  margin-left: auto;
+}
+
+.message-bubble.sent .message-content--action .bubble-inner {
+  align-self: flex-end;
+}
+
+.message-bubble.received .message-content--action {
+  margin-right: auto;
+}
+
+.message-content--media {
+  padding: 0;
+  background: transparent;
+  border-radius: 12px;
+}
+
+/* Entrantes: hora + dot (reserva más estrecha, pero fija) */
+.message-bubble.received .message-content--text {
+  --bubble-meta-width: calc(var(--time-width) + var(--bubble-meta-icon-size) + var(--bubble-gap) + var(--bubble-right-pad));
+}
+
+.message-bubble.sent .message-content--text {
+  background: var(--sent-bubble, var(--sent-message));
+  color: var(--sent-text);
   font-family: var(--font-body-family);
   font-size: var(--font-body-size);
   font-weight: var(--font-body-weight);
@@ -125,14 +163,14 @@
 }
 
 /* Agrupación recibidos */
-.message-bubble.received.first  .message-content { border-top-left-radius: 16px; border-bottom-left-radius: 4px; }
-.message-bubble.received.middle .message-content { border-top-left-radius: 4px;  border-bottom-left-radius: 4px; }
-.message-bubble.received.last   .message-content { border-top-left-radius: 4px;   border-bottom-left-radius: 16px; }
+.message-bubble.received.first  .message-content--text { border-top-left-radius: 16px; border-bottom-left-radius: 4px; }
+.message-bubble.received.middle .message-content--text { border-top-left-radius: 4px;  border-bottom-left-radius: 4px; }
+.message-bubble.received.last   .message-content--text { border-top-left-radius: 4px;   border-bottom-left-radius: 16px; }
 
 /* Agrupación enviados */
-.message-bubble.sent.first  .message-content { border-top-right-radius: 16px; border-bottom-right-radius: 4px; }
-.message-bubble.sent.middle .message-content { border-top-right-radius: 4px;  border-bottom-right-radius: 4px; }
-.message-bubble.sent.last   .message-content { border-top-right-radius: 4px;   border-bottom-right-radius: 16px; }
+.message-bubble.sent.first  .message-content--text { border-top-right-radius: 16px; border-bottom-right-radius: 4px; }
+.message-bubble.sent.middle .message-content--text { border-top-right-radius: 4px;  border-bottom-right-radius: 4px; }
+.message-bubble.sent.last   .message-content--text { border-top-right-radius: 4px;   border-bottom-right-radius: 16px; }
 
 /* ---- Nueva estructura: texto con meta fija ---- */
 .bubble-inner { position: relative; }
@@ -145,49 +183,70 @@
 .bubble-meta {
   position: absolute; /* relativo a .message-content */
   right: var(--bubble-right-pad);
-  bottom: 3px;
+  bottom: var(--bubble-meta-bottom);
   display: inline-flex;
   align-items: center;
   gap: var(--bubble-gap);
-  height: 16px;
-  line-height: 16px;
+  height: var(--bubble-meta-height);
+  line-height: var(--bubble-meta-height);
 }
 .bubble-time {
-  font-size: 11px;
+  font-size: var(--bubble-meta-font-size);
   font-variant-numeric: tabular-nums;
   opacity: 0.72;
 }
 .bubble-lock {
   display: inline-flex;
-  width: var(--icon-size);
-  height: var(--icon-size);
+  width: var(--bubble-meta-icon-size);
+  height: var(--bubble-meta-icon-size);
   opacity: 0.85;
 }
 .message-bubble.sent .bubble-lock { color: color-mix(in srgb, var(--sent-text) 84%, transparent); }
 .message-bubble.received .bubble-lock { color: color-mix(in srgb, var(--text-secondary) 84%, transparent); }
 
-.bubble-meta .transport-dot { width: var(--icon-size); height: var(--icon-size); }
+.bubble-meta .transport-dot { width: var(--bubble-meta-icon-size); height: var(--bubble-meta-icon-size); }
 
 /* Slots fijos para evitar movimiento al aparecer/disparacer iconos */
 .bubble-slot {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: var(--icon-size);
-  height: var(--icon-size);
+  width: var(--bubble-meta-icon-size);
+  height: var(--bubble-meta-icon-size);
   pointer-events: none;
 }
 
 /* Opcional: burbuja saliente más estrecha (look Telegram) */
-.message-bubble.sent .message-content { max-width: 60vw; }
+.message-bubble.sent .message-content--text { max-width: 60vw; }
 
 .message-bubble.middle { margin-bottom: 2px; }
 .message-bubble.first  { margin-bottom: 2px; }
 .message-bubble.last   { margin-bottom: 8px; }
 
+/* ======= Mobile overrides ======= */
+
+.chat-window--mobile .message-bubble {
+  max-width: 100%;
+  margin-bottom: 8px;
+}
+
+.chat-window--mobile .message-bubble.middle { margin-bottom: 3px; }
+.chat-window--mobile .message-bubble.first  { margin-bottom: 3px; }
+.chat-window--mobile .message-bubble.last   { margin-bottom: 12px; }
+
+.chat-window--mobile .message-bubble.sent { margin-right: 4px; }
+.chat-window--mobile .message-bubble.received { margin-left: 4px; }
+
+.chat-window--mobile .message-bubble .message-content--text {
+  --bubble-max-width: 100%;
+  padding: 12px 16px 12px 14px;
+  border-radius: 20px;
+  min-height: 36px;
+}
+
 /* ======= Media ======= */
-.message-bubble.image .message-content,
-.message-bubble.video .message-content { padding: 4px 4px 20px; }
+.message-bubble.image .message-content--media,
+.message-bubble.video .message-content--media { padding: 4px 4px 20px; }
 
 .media-box {
   position: relative;
@@ -203,7 +262,7 @@
   border-radius: 8px;
 }
 
-.message-bubble.audio .message-content { padding: 8px var(--font-caption-size) 20px; }
+.message-bubble.audio .message-content--media { padding: 8px var(--font-caption-size) 20px; }
 .message-media.audio { width: min(320px, 80%); }
 
 .message-caption {

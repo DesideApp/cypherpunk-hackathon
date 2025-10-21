@@ -52,6 +52,32 @@
 /* Bottom bar eliminado */
 
 /* ---------------------------------------------
+   ✅ Layout Mobile
+---------------------------------------------- */
+.layout-mobile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  min-height: 100vh;
+  background: transparent;
+  overflow: hidden;
+}
+
+.layout-mobile-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  padding-bottom: 72px; /* espacio reservado para bottom nav */
+}
+
+.layout-mobile.nav-hidden .layout-mobile-content {
+  padding-bottom: 0;
+}
+
+/* ---------------------------------------------
    ✅ Tablet/Mobile
    - El rail puede comportarse como overlay en su propio CSS;
      aquí no animamos el grid para evitar saltos.

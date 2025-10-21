@@ -112,7 +112,7 @@ const MessageBubble = ({ msg = {}, isMe, position }) => {
         data-status={msg.status || (msg.deliveredAt ? "delivered" : "sent")}
         data-via={resolveTransport(msg?.via) || ""}
       >
-        <div className="message-content">
+        <div className="message-content message-content--action">
           <ActionBubbleShell
             timestamp={msg?.timestamp || msg?.createdAt || Date.now()}
             isMe={isMe}
@@ -141,7 +141,13 @@ const MessageBubble = ({ msg = {}, isMe, position }) => {
   }
 
   const ts = msg?.timestamp || Date.now();
-  const tsIso = new Date(ts).toISOString();
+  const contentClassNames = ["message-content"];
+
+  if (hasMedia) {
+    contentClassNames.push("message-content--media");
+  } else {
+    contentClassNames.push("message-content--text");
+  }
 
   return (
     <div
@@ -150,7 +156,7 @@ const MessageBubble = ({ msg = {}, isMe, position }) => {
       data-status={msg.status || (msg.deliveredAt ? "delivered" : "sent")}
       data-via={resolveTransport(msg?.via) || ""}
     >
-      <div className="message-content">
+      <div className={contentClassNames.join(" ")}>
         {hasMedia ? (
           <div className="media-box">
             {media.kind === "image" && (

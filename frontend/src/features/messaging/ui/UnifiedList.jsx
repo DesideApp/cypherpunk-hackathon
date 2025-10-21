@@ -19,6 +19,7 @@ const UnifiedList = ({
   onSelectContact,
   fixtures = [], // elementos visuales no clicables
   presence = {}, // mapa { wallet: boolean }
+  mode = "desktop",
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
@@ -153,7 +154,7 @@ const UnifiedList = ({
   }, [onSelectConversation, onSelectContact]);
 
   return (
-    <div className="unified-list-container">
+    <div className={`unified-list-container unified-list-container--${mode}`}>
       <div className="search-bar">
         <UiSearchInput
           placeholder="Search..."
@@ -198,7 +199,7 @@ const UnifiedList = ({
 
       {displayList.length === 0 && <p className="no-results">No results.</p>}
 
-      <ul className="unified-list" role="listbox" aria-label="Conversations and contacts">
+      <ul className={`unified-list unified-list--${mode}`} role="listbox" aria-label="Conversations and contacts">
         {displayList.map((item) => {
           const isActive = selectedWallet === item.pubkey || selectedPubkey === item.pubkey;
           const isFixture = item.type === "fixture";
@@ -207,7 +208,7 @@ const UnifiedList = ({
           return (
             <li
               key={item.pubkey}
-              className={`unified-item ${item.type} ${isActive ? "active" : ""} ${isFixture ? "disabled" : ""}`}
+              className={`unified-item unified-item--${mode} ${item.type} ${isActive ? "active" : ""} ${isFixture ? "disabled" : ""}`}
               role="option"
               aria-selected={isActive}
               aria-disabled={isFixture}

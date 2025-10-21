@@ -5,9 +5,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 56px;
+  height: 64px;
   width: 100%;
-  padding: 0 20px;
+  padding: 0 24px;
   background-color: transparent;
 }
 
@@ -26,8 +26,8 @@
 
 /* Avatar unificado (igual UnifiedList) */
 .chat-avatar-circle {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   background: var(--background-color);
   border-radius: 50%;
   display: flex;
@@ -60,7 +60,7 @@
 
 .chat-contact-name {
   font-family: var(--font-ui-family);
-  font-size: 15px;
+  font-size: 16.5px;
   font-weight: 600;
   color: var(--text-on-window);
   letter-spacing: -0.02em;
@@ -74,7 +74,7 @@
   gap: 6px;
   min-width: 120px; /* Evita saltos al cambiar Online/Offline */
   font-family: var(--font-caption-family); /* Fuente unificada para todo el status */
-  font-size: 12px; /* Unificado con pubkey */
+  font-size: 13px; /* Unificado con pubkey */
   font-weight: 500; /* Unificado con pubkey (medium) */
   letter-spacing: -0.01em;
   line-height: 1.3;
@@ -144,6 +144,8 @@
   border: none;
   color: var(--text-secondary);
   cursor: pointer;
+  width: 40px;
+  height: 40px;
   padding: 8px;
   border-radius: 50%;
   display: flex;
@@ -208,14 +210,19 @@
 /* Responsive */
 @media (max-width: 640px) {
   .chat-header { 
-    height: 52px; 
-    padding: 0 clamp(var(--font-caption-size), 4vw, 24px); 
+    height: 64px; 
+    padding: 0 18px; 
   }
-  .chat-header-left { gap: 8px; }
-  .chat-header-mobile-actions { gap: 4px; }
-  .chat-avatar-circle { width: 32px; height: 32px; }
-  .chat-contact-name { font-size: 0.9rem; }
-  .connection-status { font-size: 0.75rem; }
+  .chat-header-left { gap: 12px; }
+  .chat-header-mobile-actions { gap: 6px; }
+  .chat-avatar-circle { width: 40px; height: 40px; }
+  .chat-contact-name { font-size: 1rem; }
+  .connection-status { font-size: 0.8rem; }
+  .chat-header-actions { gap: 8px; }
+  .chat-header-btn {
+    width: 46px;
+    height: 46px;
+  }
 }
 @media (max-width: 480px) {
   .chat-header { 

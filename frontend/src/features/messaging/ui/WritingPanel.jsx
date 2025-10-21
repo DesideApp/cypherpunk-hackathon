@@ -10,6 +10,7 @@ import { useAuthManager } from "@features/auth/hooks/useAuthManager.js";
 import { notify } from "@shared/services/notificationService.js";
 // Parser de comandos naturales simplificado
 import { useBlinkDetection, BlinkList } from "./BlinkPreview.jsx";
+import ActionBar from "./ActionBar.jsx";
 import "./WritingPanel.css";
 
 const TEXT_MAX_BYTES = Number(ENV?.MESSAGING?.TEXT_MAX_BYTES || 32 * 1024);
@@ -27,6 +28,8 @@ const WritingPanel = React.memo(function WritingPanel({
   canSend = true,
   sendPaymentRequest, // función para enviar payment requests
   onOpenSendModal, // función para abrir modal de Send
+  mode = "desktop",
+  mobileActionBarProps = null,
 }) {
   const [message, setMessage] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -283,8 +286,19 @@ const WritingPanel = React.memo(function WritingPanel({
     };
   }, [showEmojiPicker]);
 
+  const isMobile = mode === "mobile";
+
   return (
-    <div ref={wrapperRef} className="writing-panel" aria-live="polite">
+    <div
+      ref={wrapperRef}
+      className={`writing-panel${isMobile ? " writing-panel--mobile" : ""}`}
+      aria-live="polite"
+    >
+      {isMobile && mobileActionBarProps && (
+        <div className="writing-panel-actions">
+          <ActionBar mode="mobile" {...mobileActionBarProps} />
+        </div>
+      )}
       {/* Blink Previews */}
       {hasBlinks && (
         <div className="blink-previews-container">

@@ -3,11 +3,16 @@
 
 /* Tamaños controlados para meta */
 :root {
-  --icon-size: 10px;
+  --bubble-meta-icon-size: 10px;
   --bubble-gap: 4px;
   --bubble-right-pad: 8px;
-  --time-width: 4.6ch; /* ancho realista de 13:10 con tabular-nums */
+  --time-width: 5ch; /* ancho realista de 13:10 con tabular-nums */
+  --bubble-meta-height: 16px;
+  --bubble-meta-font-size: 11px;
+  --bubble-meta-bottom: 3px;
   --bubble-card-max-width: 340px;
+  --bubble-body-font-size: var(--font-body-size, 15px);
+  --bubble-body-line-height: 1.4;
 }
 
 .bubble-inner { position: relative; }
@@ -37,24 +42,30 @@
   white-space: pre-wrap;
   word-break: break-word;
   padding-right: var(--bubble-meta-width);
+  font-size: var(--bubble-body-font-size);
+  line-height: var(--bubble-body-line-height);
 }
 
 /* Contenedor de contenido para bubbles de acción */
-.action-body { padding-right: var(--bubble-meta-width); }
+.action-body {
+  padding-right: var(--bubble-meta-width);
+  font-size: var(--bubble-body-font-size);
+  line-height: var(--bubble-body-line-height);
+}
 
 .bubble-meta {
   position: absolute; /* relativo a .message-content del feature */
   right: var(--bubble-right-pad);
-  bottom: 3px;
+  bottom: var(--bubble-meta-bottom);
   display: inline-flex;
   align-items: center;
   gap: var(--bubble-gap);
-  height: 16px;
-  line-height: 16px;
+  height: var(--bubble-meta-height);
+  line-height: var(--bubble-meta-height);
 }
 
 .bubble-time {
-  font-size: 11px;
+  font-size: var(--bubble-meta-font-size);
   font-variant-numeric: tabular-nums;
   opacity: 0.72;
   display: inline-block;
@@ -64,8 +75,8 @@
 
 .bubble-lock {
   display: inline-flex;
-  width: var(--icon-size);
-  height: var(--icon-size);
+  width: var(--bubble-meta-icon-size);
+  height: var(--bubble-meta-icon-size);
   opacity: 0.85;
 }
 
@@ -73,9 +84,26 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: var(--icon-size);
-  height: var(--icon-size);
+  width: var(--bubble-meta-icon-size);
+  height: var(--bubble-meta-icon-size);
   pointer-events: none;
 }
 
-.bubble-meta .transport-dot { width: var(--icon-size); height: var(--icon-size); }
+.bubble-meta .transport-dot { width: var(--bubble-meta-icon-size); height: var(--bubble-meta-icon-size); }
+
+.chat-window--mobile {
+  --bubble-gap: 6px;
+  --bubble-right-pad: 10px;
+  --bubble-meta-icon-size: 12px;
+  --bubble-meta-height: 18px;
+  --bubble-meta-font-size: 12px;
+  --bubble-meta-bottom: 4px;
+  --time-width: 5.2ch;
+  --bubble-body-font-size: var(--font-body-size, 15px);
+  --bubble-body-line-height: 1.48;
+  --bubble-card-max-width: 320px;
+}
+
+.chat-window--mobile .action-body {
+  padding-right: calc(var(--bubble-meta-width) - 6px);
+}

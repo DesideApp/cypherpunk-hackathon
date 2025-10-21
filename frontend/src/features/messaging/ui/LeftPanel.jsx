@@ -1,5 +1,5 @@
 import React, { useState, memo, useEffect, useCallback, useRef, useMemo } from "react";
-import { UserPlus, Bell, Menu } from "lucide-react";
+import { UserPlus, Bell } from "lucide-react";
 import useContactManager from "@features/contacts/hooks/useContactManager";
 import useConversationManager from "@features/contacts/hooks/useConversationManager";
 import NotificationPanel from "@features/messaging/ui/NotificationPanel";
@@ -29,7 +29,7 @@ const LeftPanel = ({ onSelectContact, onClosePanel }) => {
 
   // 🔐 Estado de auth (NO llamamos ensureReady en bucles de efecto)
   const { isAuthenticated, ensureReadyOnce } = useAuthManager();
-  const { isMobile, setLeftbarExpanded } = useLayout();
+  const { isMobile } = useLayout();
   const isMobileLayout = isMobile;
 
   const localPreviews = useMemo(() => {
@@ -169,22 +169,10 @@ const LeftPanel = ({ onSelectContact, onClosePanel }) => {
   }, []);
 
   return (
-    <div className="left-panel">
+    <div className={`left-panel ${isMobileLayout ? "left-panel--mobile" : ""}`}>
       {/* Header */}
       <div className="social-header">
         <div className="social-header-left">
-          {isMobileLayout && (
-            <button
-              className="social-button social-menu-button"
-              onClick={toggleNav}
-              aria-label="Abrir navegación"
-              type="button"
-              title="Menú"
-            >
-              <Menu size={18} />
-            </button>
-          )}
-
           <h2 className="left-panel-title">Chat</h2>
         </div>
 
@@ -243,6 +231,7 @@ const LeftPanel = ({ onSelectContact, onClosePanel }) => {
             onSelectContact={(wallet) => { void handleContactSelect(wallet); }}
             fixtures={DEMO_FIXTURES}
             presence={presenceMap}
+            mode={isMobileLayout ? "mobile" : "desktop"}
           />
         )}
       </div>
@@ -302,8 +291,3 @@ const LeftPanel = ({ onSelectContact, onClosePanel }) => {
 };
 
 export default memo(LeftPanel);
-  const toggleNav = useCallback(() => {
-    if (typeof setLeftbarExpanded === "function") {
-      setLeftbarExpanded((prev) => !prev);
-    }
-  }, [setLeftbarExpanded]);

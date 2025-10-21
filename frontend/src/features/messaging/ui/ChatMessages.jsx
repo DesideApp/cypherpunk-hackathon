@@ -90,14 +90,15 @@ const ChatMessages = ({
   const handleScroll = useCallback(() => {
     const el = chatContainerRef.current;
     if (!el) return;
-    const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 20;
+    const threshold = 80;
+    const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - threshold;
     setIsAtBottom(atBottom);
   }, []);
 
   const scrollToBottom = () => {
     const el = chatContainerRef.current;
     if (!el) return;
-    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    el.scrollTop = el.scrollHeight;
     prevScrollHeightRef.current = el.scrollHeight;
     prevMessageCountRef.current = allMessages.length;
     setIsAtBottom(true);

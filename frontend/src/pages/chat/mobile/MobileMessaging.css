@@ -1,0 +1,36 @@
+.mobile-screen {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: calc(100vh - 72px);
+  min-height: calc(100vh - 72px);
+  background: var(--background-color);
+  overflow: hidden;
+}
+
+.layout-mobile.nav-hidden .mobile-screen {
+  height: 100vh;
+  min-height: 100vh;
+}
+
+.mobile-conversation-list {
+  flex: 1 1 auto;
+}
+
+.mobile-conversation-list .left-panel {
+  height: 100%;
+  min-height: 100%;
+}
+
+.mobile-chat-screen {
+  overflow: hidden;
+}
+
+.mobile-chat-screen .chat-window {
+  flex: 1 1 auto;
+  height: 100%;
+}
+
+.mobile-chat-screen .chat-window-inner {
+  height: 100%;
+}

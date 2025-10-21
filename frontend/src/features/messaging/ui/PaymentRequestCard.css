@@ -2,7 +2,7 @@
   position: relative;
   display: inline-flex;
   max-width: min(var(--bubble-card-max-width, 340px), 100%);
-  width: min(var(--bubble-card-max-width, 340px), 100%);
+  width: max-content;
   margin: 2px 0;
   border-radius: 16px;
   box-sizing: border-box;
@@ -20,7 +20,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
   padding: 14px 16px;
   border-radius: 16px;
@@ -46,6 +46,29 @@
 .payment-card--own {
   background: var(--sent-message);
   color: var(--text-on-surface);
+}
+
+.chat-window--mobile .payment-card-wrapper {
+  max-width: min(var(--bubble-card-max-width, 320px), calc(100% - 8px));
+  margin: 4px auto;
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+}
+
+.chat-window--mobile .message-bubble.sent .payment-card-wrapper {
+  margin-left: auto;
+  margin-right: 0;
+}
+
+.chat-window--mobile .message-bubble.received .payment-card-wrapper {
+  margin-right: auto;
+  margin-left: 0;
+}
+
+.chat-window--mobile .payment-card {
+  padding: 12px 14px;
+  border-radius: 18px;
+  box-shadow: none;
 }
 
 /* Estado paid no recolorea el fondo en Telegram; solo icono/chip */

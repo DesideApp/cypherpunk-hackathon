@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import PropTypes from "prop-types";
 import { Plus } from "lucide-react";
 import { useWallet } from "@wallet-adapter/core/contexts/WalletProvider";
@@ -45,9 +45,12 @@ export default function ActionBar({
   onAgreement = noop,
   disabled = false,
   pendingKind = null,
+  mode = "desktop",
 }) {
   const { connected, status } = useWallet();
   const balance = useSolanaBalance();
+  const [moreOpen, setMoreOpen] = useState(false);
+  const isMobile = mode === "mobile";
 
   const renderFundChip = () => {
     const isPending = pendingKind === "fund";
@@ -105,7 +108,7 @@ export default function ActionBar({
     agreement: onAgreement,
   };
 
-  const actionList = React.useMemo(() => {
+  const actionList = useMemo(() => {
     const base = ACTIONS.slice();
     if (MOCKS.BLINK_BUY) {
       base.splice(3, 0, {
@@ -117,11 +120,19 @@ export default function ActionBar({
     return base;
   }, []);
 
+  const primaryKeys = isMobile ? ["send", "request"] : actionList.map((a) => a.key).filter((key) => key !== "fund");
+  const menuKeys = isMobile
+    ? actionList
+        .map((a) => a.key)
+        .filter((key) => !primaryKeys.includes(key) && key !== "fund")
+    : [];
+  const hasFundAction = actionList.some((action) => action.key === "fund");
+  const shouldShowMoreTrigger = isMobile && (menuKeys.length > 0 || hasFundAction);
+
   return (
-    <div className="action-bar" role="group" aria-label="Quick actions">
+    <div className={`action-bar ${isMobile ? "action-bar--mobile" : ""}`} role="group" aria-label="Quick actions">
       <div className="action-bar-left">
-        {actionList.map(({ key, label, title }) => {
-          if (key === "fund") return null;
+        {actionList.filter(({ key }) => primaryKeys.includes(key)).map(({ key, label, title }) => {
           const isPending = pendingKind === key;
           const handler = handlers[key] || noop;
           const isDisabled = disabled;
@@ -141,10 +152,69 @@ export default function ActionBar({
             </button>
           );
         })}
+
+        {shouldShowMoreTrigger && (
+          <div className="action-bar-more">
+            <button
+              type="button"
+              className="action-bar-button action-bar-more__trigger"
+              onClick={() => setMoreOpen((prev) => !prev)}
+              aria-haspopup="menu"
+              aria-expanded={moreOpen}
+            >
+              More
+            </button>
+          </div>
+        )}
       </div>
-      <div className="action-bar-right">
-        {renderFundChip()}
-      </div>
+      {!isMobile && (
+        <div className="action-bar-right">
+          {renderFundChip()}
+        </div>
+      )}
+      {isMobile && moreOpen && (
+        <div className="action-bar-more__overlay" role="presentation" onClick={() => setMoreOpen(false)}>
+          <div className="action-bar-more__sheet" role="menu" aria-label="More actions" onClick={(e) => e.stopPropagation()}>
+            <h3 className="action-bar-more__title">More actions</h3>
+            <div className="action-bar-more__list">
+              {menuKeys.map((key) => {
+                const action = actionList.find((item) => item.key === key);
+                if (!action) return null;
+                const handler = handlers[key] || noop;
+                const isPending = pendingKind === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    className={`action-bar-more__item${isPending ? " pending" : ""}`}
+                    onClick={() => {
+                      setMoreOpen(false);
+                      handler();
+                    }}
+                    role="menuitem"
+                  >
+                    {action.label}
+                  </button>
+                );
+              })}
+              {hasFundAction && (
+                <button
+                  type="button"
+                  className="action-bar-more__item"
+                  onClick={() => {
+                    setMoreOpen(false);
+                    const handler = handlers["fund"] || noop;
+                    handler();
+                  }}
+                  role="menuitem"
+                >
+                  Fund wallet
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -158,4 +228,5 @@ ActionBar.propTypes = {
   onAgreement: PropTypes.func,
   disabled: PropTypes.bool,
   pendingKind: PropTypes.oneOf(["send", "request", "agreement", null]),
+  mode: PropTypes.oneOf(["desktop", "mobile"]),
 };

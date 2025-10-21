@@ -39,9 +39,28 @@
   }
 }
 
+@media (max-width: 640px) {
+  .chat-window--mobile .chat-messages {
+    padding: 0 18px;
+  }
+
+  .chat-window--mobile .chat-messages > * {
+    max-width: none;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .chat-window--mobile .chat-messages > *:last-child {
+    padding-bottom: 96px;
+  }
+}
+
 /* Grupos de mensajes (ajuste de espacio) */
 .message-group { margin-bottom: 8px; }
 .message-group:last-child { margin-bottom: var(--font-caption-size); }
+
+.chat-window--mobile .message-group { margin-bottom: 12px; }
+.chat-window--mobile .message-group:last-child { margin-bottom: 16px; }
 
 /* Placeholder (sin contacto) */
 .chat-placeholder-container {
@@ -127,6 +146,15 @@
 }
 .scroll-to-bottom-btn:hover { background: var(--accent-color-hover); }
 .scroll-to-bottom-btn svg { color: var(--surface-color); }
+
+.chat-window--mobile .scroll-to-bottom-btn {
+  bottom: calc(104px + env(safe-area-inset-bottom, 0px));
+  width: 36px;
+  height: 36px;
+  right: 12px;
+  box-shadow: 0 12px 22px rgba(0, 0, 0, 0.35);
+  z-index: 6;
+}
 
 /* Desktop: ocultar botón flotante */
 @media (min-width: 1025px) {

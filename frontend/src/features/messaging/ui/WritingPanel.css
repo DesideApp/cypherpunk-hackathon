@@ -18,6 +18,31 @@
   box-shadow: none;
 }
 
+.writing-panel--mobile {
+  align-items: stretch;
+}
+
+.writing-panel--mobile .writing-panel-actions {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 6px;
+}
+
+.writing-panel--mobile .writing-panel-actions .action-bar {
+  width: 100%;
+  max-width: 360px;
+  margin: 0 auto;
+  justify-content: center;
+  gap: 12px;
+}
+
+.writing-panel--mobile .writing-panel-actions .action-bar { padding-right: 0; }
+
+.writing-panel--mobile .input-row {
+  align-items: center;
+  gap: 10px;
+}
+
 /* Contenedor para previews de blinks */
 .blink-previews-container {
   width: 100%;
@@ -195,6 +220,44 @@
   box-shadow: none !important; /* Forzar sin shadow */
   flex: 0 0 42px; /* Ancho fijo, no crece ni se encoge */
   box-sizing: border-box; /* Asegurar que borders no añadan ancho */
+}
+
+@media (max-width: 640px) {
+  .writing-panel {
+    max-width: none;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .input-wrapper {
+    padding: 12px 18px;
+    border-radius: 26px;
+    width: 100%;
+  }
+
+  .input-row {
+    width: 100%;
+  }
+
+  .blink-previews-container {
+    margin-bottom: 4px;
+    padding: 0 8px;
+  }
+
+  .writing-input, .chat-input {
+    font-size: 16px;
+    min-height: 32px;
+  }
+
+  .left-icons-container {
+    left: 14px;
+  }
+
+  .send-button {
+    width: 46px;
+    height: 46px;
+    margin-left: 12px;
+    margin-bottom: 0;
+  }
 }
 
 .send-button svg {

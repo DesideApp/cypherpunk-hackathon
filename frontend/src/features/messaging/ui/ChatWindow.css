@@ -9,6 +9,10 @@
   min-height: 0; /* ✅ permite que el hijo scrollee dentro de un contenedor flex */
 }
 
+.chat-window--mobile .chat-window-body {
+  padding: 0;
+}
+
 .chat-window-inner {
   flex: 1 1 auto;
   display: flex;
@@ -47,6 +51,10 @@
   padding-right: 8px; /* Mismo espacio que scrollbar-gutter de ChatMessages */
 }
 
+.chat-window--mobile .chat-composer-zone {
+  padding: 0 18px 0;
+}
+
 /* Responsive - composer zone (sin padding, lo gestiona WritingPanel) */
 
 .chat-action-bar-shell {
@@ -57,6 +65,10 @@
   margin-top: 12px; /* ✅ Respiro desde ChatMessages */
   margin-bottom: 8px; /* Separación con WritingPanel */
   z-index: 2;
+}
+
+.chat-window--mobile .chat-action-bar-shell {
+  display: none;
 }
 
 .chat-action-bar-shell .action-bar {
@@ -71,6 +83,13 @@
   margin: 0 auto;
   justify-content: space-between; /* Acciones izquierda, Balance derecha */
   box-sizing: border-box;
+}
+
+.chat-window--mobile .chat-action-bar-shell .action-bar {
+  max-width: none;
+  padding-right: 0;
+  justify-content: center;
+  gap: 10px;
 }
 
 .action-bar-left {
@@ -106,6 +125,10 @@
   background: rgba(255, 255, 255, 0.12);
   color: rgba(255, 255, 255, 0.95);
   transform: scale(1.05);
+}
+
+.chat-window--mobile .action-bar-button:hover:not(:disabled) {
+  transform: scale(1.02);
 }
 
 .action-bar-button:disabled {
@@ -199,29 +222,100 @@
   transform: scale(0.95);
 }
 
-@media (max-width: 640px) {
-  .fund-balance-btn { display: none; }
-  .action-bar-fund-chip { padding: 0 4px; height: 40px; }
-  .fund-plus-btn { width: 36px; height: 36px; }
+.action-bar--mobile {
+  justify-content: center;
+  gap: 12px;
+}
+
+.action-bar--mobile .action-bar-left {
+  gap: 12px;
+}
+
+.action-bar--mobile .action-bar-right {
+  display: none;
+}
+
+.action-bar-more {
+  position: relative;
+}
+
+.action-bar-more__trigger {
+  min-width: 36%;
+}
+
+.action-bar-more__overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 18px 140px;
+  z-index: 1200;
+}
+
+.action-bar-more__sheet {
+  width: 100%;
+  max-width: 360px;
+  background: var(--surface-color);
+  border-radius: 24px;
+  padding: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+}
+
+.action-bar-more__title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 12px;
+  color: var(--text-on-surface);
+}
+
+.action-bar-more__list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.action-bar-more__item {
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: none;
+  background: var(--window-background);
+  color: var(--text-on-window);
+  text-align: left;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.action-bar-more__item:hover {
+  background: var(--hover-overlay);
+}
+
+.action-bar-more__item.pending {
+  color: var(--accent-color);
 }
 
 @media (max-width: 640px) {
-  .chat-action-bar-shell {
-    bottom: calc(100% + 4px);
+  .fund-balance-btn { display: none; }
+  .action-bar-fund-chip { padding: 0 6px; height: 44px; }
+  .fund-plus-btn { width: 40px; height: 40px; }
+}
+
+@media (max-width: 640px) {
+  .chat-window--mobile .chat-action-bar-shell {
+    display: none;
   }
 
-  .chat-action-bar-shell .action-bar {
-    overflow-x: auto;
-    padding-bottom: 2px;
+  .chat-window--mobile .chat-composer-zone {
+    padding: 0 18px 0;
   }
 
-  .action-bar-button {
+  .chat-window--mobile .action-bar-button {
     flex: 0 0 auto;
-    min-width: 32%;
-  }
-
-  .action-bar-right {
-    margin-right: 8px; /* Mantiene recogido en móviles */
+    min-width: 38%;
+    height: 44px;
+    font-size: 14px;
   }
 }
 

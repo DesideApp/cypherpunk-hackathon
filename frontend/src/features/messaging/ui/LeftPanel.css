@@ -9,6 +9,25 @@
   box-sizing: border-box;
 }
 
+.left-panel.left-panel--mobile {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.left-panel--mobile .social-header {
+  padding: 0 24px;
+  height: 72px;
+}
+
+.left-panel--mobile .left-panel-title {
+  font-size: 23px;
+  font-weight: 700;
+}
+
+.left-panel--mobile .social-button {
+  width: 46px;
+  height: 46px;
+}
+
 /* Panel social eliminado - ahora son modales */
 
 /* 🔘 Cabecera */
@@ -27,8 +46,6 @@
   align-items: center;
   gap: 12px;
 }
-
-.social-menu-button { display: none; }
 
 /* 🔹 Título del header */
 .left-panel-title {
@@ -174,34 +191,29 @@
 
 /* 📱 Responsive */
 @media (max-width: 640px) {
-  .left-panel-container {
-    width: 100%;
-  }
-
   .social-header {
-    padding: 0 16px;
-    height: 60px;
+    padding: 0 20px;
+    height: 64px;
   }
 
   .social-header-left {
-    gap: 0;
-  }
-
-  .social-menu-button {
-    display: inline-flex;
-    margin-right: 8px;
+    gap: 12px;
   }
 
   .social-header-buttons {
-    gap: 4px;
+    gap: 6px;
   }
 
   .social-button {
-    width: 34px;
-    height: 34px;
+    width: 40px;
+    height: 40px;
   }
 
   .left-panel-title {
-    font-size: 18px;
+    font-size: 20px;
+  }
+
+  .left-panel-main {
+    padding: 0;
   }
 }

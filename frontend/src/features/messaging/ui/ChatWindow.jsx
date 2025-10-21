@@ -173,7 +173,7 @@ const MAX_REASON_LEN = 120;
 
 /* ===================== Componente ===================== */
 
-export default function ChatWindow({ selectedContact, activePanel, setActivePanel }) {
+export default function ChatWindow({ selectedContact, activePanel, setActivePanel, allowMobileMenu = true }) {
   const { pubkey: myWallet } = useAuthManager();
   const { closeRtc } = useRtcDialer();
   const walletCtx = useWallet();
@@ -784,7 +784,7 @@ export default function ChatWindow({ selectedContact, activePanel, setActivePane
   }, [peerWallet]);
 
   return (
-    <div className="chat-window">
+    <div className={`chat-window ${isMobileLayout ? "chat-window--mobile" : ""}`}>
       <div className="chat-window-inner">
         <ChatHeader
           selectedContact={selected}
@@ -797,7 +797,7 @@ export default function ChatWindow({ selectedContact, activePanel, setActivePane
           }}
           isCompactLayout={isMobileLayout}
           onOpenContacts={isMobileLayout ? openContactsPanel : undefined}
-          onOpenLeftbar={isMobileLayout ? openLeftbarDrawer : undefined}
+          onOpenLeftbar={isMobileLayout && allowMobileMenu ? openLeftbarDrawer : undefined}
         />
 
         <div className="chat-window-body">
@@ -812,20 +812,23 @@ export default function ChatWindow({ selectedContact, activePanel, setActivePane
           </div>
 
           <div className="chat-composer-zone">
-            <div className="chat-action-bar-shell" aria-hidden={!peerWallet}>
-              <ActionBar
-                disabled={actionDisabled}
-                onSend={() => dispatchActionEvent("send")}
-                onRequest={() => dispatchActionEvent("request")}
-                onBuy={() => {
-                  setBuyPreset({ share: true });
-                  setBuyModalOpen(true);
-                }}
-                onBuyMock={MOCKS.BLINK_BUY ? () => triggerMockBlink() : undefined}
-                onFund={() => setFundModalOpen(true)}
-                onAgreement={() => dispatchActionEvent("agreement")}
-              />
-            </div>
+            {!isMobileLayout && (
+              <div className="chat-action-bar-shell" aria-hidden={!peerWallet}>
+                <ActionBar
+                  disabled={actionDisabled}
+                  onSend={() => dispatchActionEvent("send")}
+                  onRequest={() => dispatchActionEvent("request")}
+                  onBuy={() => {
+                    setBuyPreset({ share: true });
+                    setBuyModalOpen(true);
+                  }}
+                  onBuyMock={MOCKS.BLINK_BUY ? () => triggerMockBlink() : undefined}
+                  onFund={() => setFundModalOpen(true)}
+                  onAgreement={() => dispatchActionEvent("agreement")}
+                  mode="desktop"
+                />
+              </div>
+            )}
             <WritingPanel
               key={peerWallet || "none"}
               onSendText={onSendText}
@@ -836,6 +839,23 @@ export default function ChatWindow({ selectedContact, activePanel, setActivePane
               canSend={canSend}
               sendPaymentRequest={sendPaymentRequest}
               onOpenSendModal={openSendModal}
+              mode={isMobileLayout ? "mobile" : "desktop"}
+              mobileActionBarProps={
+                isMobileLayout
+                  ? {
+                      disabled: actionDisabled,
+                      onSend: () => dispatchActionEvent("send"),
+                      onRequest: () => dispatchActionEvent("request"),
+                      onBuy: () => {
+                        setBuyPreset({ share: true });
+                        setBuyModalOpen(true);
+                      },
+                      onBuyMock: MOCKS.BLINK_BUY ? () => triggerMockBlink() : undefined,
+                      onFund: () => setFundModalOpen(true),
+                      onAgreement: () => dispatchActionEvent("agreement"),
+                    }
+                  : null
+              }
             />
           </div>
         </div>
