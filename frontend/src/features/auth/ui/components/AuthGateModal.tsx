@@ -1,7 +1,6 @@
-// @wallet-adapter/ui/components/AuthGateModal.tsx
 import React from 'react';
-import { WalletButton } from '@wallet-adapter/ui/components/WalletButton';
-import { panelEvents } from '@wallet-adapter/ui/system/panel-bus';
+import { WalletButton } from '@features/wallet/components/WalletButton';
+import { panelEvents } from '@features/auth/ui/system/panel-bus';
 
 type Props = {
   /** Cuando true, el Gate se renderiza SIN overlay propio (lo pone el Shell). */

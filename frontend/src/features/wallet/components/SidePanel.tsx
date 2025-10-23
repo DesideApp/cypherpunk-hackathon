@@ -1,6 +1,5 @@
-// @wallet-adapter/ui/panels/SidePanel.tsx
 import React, { useEffect, useRef } from 'react';
-import { Portal } from '@wallet-adapter/ui/system/Portal';
+import { Portal } from '@features/auth/ui/system/Portal';
 import { getCssVariable } from '@wallet-adapter/theme/getCssVariable';
 import type { CSSProperties, ReactNode } from 'react';
 

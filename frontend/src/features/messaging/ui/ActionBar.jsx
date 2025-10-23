@@ -3,7 +3,7 @@ import PropTypes from "prop-types";
 import { Plus } from "lucide-react";
 import { useWallet } from "@wallet-adapter/core/contexts/WalletProvider";
 import { useSolanaBalance } from "@wallet-adapter/core/hooks/useSolanaBalance";
-import { panelEvents } from "@wallet-adapter/ui/system/panel-bus";
+import { panelEvents } from "@features/auth/ui/system/panel-bus";
 import { MOCKS } from "@shared/config/env.js";
 
 const ACTIONS = [

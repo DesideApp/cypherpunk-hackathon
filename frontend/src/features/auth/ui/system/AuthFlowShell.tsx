@@ -1,6 +1,5 @@
-// @wallet-adapter/ui/system/AuthFlowShell.tsx
 import React, { useEffect, useMemo, useRef } from 'react';
-import { Portal } from '@wallet-adapter/ui/system/Portal';
+import { Portal } from '@features/auth/ui/system/Portal';
 import { getCssVariable } from '@wallet-adapter/theme/getCssVariable';
 
 type View = 'gate' | 'panel';

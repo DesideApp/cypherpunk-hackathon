@@ -35,8 +35,8 @@ export function useProfile() {
 
   useEffect(() => { void refresh(); }, [refresh]);
 
-  const update = useCallback(async ({ nickname, avatar, social, signature, message }) => {
-    await updateMyProfile({ nickname, avatar, social, signature, message });
+  const update = useCallback(async ({ nickname, avatar, social }) => {
+    await updateMyProfile({ nickname, avatar, social });
     await refresh();
   }, [refresh]);
 

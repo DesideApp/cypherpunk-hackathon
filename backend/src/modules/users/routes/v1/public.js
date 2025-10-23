@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { findUserByPubkey } from '#modules/users/controllers/user.controller.js';
+import { findUserByPubkey, findUsersByPubkeys } from '#modules/users/controllers/user.controller.js';
+import { protectRoute } from '#middleware/authMiddleware.js';
 
 const router = Router();
 
@@ -8,5 +9,6 @@ const router = Router();
  *  GET /api/users/v1/public/:pubkey (v1)
  */
 router.get('/:pubkey', findUserByPubkey);
+router.post('/batch', protectRoute, findUsersByPubkeys);
 
 export default router;

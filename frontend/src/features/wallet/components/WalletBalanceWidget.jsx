@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useWallet } from "@wallet-adapter/core/contexts/WalletProvider";
 import { useSolanaBalance } from "@wallet-adapter/core/hooks/useSolanaBalance";
-import { panelEvents } from "@wallet-adapter/ui/system/panel-bus";
+import { panelEvents } from "@features/auth/ui/system/panel-bus";
 import { useLayout } from "@features/layout/contexts/LayoutContext";
 import "./WalletBalanceWidget.css";
 

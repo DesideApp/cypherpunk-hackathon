@@ -1,6 +1,4 @@
 import User from "#modules/users/models/user.model.js";
-import Notification from "#modules/users/models/notification.model.js";
-import { verifySignature } from "#utils/solanaUtils.js";
 
 function isValidHttpUrl(s) {
   try {
@@ -22,7 +20,7 @@ export async function updateMyProfile(req, res) {
       return res.status(401).json({ error: "UNAUTHORIZED", nextStep: "REAUTHENTICATE" });
     }
 
-    const { nickname, avatar, signature, message, social } = req.body || {};
+    const { nickname, avatar, social } = req.body || {};
 
     // nickname: string opcional, 1–32 chars (trim). null/"" → limpiar
     let nextNickname;
@@ -109,27 +107,6 @@ export async function updateMyProfile(req, res) {
 
     if (!user) {
       return res.status(404).json({ error: "USER_NOT_FOUND", nextStep: "REGISTER_WALLET" });
-    }
-
-    // Firma opcional: si viene y es válida, registramos una notificación
-    if (signature && message && typeof signature === 'string' && typeof message === 'string') {
-      try {
-        const ok = verifySignature(message, signature, wallet);
-        if (ok) {
-          await Notification.create({
-            pubkey: wallet,
-            type: 'profile_update',
-            data: {
-              nickname: user.nickname || null,
-              avatar: user.avatar || null,
-              message,
-            },
-          });
-        }
-      } catch (e) {
-        // No bloquea la respuesta principal
-        console.warn("⚠️ No se pudo registrar notificación de profile_update:", e?.message || e);
-      }
     }
 
     return res.status(200).json({

@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth, AUTH_STATUS } from '@features/auth/contexts/AuthContext.jsx';
 import { useWallet } from '@wallet-adapter/core/contexts/WalletProvider';
-import { SidePanel } from '@wallet-adapter/ui/panels/SidePanel';
-import WalletMenuContent from '@wallet-adapter/ui/components/WalletMenuContent';
-import AuthFlowShell from '@wallet-adapter/ui/system/AuthFlowShell';
-import { panelEvents } from '@wallet-adapter/ui/system/panel-bus';
+import { SidePanel } from '@features/wallet/components/SidePanel';
+import WalletMenuContent from '@features/wallet/components/WalletMenuContent';
+import AuthFlowShell from '@features/auth/ui/system/AuthFlowShell';
+import { panelEvents } from '@features/auth/ui/system/panel-bus';
 import { useLayout } from '@features/layout/contexts/LayoutContext';
 
 const isDev =

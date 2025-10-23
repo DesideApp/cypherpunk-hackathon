@@ -1,13 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useWallet } from '@wallet-adapter/core/contexts/WalletProvider';
 import { useAuth, AUTH_STATUS } from '@features/auth/contexts/AuthContext.jsx';
-import { panelEvents } from '@wallet-adapter/ui/system/panel-bus';
+import { panelEvents } from '@features/auth/ui/system/panel-bus';
 
 // Shell puro (overlay + cross-fade + card auto-tamaño)
-import AuthFlowShell from '@wallet-adapter/ui/system/AuthFlowShell';
+import AuthFlowShell from '@features/auth/ui/system/AuthFlowShell';
 // Contenidos reales (DISEÑO intacto)
-import AuthGateModal from '@wallet-adapter/ui/components/AuthGateModal';
-import WalletModalContent from '@wallet-adapter/ui/components/WalletModalContent';
+import AuthGateModal from '@features/auth/ui/components/AuthGateModal';
+import WalletModalContent from '@features/auth/ui/components/WalletModalContent';
 
 const isDev = typeof process !== 'undefined' && process.env?.NODE_ENV !== 'production';
 

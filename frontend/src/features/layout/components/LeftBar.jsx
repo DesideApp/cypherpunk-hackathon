@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { MessageCircle, User as UserIcon, ArrowLeftRight, Settings, BarChart3 } from 'lucide-react';
 import { useLayout } from '@features/layout/contexts/LayoutContext';
-import { panelEvents } from '@wallet-adapter/ui/system/panel-bus';
+import { panelEvents } from '@features/auth/ui/system/panel-bus';
 import { useWallet } from '@wallet-adapter/core/contexts/WalletProvider';
 import { useRpc } from '@wallet-adapter/core/contexts/RpcProvider';
 import { PublicKey } from '@solana/web3.js';
