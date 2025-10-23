@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback, useEffect } from "react";
 import PropTypes from "prop-types";
 import { VersionedTransaction, Transaction } from "@solana/web3.js";
 import { Buffer } from "buffer";
@@ -8,7 +8,7 @@ import { assertAllowed } from "@features/messaging/config/blinkSecurity.js";
 import { notify } from "@shared/services/notificationService.js";
 import { formatAmountForDisplay } from "@shared/tokens/tokens.js";
 import { useAuthManager } from "@features/auth/hooks/useAuthManager.js";
-import { actions } from "@features/messaging/store/messagesStore.js";
+import { actions, get as getMessages } from "@features/messaging/store/messagesStore.js";
 import { executeBlink } from "@features/messaging/services/blinkExecutionService.js";
 import { FEATURES, IS_DEMO } from "@shared/config/env.js";
 import ActionCardBase from "@shared/ui/bubbles/ActionCardBase.jsx";
@@ -90,7 +90,13 @@ export default function PaymentRequestCard({ msg = {}, direction = "received" })
   const [paying, setPaying] = useState(false);
 
   const receipt = useMemo(() => msg?.receipt || {}, [msg]);
-  const paymentReceipt = receipt?.payment || null;
+  const [localReceipt, setLocalReceipt] = useState(receipt);
+
+  useEffect(() => {
+    setLocalReceipt(receipt);
+  }, [receipt]);
+
+  const paymentReceipt = localReceipt?.payment || null;
   const isPaid = paymentReceipt?.status === "paid";
   const paidSignature = paymentReceipt?.txSig || null;
   const explorerUrl = buildExplorerUrl(paidSignature);
@@ -254,23 +260,48 @@ export default function PaymentRequestCard({ msg = {}, direction = "received" })
         const serverId = msg?.id || msg?.serverId || null;
         const completedAt = new Date().toISOString();
 
+        setLocalReceipt((prev) => ({
+          ...(prev || {}),
+          payment: {
+            status: "paid",
+            txSig: primarySig,
+            completedAt,
+          },
+        }));
+
         if (convId && (clientId || serverId)) {
-          actions.upsertMessage?.(
-            convId,
-            {
-              ...(clientId ? { clientId } : {}),
-              ...(serverId ? { id: serverId } : {}),
-              receipt: {
-                ...receipt,
-                payment: {
-                  status: "paid",
-                  txSig: primarySig,
-                  completedAt,
+          const existingList = typeof getMessages === "function" ? getMessages(convId) : [];
+          const hasExisting = Array.isArray(existingList)
+            ? existingList.some((item) => {
+                if (!item) return false;
+                const matchesClient =
+                  clientId &&
+                  (item.clientId === clientId || item.clientMsgId === clientId);
+                const matchesServer =
+                  serverId &&
+                  (item.id === serverId || item.serverId === serverId);
+                return matchesClient || matchesServer;
+              })
+            : false;
+
+          if (hasExisting) {
+            actions.upsertMessage?.(
+              convId,
+              {
+                ...(clientId ? { clientId } : {}),
+                ...(serverId ? { id: serverId } : {}),
+                receipt: {
+                  ...receipt,
+                  payment: {
+                    status: "paid",
+                    txSig: primarySig,
+                    completedAt,
+                  },
                 },
               },
-            },
-            payerAccount
-          );
+              payerAccount
+            );
+          }
         }
 
         notify("Payment completed.", "success");
