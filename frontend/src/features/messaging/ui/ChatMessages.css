@@ -12,6 +12,7 @@
   touch-action: pan-y;               /* suprime gestos raros en touch */
   z-index: 1;                        /* por debajo del composer */
   scrollbar-gutter: stable; /* ✅ CLAVE: Reserva espacio para scrollbar siempre */
+  scroll-padding-top: 76px;
 }
 
 /* Contenedor interno centrado para los mensajes */

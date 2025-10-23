@@ -7,6 +7,7 @@
   width: 100%;
   height: 100%;
   min-height: 0; /* ✅ permite que el hijo scrollee dentro de un contenedor flex */
+  position: relative;
 }
 
 .chat-window--mobile .chat-window-body {
@@ -20,6 +21,7 @@
   width: 100%;
   box-sizing: border-box;
   min-height: 0;
+  overflow: hidden;
 }
 
 
@@ -32,12 +34,14 @@
   flex: 1;
   min-height: 0; /* ✅ crítico para que el área de mensajes tenga scroll propio */
   position: relative;
+  overflow: hidden;
 }
 
 .chat-window-messages {
   position: relative;
   flex: 1;
   min-height: 0;
+  overflow: hidden;
 }
 
 .chat-composer-zone {
@@ -69,6 +73,30 @@
 
 .chat-window--mobile .chat-action-bar-shell {
   display: none;
+}
+
+/* ===== Mobile layout adjustments ===== */
+@media (max-width: 640px) {
+  .chat-window {
+    height: 100dvh;
+    min-height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+  }
+
+  .chat-window--mobile .chat-window-inner {
+    height: 100%;
+  }
+
+  .chat-window--mobile .chat-window-body {
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .chat-window--mobile .chat-window-messages {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 .chat-action-bar-shell .action-bar {
