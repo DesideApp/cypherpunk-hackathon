@@ -87,3 +87,21 @@ docs/telegram-bots-inventory.md
 
 # Telegram Bot - excluir del deploy
 backend/src/modules/telegram-bot/
+
+# Legacy & Cleanup
+admin-panel/
+backups/
+docs/
+scripts/
+tests/
+
+# Root documentation files (private notes)
+config-sync-notes.md
+DESIDE_BOT_READY.md
+FUND_WALLET_QUICKSTART.md
+GIT_GUIDE.txt
+SISTEMA-BACKUPS.md
+STYLE_REPORT.md
+TELEGRAM_BOT_FINAL.md
+TELEGRAM_BOT_SUMMARY.md
+test.txt
