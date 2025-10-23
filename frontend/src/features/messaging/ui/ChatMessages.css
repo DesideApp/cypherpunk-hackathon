@@ -42,7 +42,7 @@
 @media (max-width: 640px) {
   .chat-window--mobile .chat-messages {
     padding: 0 12px;
-    scroll-padding-top: 70px;
+    scroll-padding-top: calc(70px + var(--chat-viewport-offset-top, 0px));
   }
 
   .chat-window--mobile .chat-messages > * {

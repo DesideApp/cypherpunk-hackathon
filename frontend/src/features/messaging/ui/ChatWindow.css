@@ -221,9 +221,9 @@
 /* ---------- Mobile layout adjustments ---------- */
 @media (max-width: 640px) {
   .chat-window {
-    height: 100dvh;
-    min-height: 100dvh;
-    max-height: 100dvh;
+    height: var(--chat-viewport-height, 100dvh);
+    min-height: var(--chat-viewport-height, 100dvh);
+    max-height: var(--chat-viewport-height, 100dvh);
     overflow: hidden;
   }
 

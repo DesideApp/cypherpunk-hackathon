@@ -20,6 +20,7 @@ import {
   ActionBackButton, 
   ActionPrimaryButton 
 } from "@shared/ui";
+import { useLayout } from "@features/layout/contexts/LayoutContext";
 import TokenSearch from "../TokenSearch.jsx";
 import TokenButton from "./TokenButton.jsx";
 import "./BuyTokenModal.css";
@@ -115,6 +116,7 @@ export default function BuyTokenModal({
   onBlinkShared,
 }) {
   const { pubkey: myWallet } = useAuthManager();
+  const { isMobile } = useLayout();
   const walletCtx = useWallet();
   const { connection } = useRpc();
   const adapter = walletCtx?.adapter || null;
@@ -239,6 +241,17 @@ export default function BuyTokenModal({
     if (!selected?.outputMint) return null;
     return prices?.[selected.outputMint] || null;
   }, [selected, prices]);
+
+  const actionButtonsStyle = isMobile
+    ? {
+        flexDirection: "column",
+        alignItems: "stretch",
+        width: "100%",
+        gap: "12px",
+      }
+    : undefined;
+
+  const actionButtonStyle = isMobile ? { width: "100%" } : undefined;
 
   const tokenPrice = typeof selectedPriceEntry?.usdPrice === "number" ? selectedPriceEntry.usdPrice : null;
   const priceLabel = tokenPrice != null ? formatUsd(tokenPrice) : null;
@@ -448,21 +461,22 @@ export default function BuyTokenModal({
 
   const modalFooter = step === "pick-amount"
     ? (
-      <ActionButtons>
-        <ActionCancelButton onClick={() => onClose?.()} disabled={busy} />
-        <ActionBackButton onClick={() => setStep("pick-token")} disabled={busy} />
+      <ActionButtons style={actionButtonsStyle}>
+        <ActionCancelButton onClick={() => onClose?.()} disabled={busy} style={actionButtonStyle} />
+        <ActionBackButton onClick={() => setStep("pick-token")} disabled={busy} style={actionButtonStyle} />
         <ActionPrimaryButton 
           onClick={onBuyNow} 
           disabled={!proceedEnabled || busy}
           busy={busy}
+          style={actionButtonStyle}
         >
           Buy {selected?.code}
         </ActionPrimaryButton>
       </ActionButtons>
     )
     : (
-      <ActionButtons>
-        <ActionCancelButton onClick={() => onClose?.()} disabled={busy} />
+      <ActionButtons style={actionButtonsStyle}>
+        <ActionCancelButton onClick={() => onClose?.()} disabled={busy} style={actionButtonStyle} />
       </ActionButtons>
     );
 

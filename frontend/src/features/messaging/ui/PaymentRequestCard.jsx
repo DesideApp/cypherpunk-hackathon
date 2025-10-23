@@ -250,21 +250,27 @@ export default function PaymentRequestCard({ msg = {}, direction = "received" })
       const primarySig = signatures[signatures.length - 1] || signatures[0] || null;
       if (primarySig) {
         const convId = msg?.convId;
-        const messageId = msg?.clientId || msg?.clientMsgId || msg?.id;
+        const clientId = msg?.clientId || msg?.clientMsgId || null;
+        const serverId = msg?.id || msg?.serverId || null;
         const completedAt = new Date().toISOString();
 
-        if (convId && messageId) {
-          actions.upsertMessage?.(convId, {
-            clientId: messageId,
-            receipt: {
-              ...receipt,
-              payment: {
-                status: "paid",
-                txSig: primarySig,
-                completedAt,
+        if (convId && (clientId || serverId)) {
+          actions.upsertMessage?.(
+            convId,
+            {
+              ...(clientId ? { clientId } : {}),
+              ...(serverId ? { id: serverId } : {}),
+              receipt: {
+                ...receipt,
+                payment: {
+                  status: "paid",
+                  txSig: primarySig,
+                  completedAt,
+                },
               },
             },
-          });
+            payerAccount
+          );
         }
 
         notify("Payment completed.", "success");

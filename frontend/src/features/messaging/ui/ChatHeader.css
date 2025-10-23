@@ -14,7 +14,7 @@
 @media (max-width: 640px) {
   .chat-window--mobile .chat-header {
     position: sticky;
-    top: 0;
+    top: var(--chat-viewport-offset-top, 0px);
     z-index: 15;
     padding-top: env(safe-area-inset-top, 0px);
   }

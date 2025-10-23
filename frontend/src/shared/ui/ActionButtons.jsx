@@ -5,8 +5,15 @@ import PropTypes from "prop-types";
  * Botón Cancel para action modals (ghost style)
  * Copia EXACTA del estilo de BuyTokenModal
  */
-export function ActionCancelButton({ onClick, disabled, children = "Cancel", ...props }) {
-  const style = {
+export function ActionCancelButton({
+  onClick,
+  disabled,
+  children = "Cancel",
+  style: styleProp,
+  className,
+  ...props
+}) {
+  const baseStyle = {
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
@@ -23,6 +30,7 @@ export function ActionCancelButton({ onClick, disabled, children = "Cancel", ...
     color: "var(--text-secondary, #b5b5b5)",
     opacity: disabled ? 0.6 : 1,
   };
+  const style = styleProp ? { ...baseStyle, ...styleProp } : baseStyle;
 
   const hoverStyle = !disabled ? {
     color: "var(--text-primary, #f5f5f5)",
@@ -35,6 +43,7 @@ export function ActionCancelButton({ onClick, disabled, children = "Cancel", ...
       onClick={onClick}
       disabled={disabled}
       style={style}
+      className={className}
       onMouseEnter={(e) => {
         if (!disabled) {
           Object.assign(e.currentTarget.style, hoverStyle);
@@ -42,8 +51,7 @@ export function ActionCancelButton({ onClick, disabled, children = "Cancel", ...
       }}
       onMouseLeave={(e) => {
         if (!disabled) {
-          e.currentTarget.style.color = "var(--text-secondary, #b5b5b5)";
-          e.currentTarget.style.background = "transparent";
+          Object.assign(e.currentTarget.style, style);
         }
       }}
       {...props}
@@ -57,14 +65,23 @@ ActionCancelButton.propTypes = {
   onClick: PropTypes.func,
   disabled: PropTypes.bool,
   children: PropTypes.node,
+  style: PropTypes.object,
+  className: PropTypes.string,
 };
 
 /**
  * Botón Back para action modals (secondary style)
  * Copia EXACTA del estilo de BuyTokenModal
  */
-export function ActionBackButton({ onClick, disabled, children = "Back", ...props }) {
-  const style = {
+export function ActionBackButton({
+  onClick,
+  disabled,
+  children = "Back",
+  style: styleProp,
+  className,
+  ...props
+}) {
+  const baseStyle = {
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
@@ -81,6 +98,7 @@ export function ActionBackButton({ onClick, disabled, children = "Back", ...prop
     textDecoration: "none",
     opacity: disabled ? 0.6 : 1,
   };
+  const style = styleProp ? { ...baseStyle, ...styleProp } : baseStyle;
 
   const hoverStyle = !disabled ? {
     color: "var(--text-primary)",
@@ -94,6 +112,7 @@ export function ActionBackButton({ onClick, disabled, children = "Back", ...prop
       onClick={onClick}
       disabled={disabled}
       style={style}
+      className={className}
       onMouseEnter={(e) => {
         if (!disabled) {
           Object.assign(e.currentTarget.style, hoverStyle);
@@ -101,9 +120,7 @@ export function ActionBackButton({ onClick, disabled, children = "Back", ...prop
       }}
       onMouseLeave={(e) => {
         if (!disabled) {
-          e.currentTarget.style.color = "var(--text-secondary)";
-          e.currentTarget.style.borderColor = "color-mix(in srgb, var(--border-color) 80%, transparent)";
-          e.currentTarget.style.background = "color-mix(in srgb, var(--window-background) 78%, transparent)";
+          Object.assign(e.currentTarget.style, style);
         }
       }}
       {...props}
@@ -117,14 +134,25 @@ ActionBackButton.propTypes = {
   onClick: PropTypes.func,
   disabled: PropTypes.bool,
   children: PropTypes.node,
+  style: PropTypes.object,
+  className: PropTypes.string,
 };
 
 /**
  * Botón primario para action modals
  * Copia EXACTA del estilo redondo de Cancel/Back pero con colores de action-color
  */
-export function ActionPrimaryButton({ onClick, disabled, children, busy, busyText = "Processing…", ...props }) {
-  const style = {
+export function ActionPrimaryButton({
+  onClick,
+  disabled,
+  children,
+  busy,
+  busyText = "Processing…",
+  style: styleProp,
+  className,
+  ...props
+}) {
+  const baseStyle = {
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
@@ -142,6 +170,7 @@ export function ActionPrimaryButton({ onClick, disabled, children, busy, busyTex
     boxShadow: "none",
     opacity: disabled ? 0.6 : 1,
   };
+  const style = styleProp ? { ...baseStyle, ...styleProp } : baseStyle;
 
   const hoverStyle = !disabled ? {
     background: "var(--action-color-hover, #ff6b65)",
@@ -153,6 +182,7 @@ export function ActionPrimaryButton({ onClick, disabled, children, busy, busyTex
       onClick={onClick}
       disabled={disabled}
       style={style}
+      className={className}
       onMouseEnter={(e) => {
         if (!disabled) {
           Object.assign(e.currentTarget.style, hoverStyle);
@@ -160,7 +190,7 @@ export function ActionPrimaryButton({ onClick, disabled, children, busy, busyTex
       }}
       onMouseLeave={(e) => {
         if (!disabled) {
-          e.currentTarget.style.background = "var(--action-color, #fc554f)";
+          Object.assign(e.currentTarget.style, style);
         }
       }}
       {...props}
@@ -176,23 +206,25 @@ ActionPrimaryButton.propTypes = {
   children: PropTypes.node.isRequired,
   busy: PropTypes.bool,
   busyText: PropTypes.string,
+  style: PropTypes.object,
+  className: PropTypes.string,
 };
 
 /**
  * Contenedor de botones para action modals footer
  * Replica la estructura exacta del footer de BuyTokenModal
  */
-export function ActionButtons({ children, ...props }) {
+export function ActionButtons({ children, style: styleProp, className, ...props }) {
+  const baseStyle = {
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: "var(--action-modal-gap, 8px)",
+    flexWrap: "wrap",
+  };
+  const style = styleProp ? { ...baseStyle, ...styleProp } : baseStyle;
+
   return (
-    <div 
-      style={{ 
-        display: "flex", 
-        justifyContent: "flex-end", 
-        gap: "var(--action-modal-gap, 8px)", 
-        flexWrap: "wrap" 
-      }} 
-      {...props}
-    >
+    <div style={style} className={className} {...props}>
       {children}
     </div>
   );
@@ -200,4 +232,6 @@ export function ActionButtons({ children, ...props }) {
 
 ActionButtons.propTypes = {
   children: PropTypes.node,
+  style: PropTypes.object,
+  className: PropTypes.string,
 };

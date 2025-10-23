@@ -319,6 +319,7 @@ export default function ChatWindow({ selectedContact, activePanel, setActivePane
   }, [peerWallet, convId]);
 
   const prevPeerRef = useRef(null);
+  const viewportRef = useRef(null);
 
   useEffect(() => {
     const previousPeer = prevPeerRef.current;
@@ -716,8 +717,74 @@ export default function ChatWindow({ selectedContact, activePanel, setActivePane
     return () => window.removeEventListener("chat:blink:buy", handler);
   }, [peerWallet]);
 
+  useEffect(() => {
+    if (!isMobileLayout) return undefined;
+    if (typeof window === "undefined") return undefined;
+
+    const container = viewportRef.current;
+    if (!container) return undefined;
+
+    const html = document.documentElement;
+    const body = document.body;
+    const previousHtmlOverflow = html.style.overflow;
+    const previousBodyOverflow = body.style.overflow;
+    const previousTouchAction = body.style.touchAction || "";
+    const previousOverscroll = body.style.overscrollBehaviorY || "";
+    const previousHtmlHeight = html.style.height;
+    const previousBodyHeight = body.style.height;
+
+    const applyViewportMetrics = () => {
+      const vv = window.visualViewport;
+      const height = vv ? vv.height : window.innerHeight;
+      const offsetTop = vv ? vv.offsetTop : 0;
+      container.style.setProperty("--chat-viewport-height", `${height}px`);
+      container.style.setProperty("--chat-viewport-offset-top", `${offsetTop}px`);
+    };
+
+    applyViewportMetrics();
+
+    const visualViewport = window.visualViewport;
+    const handleViewportChange = () => applyViewportMetrics();
+
+    if (visualViewport) {
+      visualViewport.addEventListener("resize", handleViewportChange);
+      visualViewport.addEventListener("scroll", handleViewportChange);
+    } else {
+      window.addEventListener("resize", handleViewportChange);
+    }
+
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    html.style.height = "100%";
+    body.style.height = "100%";
+    body.style.touchAction = "manipulation";
+    body.style.overscrollBehaviorY = "contain";
+
+    return () => {
+      if (visualViewport) {
+        visualViewport.removeEventListener("resize", handleViewportChange);
+        visualViewport.removeEventListener("scroll", handleViewportChange);
+      } else {
+        window.removeEventListener("resize", handleViewportChange);
+      }
+
+      container.style.removeProperty("--chat-viewport-height");
+      container.style.removeProperty("--chat-viewport-offset-top");
+
+      html.style.overflow = previousHtmlOverflow;
+      body.style.overflow = previousBodyOverflow;
+      html.style.height = previousHtmlHeight;
+      body.style.height = previousBodyHeight;
+      body.style.touchAction = previousTouchAction;
+      body.style.overscrollBehaviorY = previousOverscroll;
+    };
+  }, [isMobileLayout]);
+
   return (
-    <div className={`chat-window ${isMobileLayout ? "chat-window--mobile" : ""}`}>
+    <div
+      ref={viewportRef}
+      className={`chat-window ${isMobileLayout ? "chat-window--mobile" : ""}`}
+    >
       <div className="chat-window-inner">
         <ChatHeader
           selectedContact={selected}

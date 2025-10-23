@@ -638,13 +638,46 @@
   border-top: 1px solid color-mix(in srgb, var(--border-color) 60%, transparent);
 }
 
-@media (max-width: 600px) {
+@media (max-width: 640px) {
   .buy-modal {
-    width: min(360px, 94vw);
-    padding: var(--space-lg, 16px);
+    width: 100vw;
+    max-width: 100vw;
+    height: var(--chat-viewport-height, 100dvh);
+    max-height: var(--chat-viewport-height, 100dvh);
+    border-radius: 0;
+    padding: 18px 18px calc(18px + env(safe-area-inset-bottom, 16px));
+  }
+
+  .buy-modal .ui-modal__body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 6px;
+    -webkit-overflow-scrolling: touch;
   }
 
   .buy-modal .ui-modal__footer {
-    flex-direction: column-reverse;
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: inherit;
+    padding-top: 16px;
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+    margin-top: 16px;
+    backdrop-filter: none;
+  }
+
+  .buy-modal .action-buttons {
+    width: 100%;
+    align-items: stretch;
+  }
+
+  .buy-modal .action-buttons > * {
+    width: 100%;
+  }
+
+  .buy-amounts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
