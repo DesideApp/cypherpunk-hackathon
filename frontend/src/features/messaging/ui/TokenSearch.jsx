@@ -5,17 +5,16 @@ import './TokenSearch.css';
 
 const REMOTE_RESULTS_LIMIT = 5;
 
+const resolveTokenCode = (token = {}) =>
+  token?.code || token?.symbol || token?.label || token?.mint || token?.searchQuery || '';
+
 const getTokenKey = (token = {}) => {
-  if (token.mint) {
-    return token.mint.toLowerCase();
-  }
-  if (token.code) {
-    return token.code.toLowerCase();
-  }
-  if (token.label) {
-    return token.label.toLowerCase();
-  }
-  return '';
+  const source =
+    token?.mint ||
+    resolveTokenCode(token) ||
+    token?.label ||
+    '';
+  return source ? String(source).toLowerCase() : '';
 };
 
 const mergeMatches = (localMatches = [], remoteMatches = [], remoteLimit = REMOTE_RESULTS_LIMIT) => {
@@ -115,15 +114,22 @@ export default function TokenSearch({
 
       if (response?.success && response?.found) {
         if (response.multiple) {
-          remoteMatches = (response.tokens || []).map((token) => ({
-            ...token,
-            found: false,
-            isNew: true,
-            isMultiple: true,
-          }));
+          remoteMatches = (response.tokens || []).map((token) => {
+            const tokenCode = resolveTokenCode(token);
+            return {
+              ...token,
+              code: tokenCode,
+              label: token.label || token.name || tokenCode,
+              found: false,
+              isNew: true,
+              isMultiple: true,
+            };
+          });
         } else if (response.token) {
           remoteMatches = [{
             ...response.token,
+            code: resolveTokenCode(response.token),
+            label: response.token.label || response.token.name || resolveTokenCode(response.token),
             found: false,
             isNew: true,
           }];
@@ -176,12 +182,14 @@ export default function TokenSearch({
     setIsAdding(true);
     try {
       // Si el token tiene mint, usarlo directamente
+      const tokenCode = resolveTokenCode(token);
+
       if (token.mint) {
         const response = await apiRequest('/api/v1/tokens/add', {
           method: 'POST',
           body: JSON.stringify({ 
             mint: token.mint,
-            code: token.code,
+            code: tokenCode,
           }),
         });
 
@@ -191,7 +199,7 @@ export default function TokenSearch({
           setSearch(''); // Limpiar búsqueda
           setResults([]);
           // Mostrar éxito
-          alert(`✅ Token ${token.code} added successfully`);
+          alert(`✅ Token ${tokenCode} added successfully`);
         } else {
           throw new Error(response.message || 'Failed to add token');
         }
@@ -271,61 +279,65 @@ export default function TokenSearch({
 
       {results.length > 0 && (
         <div className="token-search__results">
-          {results.map((token, index) => (
-            <div
-              key={`${token.code}-${index}`}
-              className={`token-search__result ${
-                token.found ? 'token-search__result--found' : 'token-search__result--not-found'
-              }`}
-              onClick={() => handleTokenSelect(token)}
-            >
-              <div className="token-search__result-content">
-                <div className="token-search__result-icon">
-                  {token.found ? '✅' : '❌'}
-                </div>
-                <div className="token-search__result-info">
-                  <div className="token-search__result-code">{token.code}</div>
-                  <div className="token-search__result-label">
-                    {token.found ? token.label : 
-                     token.isMultiple ? `${token.name || token.label} (Jupiter)` :
-                     token.notFound ? `"${token.searchQuery}" not found` :
-                     'Token not found'}
+          {results.map((token, index) => {
+            const displayCode = resolveTokenCode(token);
+            const key = `${displayCode || token.mint || 'token'}-${index}`;
+            return (
+              <div
+                key={key}
+                className={`token-search__result ${
+                  token.found ? 'token-search__result--found' : 'token-search__result--not-found'
+                }`}
+                onClick={() => handleTokenSelect(token)}
+              >
+                <div className="token-search__result-content">
+                  <div className="token-search__result-icon">
+                    {token.found ? '✅' : '❌'}
                   </div>
-                  {token.isNew && !token.notFound && (
-                    <div className="token-search__result-meta">
-                      {token.verified ? '✅ Verified' : '⚠️ Unverified'} • 
-                      {token.matchType && (
-                        <span className={`match-type match-type--${token.matchType}`}>
-                          {token.matchType === 'exact_symbol' ? '🎯 Exact Symbol' :
-                           token.matchType === 'exact_name' ? '🎯 Exact Name' :
-                           token.matchType === 'prefix_symbol' ? '📍 Symbol Start' :
-                           token.matchType === 'prefix_name' ? '📍 Name Start' :
-                           token.matchType === 'partial_symbol' ? '🔍 Symbol Contains' :
-                           token.matchType === 'partial_name' ? '🔍 Name Contains' : ''}
-                        </span>
-                      )}
-                      {token.mint ? ` • CA: ${token.mint.slice(0, 8)}...${token.mint.slice(-4)}` : ''}
-                      {token.price && ` • $${token.price.toFixed(4)}`}
+                  <div className="token-search__result-info">
+                    <div className="token-search__result-code">{displayCode}</div>
+                    <div className="token-search__result-label">
+                      {token.found ? token.label : 
+                       token.isMultiple ? `${token.name || token.label} (Jupiter)` :
+                       token.notFound ? `"${token.searchQuery}" not found` :
+                       'Token not found'}
                     </div>
-                  )}
+                    {token.isNew && !token.notFound && (
+                      <div className="token-search__result-meta">
+                        {token.verified ? '✅ Verified' : '⚠️ Unverified'} • 
+                        {token.matchType && (
+                          <span className={`match-type match-type--${token.matchType}`}>
+                            {token.matchType === 'exact_symbol' ? '🎯 Exact Symbol' :
+                             token.matchType === 'exact_name' ? '🎯 Exact Name' :
+                             token.matchType === 'prefix_symbol' ? '📍 Symbol Start' :
+                             token.matchType === 'prefix_name' ? '📍 Name Start' :
+                             token.matchType === 'partial_symbol' ? '🔍 Symbol Contains' :
+                             token.matchType === 'partial_name' ? '🔍 Name Contains' : ''}
+                          </span>
+                        )}
+                        {token.mint ? ` • CA: ${token.mint.slice(0, 8)}...${token.mint.slice(-4)}` : ''}
+                        {token.price && ` • $${token.price.toFixed(4)}`}
+                      </div>
+                    )}
+                  </div>
                 </div>
+                
+                {!token.found && (
+                  <button
+                    className="token-search__add-button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAddToken(token);
+                    }}
+                    disabled={isAdding}
+                    title={token.notFound ? "Add with Contract Address" : "Add token"}
+                  >
+                    {isAdding ? '⏳' : '➕'} {token.notFound ? 'Add' : 'Add'}
+                  </button>
+                )}
               </div>
-              
-              {!token.found && (
-                <button
-                  className="token-search__add-button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleAddToken(token);
-                  }}
-                  disabled={isAdding}
-                  title={token.notFound ? "Add with Contract Address" : "Add token"}
-                >
-                  {isAdding ? '⏳' : '➕'} {token.notFound ? 'Add' : 'Add'}
-                </button>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

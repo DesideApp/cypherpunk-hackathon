@@ -60,7 +60,11 @@ router.post('/search', async (req, res) => {
         success: true,
         found: true,
         multiple: true,
-        tokens: tokensWithPrices,
+        tokens: tokensWithPrices.map((token) => ({
+          ...token,
+          code: token.symbol,
+          label: token.name,
+        })),
       });
     }
     
