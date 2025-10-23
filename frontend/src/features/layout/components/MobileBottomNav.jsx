@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import { MessageCircle, ArrowLeftRight, User, Settings } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useLayout } from "@features/layout/contexts/LayoutContext";
-import { panelEvents } from "@wallet-adapter/ui/system/panel-bus";
+import { panelEvents } from "@features/auth/ui/system/panel-bus";
 
 import "./MobileBottomNav.css";
 
