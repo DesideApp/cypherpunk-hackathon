@@ -3,12 +3,14 @@ import React, { useCallback, useEffect, useState } from "react";
 import LayoutRoutes from "../LayoutRoutes.jsx";
 import { useLayout } from "@features/layout/contexts/LayoutContext";
 import MobileBottomNav from "@features/layout/components/MobileBottomNav.jsx";
+import MobileSettingsSheet from "@features/layout/components/MobileSettingsSheet.jsx";
 
 import "../Layout.css";
 
 export default function MobileLayout() {
   const { leftbarExpanded, setLeftbarExpanded } = useLayout();
   const [showBottomNav, setShowBottomNav] = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     const handler = (event) => {
@@ -30,7 +32,9 @@ export default function MobileLayout() {
         <LayoutRoutes />
       </main>
 
-      {showBottomNav && <MobileBottomNav />}
+      {showBottomNav && (
+        <MobileBottomNav onOpenSettings={() => setShowSettings(true)} />
+      )}
 
       {leftbarExpanded && (
         <button
@@ -40,6 +44,10 @@ export default function MobileLayout() {
           onClick={handleCloseDrawer}
         />
       )}
+      <MobileSettingsSheet
+        open={showSettings}
+        onClose={() => setShowSettings(false)}
+      />
     </div>
   );
 }

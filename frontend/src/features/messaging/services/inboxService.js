@@ -113,7 +113,13 @@ export function createInboxService({
     const senderCountry = merged.senderCountry || null;
 
     const hasIv = !!(merged.iv || merged?.envelope?.iv);
-    const hasCipher = !!(merged.cipher || merged?.envelope?.cipher || merged?.box);
+    const hasCipher = !!(merged.cipher || merged?.envelope?.cipher);
+    const rawBox =
+      merged.box ||
+      merged.encryptedContent ||
+      merged?.payload?.box ||
+      merged?.envelope?.box ||
+      null;
     const isEncrypted = hasIv || hasCipher;
 
     let text;
@@ -124,15 +130,14 @@ export function createInboxService({
     }
 
     if (!text && !isEncrypted) {
-      const box = merged.box || merged.encryptedContent || merged?.payload?.box || merged?.envelope?.box || null;
       const mime = merged.mime || merged?.payload?.mime || merged?.envelope?.mime || "";
-      if (box) {
+      if (rawBox) {
         if ((mime || "").startsWith("text/") || !mime) {
-          const maybe = base64ToUtf8(box);
+          const maybe = base64ToUtf8(rawBox);
           if (typeof maybe === "string" && maybe.length) text = maybe;
-          else media = { mime: mime || "application/octet-stream", base64: box };
+          else media = { mime: mime || "application/octet-stream", base64: rawBox };
         } else {
-          media = { mime, base64: box };
+          media = { mime, base64: rawBox };
         }
       }
     }
@@ -206,7 +211,12 @@ export function createInboxService({
       agreement: agreementData || null,
       receipt: receiptData || null,
       envelope: isEncrypted
-        ? { iv: merged.iv || merged?.envelope?.iv, cipher: merged.cipher || merged.box || merged?.envelope?.cipher || merged?.envelope?.box, aad: merged.aad || merged?.envelope?.aad, aadB64: merged.aadB64 || merged?.envelope?.aadB64 }
+        ? {
+            iv: merged.iv || merged?.envelope?.iv,
+            cipher: merged.cipher || merged?.envelope?.cipher || merged.box || merged?.envelope?.box,
+            aad: merged.aad || merged?.envelope?.aad,
+            aadB64: merged.aadB64 || merged?.envelope?.aadB64,
+          }
         : null,
     };
   };

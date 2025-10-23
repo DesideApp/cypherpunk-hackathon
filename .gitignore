@@ -84,3 +84,6 @@ ai-style-agent/
  
 # Private docs
 docs/telegram-bots-inventory.md
+
+# Telegram Bot - excluir del deploy
+backend/src/modules/telegram-bot/

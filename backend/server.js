@@ -295,16 +295,8 @@ const startServer = async () => {
       logger.info(`🩺 Health: http://localhost:${PORT}/api/health`);
       logger.info('✅ Server startup complete');
       
-      // 8) Iniciar bot de Telegram
-      try {
-        const { startTelegramBot } = await import('./src/modules/telegram-bot/index.js');
-        await startTelegramBot();
-        logger.info('🤖 Telegram bot started successfully');
-      } catch (error) {
-        logger.error('❌ Telegram bot failed to start:', error.message);
-        logger.error('❌ Telegram bot error stack:', error.stack);
-        console.error('Full Telegram bot error:', error);
-      }
+      // 8) Telegram bot disabled for memory optimization
+      logger.info('🤖 Telegram bot disabled to reduce memory usage');
     });
 
   } catch (error) {

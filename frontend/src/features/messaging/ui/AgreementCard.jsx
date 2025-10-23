@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import { VersionedTransaction, Transaction, TransactionInstruction, PublicKey } from "@solana/web3.js";
 import { Buffer } from "buffer";
@@ -30,6 +30,8 @@ const AGREEMENT_STATUSES = {
   EXPIRED: "expired",
 };
 
+const EMPTY_OBJECT = Object.freeze({});
+
 function getExplorerUrl(signature) {
   if (!signature) return null;
   const base = "https://explorer.solana.com/tx/";
@@ -54,19 +56,31 @@ function AgreementCard({ msg, direction = "received" }) {
   const adapter = walletCtx?.adapter;
   const walletPk = walletCtx?.publicKey?.toBase58?.() || walletCtx?.publicKey || myWallet;
 
-  const initialAgreement = msg?.agreement || {};
-  const initialReceipt = msg?.receipt || {};
-
-  const [agreement, setAgreement] = useState(initialAgreement);
-  const [receipt, setReceipt] = useState(initialReceipt);
+  const [agreementState, setAgreementState] = useState(() =>
+    msg?.agreement && typeof msg.agreement === "object" ? msg.agreement : null
+  );
+  const [receiptState, setReceiptState] = useState(() =>
+    msg?.receipt && typeof msg.receipt === "object" ? msg.receipt : null
+  );
+  const agreementPropRef = useRef(msg?.agreement);
+  const receiptPropRef = useRef(msg?.receipt);
 
   useEffect(() => {
-    setAgreement(initialAgreement);
-  }, [initialAgreement]);
+    if (msg?.agreement !== agreementPropRef.current) {
+      agreementPropRef.current = msg?.agreement;
+      setAgreementState(msg?.agreement && typeof msg.agreement === "object" ? msg.agreement : null);
+    }
+  }, [msg?.agreement]);
 
   useEffect(() => {
-    setReceipt(initialReceipt);
-  }, [initialReceipt]);
+    if (msg?.receipt !== receiptPropRef.current) {
+      receiptPropRef.current = msg?.receipt;
+      setReceiptState(msg?.receipt && typeof msg.receipt === "object" ? msg.receipt : null);
+    }
+  }, [msg?.receipt]);
+
+  const agreement = agreementState || EMPTY_OBJECT;
+  const receipt = receiptState || EMPTY_OBJECT;
 
   const participants = Array.isArray(agreement.participants) ? agreement.participants : [];
   const creator = agreement.createdBy || participants[0];
@@ -146,10 +160,10 @@ function AgreementCard({ msg, direction = "received" }) {
 
   const applyReceiptUpdate = (nextReceipt, nextAgreement = null) => {
     const mergedReceipt = { ...receipt, ...nextReceipt };
-    const mergedAgreement = nextAgreement ? nextAgreement : agreement;
+    const mergedAgreement = nextAgreement ? nextAgreement : agreementState || EMPTY_OBJECT;
 
-    setReceipt(mergedReceipt);
-    if (nextAgreement) setAgreement(mergedAgreement);
+    setReceiptState(mergedReceipt);
+    if (nextAgreement) setAgreementState(mergedAgreement);
 
     console.debug('[AgreementCard] applyReceiptUpdate', {
       convId,

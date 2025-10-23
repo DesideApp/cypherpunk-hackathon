@@ -6,7 +6,7 @@ import { panelEvents } from "@wallet-adapter/ui/system/panel-bus";
 
 import "./MobileBottomNav.css";
 
-export default function MobileBottomNav() {
+export default function MobileBottomNav({ onOpenSettings = () => {} }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { isMobile } = useLayout();
@@ -40,7 +40,7 @@ export default function MobileBottomNav() {
     }
 
     if (item.action === "openSettings") {
-      panelEvents.open("settings");
+      onOpenSettings?.();
       return;
     }
   };

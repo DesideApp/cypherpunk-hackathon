@@ -17,7 +17,7 @@ import agreementRoutes    from '#modules/agreements/routes/index.js';
 import statsRoutes        from '#modules/stats/routes/index.js';
 import tokenRoutes        from '#modules/tokens/routes/index.js';
 import naturalCommandsRoutes from '#modules/natural-commands/routes/index.js';
-import telegramBotRoutes  from '../../../modules/telegram-bot/routes/index.js';
+// import telegramBotRoutes  from '../../../modules/telegram-bot/routes/index.js'; // Disabled for memory optimization
 import linkPreviewRoutes  from '#modules/link-preview/routes/index.js';
 import activityRoutes     from '#modules/activity/routes/index.js';
 
@@ -47,7 +47,7 @@ v1.use('/stats', statsRoutes);
 v1.use('/blinks-public', blinkPublicRoutes);
 
 // Telegram Bot endpoints (admin only)
-v1.use('/telegram-bot', telegramBotRoutes);
+// v1.use('/telegram-bot', telegramBotRoutes); // Disabled for memory optimization
 
 // Link Preview endpoints (public)
 v1.use('/link-preview', linkPreviewRoutes);
