@@ -12,5 +12,7 @@ export {
   ActionPrimaryButton 
 } from "./ActionButtons.jsx";
 export { default as BubbleSoftCard } from "./BubbleSoftCard.jsx";
+// Legacy exports for backward compatibility
+export { UiCard } from "./legacy/UiCard.jsx";
 export * from "./action-modals/index.js";
 export * as tokens from "./tokens.js";
