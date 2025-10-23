@@ -1,0 +1,42 @@
+.agreement-modal-textarea {
+  min-height: 48px;
+  max-height: 140px;
+  resize: vertical;
+}
+
+.agreement-payer-toggle {
+  display: inline-flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.agreement-toggle {
+  border-radius: 999px;
+  padding: 6px 14px;
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: var(--transition-all);
+}
+
+.agreement-toggle.active {
+  background: color-mix(in srgb, var(--window-background) 85%, transparent);
+  border-color: var(--border-color-active);
+  color: var(--text-primary);
+}
+
+.agreement-toggle:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.agreement-modal-body--scroll {
+  max-height: calc(var(--action-modal-max-height, 90vh) - 220px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+}
+.agreement-modal-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--action-modal-body-gap, 18px);
+}

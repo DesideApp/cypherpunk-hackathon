@@ -10,7 +10,7 @@ import "./MessageGroup.css";
 const MessageGroup = ({ date, messages }) => {
   if (!messages || messages.length === 0) return null;
 
-  const isSentGroup = messages[0]?.sender === "me";
+  const isSentGroup = messages[0]?.direction === "sent";
 
   return (
     <section
@@ -27,22 +27,28 @@ const MessageGroup = ({ date, messages }) => {
       {messages.map((msg, idx) => {
         const prev = messages[idx - 1];
         const next = messages[idx + 1];
-        const samePrev = prev && prev.sender === msg.sender;
-        const sameNext = next && next.sender === msg.sender;
-        const position = !samePrev ? "first" : !sameNext ? "last" : "middle";
+        const samePrev = prev && prev.direction === msg.direction;
+        const sameNext = next && next.direction === msg.direction;
+        const position = !samePrev && !sameNext
+          ? "first last"
+          : !samePrev
+            ? "first"
+            : !sameNext
+              ? "last"
+              : "middle";
 
         const key =
           msg.id ??
           msg.clientMsgId ??
           (msg.timestamp
-            ? `${msg.sender || "x"}-${msg.timestamp}-${idx}`
-            : `${msg.sender || "x"}-idx-${idx}`);
+            ? `${msg.direction || "x"}-${msg.timestamp}-${idx}`
+            : `${msg.direction || "x"}-idx-${idx}`);
 
         return (
           <MessageBubble
             key={key}
             msg={msg}
-            isMe={msg.sender === "me"}
+            direction={msg.direction}
             position={position}
           />
         );

@@ -17,6 +17,30 @@ const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f
 
 /* ───────────────────────── helpers ───────────────────────── */
 
+function trimString(value) {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function normalizeMeta(rawMeta, { sender, dest }) {
+  if (!rawMeta || typeof rawMeta !== "object") return null;
+
+  const normalized = {
+    kind: trimString(rawMeta.kind),
+    agreementId: trimString(rawMeta.agreementId),
+    convId: trimString(rawMeta.convId),
+    clientId: trimString(rawMeta.clientId),
+    from: trimString(rawMeta.from) || trimString(sender),
+    to: trimString(rawMeta.to) || trimString(dest),
+    step: trimString(rawMeta.step),
+    status: trimString(rawMeta.status),
+  };
+
+  const entries = Object.entries(normalized).filter(([, value]) => value !== null);
+  return entries.length ? Object.fromEntries(entries) : null;
+}
+
 /** Mutualidad de contactos: ambos ACCEPTED y no bloqueados */
 async function areMutualContacts(a, b) {
   try {
@@ -53,7 +77,7 @@ export const enqueueMessage = async (req, res) => {
     if (!ENABLED) return res.status(503).json({ error: "relay-disabled" });
 
     const sender = req.user?.wallet;
-    const { msgId, to, box, iv, force } = req.body || {};
+    const { msgId, to, box, iv, force, meta: rawMeta } = req.body || {};
     if (!sender) return res.status(401).json({ error: "unauthorized" });
 
     // Validaciones de forma
@@ -95,15 +119,33 @@ export const enqueueMessage = async (req, res) => {
       return res.status(409).json({ error: "recipient-online", presenceTTL: parseInt(process.env.PRESENCE_TTL_MS || '45000') });
     }
 
+    // Normalizar metadatos de dominio
+    const meta = normalizeMeta(rawMeta, { sender, dest });
+    const agreementId = meta?.agreementId || null;
+    const kind = meta?.kind || null;
+    const messageType = trimString(req.body?.messageType) || kind || 'text';
+
     // Cuotas (DESTINO)
     const quota    = recipientUser.relayQuotaBytes ?? config.tiers.basic.quotaBytes;
     const used     = recipientUser.relayUsedBytes  ?? 0;
     const gracePct = recipientUser.relayOverflowGracePct ?? 0;
     const allowedWithGrace = Math.floor(quota * (1 + gracePct / 100));
 
-    const _id = String(msgId);
-    const exists = await RelayMessage.findById(_id).select({ _id: 1 }).lean();
-    const willUse = exists ? used : used + boxSize;
+    const normalizedMsgId = String(msgId);
+    let targetDoc = await RelayMessage.findById(normalizedMsgId).lean();
+
+    if (!targetDoc && agreementId) {
+      targetDoc = await RelayMessage.findOne({ to: dest, 'meta.agreementId': agreementId }).lean();
+    }
+
+    const targetId = String(targetDoc?._id || normalizedMsgId);
+    const previousBoxSize = targetDoc?.boxSize || 0;
+    const willUse = targetDoc ? (used - previousBoxSize + boxSize) : used + boxSize;
+
+    const finalMeta = meta ? { ...meta } : null;
+    if (finalMeta && !finalMeta.clientId) {
+      finalMeta.clientId = targetDoc?.meta?.clientId || targetId;
+    }
 
     if (willUse > allowedWithGrace) {
       return res.status(409).json({
@@ -114,23 +156,37 @@ export const enqueueMessage = async (req, res) => {
     }
 
     // Idempotente: upsert por _id = msgId (sin conflictos de paths)
-    const result = await RelayMessage.updateOne(
-      { _id },
-      {
-        $set: { to: dest, from: sender, box, boxSize, iv: iv ?? null },  // ← todos los mutables aquí
-        $setOnInsert: { _id, createdAt: new Date() }       // ← sólo init/creación aquí
+    const updatePayload = {
+      $set: {
+        to: dest,
+        from: sender,
+        box,
+        boxSize,
+        iv: iv ?? null,
+        messageType,
+        meta: finalMeta,
       },
-      { upsert: true }
-    );
+    };
+
+    if (!targetDoc) {
+      updatePayload.$setOnInsert = { _id: targetId, createdAt: new Date() };
+    }
+
+    const result = await RelayMessage.updateOne({ _id: targetId }, updatePayload, { upsert: true });
 
     // Incrementa uso sólo si NO existía previamente
-    if (!exists) {
+    if (!targetDoc) {
       await User.updateOne({ wallet: dest }, { $inc: { relayUsedBytes: boxSize } });
+    } else {
+      const delta = boxSize - previousBoxSize;
+      if (delta !== 0) {
+        await User.updateOne({ wallet: dest }, { $inc: { relayUsedBytes: delta } });
+      }
     }
 
     // Notificar al receptor si está online y la política lo permite
     if (recipientOnline && !OFFLINE_ONLY) {
-      ioInstance?.to?.(dest)?.emit?.("relay:flush", [_id]);
+      ioInstance?.to?.(dest)?.emit?.("relay:flush", [targetId]);
     }
 
     await safeLog(sender, 'relay_message', { to: dest, bytes: boxSize });
@@ -141,7 +197,7 @@ export const enqueueMessage = async (req, res) => {
     return res.status(202).json({
       status: "queued",
       transport: "relay",
-      messageId: _id,
+      messageId: targetId,
       ...(isForced ? { forced: true } : {}),
       ...(isOverflow ? { warning: "relay-overflow-grace", quotaBytes: quota, usedBytes: nowUsed, gracePct } : {}),
     });
@@ -210,6 +266,7 @@ export const fetchMessages = async (req, res) => {
       ...(msg.conversation?.replyToId ? { replyToId: msg.conversation.replyToId } : {}),
       ...(msg.flags?.isUrgent ? { isUrgent: true } : {}),
       ...(msg.flags?.isEphemeral ? { isEphemeral: true } : {}),
+      ...(msg.meta ? { meta: msg.meta } : {}),
       
       // Cliente y red (si existe)
       ...(msg.clientInfo?.platform ? { clientPlatform: msg.clientInfo.platform } : {}),

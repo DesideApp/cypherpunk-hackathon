@@ -1,7 +1,62 @@
 // frontend/src/features/messaging/ui/TokenSearch.jsx
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { apiRequest } from '@shared/services/apiService.js';
 import './TokenSearch.css';
+
+const REMOTE_RESULTS_LIMIT = 5;
+
+const getTokenKey = (token = {}) => {
+  if (token.mint) {
+    return token.mint.toLowerCase();
+  }
+  if (token.code) {
+    return token.code.toLowerCase();
+  }
+  if (token.label) {
+    return token.label.toLowerCase();
+  }
+  return '';
+};
+
+const mergeMatches = (localMatches = [], remoteMatches = [], remoteLimit = REMOTE_RESULTS_LIMIT) => {
+  const seen = new Set();
+  const combined = [];
+
+  const appendIfNew = (token, isRemote = false, remoteCounter = { count: 0 }) => {
+    if (isRemote && remoteCounter.count >= remoteLimit) {
+      return;
+    }
+
+    const key = getTokenKey(token);
+    if (key && seen.has(key)) {
+      return;
+    }
+
+    if (key) {
+      seen.add(key);
+    }
+
+    combined.push(token);
+    if (isRemote) {
+      remoteCounter.count += 1;
+    }
+  };
+
+  const remoteCounter = { count: 0 };
+  localMatches.forEach((token) => appendIfNew(token));
+  remoteMatches.forEach((token) => appendIfNew(token, true, remoteCounter));
+
+  return combined;
+};
+
+const createNotFoundResult = (query = '') => ({
+  code: query,
+  label: `"${query}" no encontrado`,
+  found: false,
+  isNew: true,
+  notFound: true,
+  searchQuery: query,
+});
 
 export default function TokenSearch({ 
   onTokenSelect, 
@@ -13,87 +68,109 @@ export default function TokenSearch({
   const [results, setResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
+  const activeRequestIdRef = useRef(0);
 
-  // Búsqueda en tiempo real
-  useEffect(() => {
-    if (search.length >= 1) {
-      setIsSearching(true);
-      searchTokens(search);
-    } else {
+  const getLocalMatches = useCallback((query = '') => {
+    const normalizedQuery = query.trim().toLowerCase();
+    if (!normalizedQuery) {
+      return [];
+    }
+
+    return availableTokens
+      .filter((token) => {
+        const code = token.code?.toLowerCase() || '';
+        const label = token.label?.toLowerCase() || '';
+        return code.includes(normalizedQuery) || label.includes(normalizedQuery);
+      })
+      .map((token) => ({
+        ...token,
+        found: true,
+        isNew: false,
+      }));
+  }, [availableTokens]);
+
+  // Función de búsqueda (definida ANTES del useEffect que la usa)
+  const searchTokens = useCallback(async (query) => {
+    const normalizedQuery = query.trim();
+    const currentRequestId = ++activeRequestIdRef.current;
+
+    if (!normalizedQuery) {
       setResults([]);
       setIsSearching(false);
+      return;
     }
-  }, [search]);
 
-  const searchTokens = async (query) => {
+    const localMatches = getLocalMatches(normalizedQuery);
+    setResults(localMatches);
+
+    const upperQuery = normalizedQuery.toUpperCase();
+    let remoteMatches = [];
+    let fallbackResult = null;
+
     try {
-      // Buscar en tokens disponibles primero
-      const availableMatches = availableTokens.filter(token => 
-        token.code.toLowerCase().includes(query.toLowerCase()) ||
-        token.label.toLowerCase().includes(query.toLowerCase())
-      );
+      const response = await apiRequest('/api/v1/tokens/search', {
+        method: 'POST',
+        body: JSON.stringify({ code: upperQuery }),
+      });
 
-      if (availableMatches.length > 0) {
-        // Si encuentra en disponibles, mostrarlos
-        setResults(availableMatches.map(token => ({
-          ...token,
-          found: true,
-          isNew: false,
-        })));
-      } else {
-        // Si no encuentra en disponibles, buscar en Jupiter
-        try {
-          const response = await apiRequest('/api/v1/tokens/search', {
-            method: 'POST',
-            body: JSON.stringify({ code: query.toUpperCase() }),
-          });
-
-          if (response.success && response.found) {
-            if (response.multiple) {
-              // Múltiples tokens encontrados
-              setResults(response.tokens.map(token => ({
-                ...token,
-                found: false, // No están en nuestra lista
-                isNew: true,
-                isMultiple: true,
-              })));
-            } else {
-              // Token único encontrado en Jupiter
-              setResults([{
-                ...response.token,
-                found: false, // No está en nuestra lista
-                isNew: true,
-              }]);
-            }
-          } else {
-            // Token no encontrado en Jupiter
-            setResults([{
-              code: query.toUpperCase(),
-              label: `"${query.toUpperCase()}" no encontrado`,
-              found: false,
-              isNew: true,
-              notFound: true,
-              searchQuery: query.toUpperCase(),
-            }]);
-          }
-        } catch (searchError) {
-          // Error buscando en Jupiter, mostrar como no encontrado
-          setResults([{
-            code: query.toUpperCase(),
-            label: `"${query.toUpperCase()}" no encontrado`,
+      if (response?.success && response?.found) {
+        if (response.multiple) {
+          remoteMatches = (response.tokens || []).map((token) => ({
+            ...token,
             found: false,
             isNew: true,
-            notFound: true,
-            searchQuery: query.toUpperCase(),
-          }]);
+            isMultiple: true,
+          }));
+        } else if (response.token) {
+          remoteMatches = [{
+            ...response.token,
+            found: false,
+            isNew: true,
+          }];
         }
+      } else if (localMatches.length === 0) {
+        fallbackResult = createNotFoundResult(upperQuery);
       }
     } catch (error) {
       console.error('Error searching tokens:', error);
-    } finally {
+      if (localMatches.length === 0) {
+        fallbackResult = createNotFoundResult(upperQuery);
+      }
+    }
+
+    if (remoteMatches.length === 0 && localMatches.length === 0 && !fallbackResult) {
+      fallbackResult = createNotFoundResult(upperQuery);
+    }
+
+    if (activeRequestIdRef.current !== currentRequestId) {
+      return;
+    }
+
+    const mergedResults = mergeMatches(localMatches, remoteMatches);
+    if (mergedResults.length > 0) {
+      setResults(mergedResults);
+    } else if (fallbackResult) {
+      setResults([fallbackResult]);
+    } else {
+      setResults([]);
+    }
+
+    setIsSearching(false);
+  }, [getLocalMatches]);
+
+  // Búsqueda en tiempo real (useEffect DESPUÉS de searchTokens)
+  useEffect(() => {
+    const trimmedSearch = search.trim();
+
+    if (trimmedSearch.length >= 1) {
+      setIsSearching(true);
+      searchTokens(trimmedSearch);
+    } else {
+      activeRequestIdRef.current += 1;
+      setResults((prev) => (prev.length ? [] : prev));
       setIsSearching(false);
     }
-  };
+  }, [search, searchTokens]);
 
   const handleAddToken = async (token) => {
     setIsAdding(true);

@@ -9,7 +9,7 @@ import "../Layout.css";
 export default function DesktopLayout() {
   const { leftbarExpanded, setLeftbarExpanded } = useLayout();
 
-  const handleCloseDrawer = useCallback(() => {
+  const _handleCloseDrawer = useCallback(() => {
     if (leftbarExpanded) {
       setLeftbarExpanded(false);
     }
@@ -19,15 +19,15 @@ export default function DesktopLayout() {
     <div className="layout-wrapper">
       <LeftBar />
 
-      {/* Desktop no utiliza overlay, pero mantenemos botón oculto para accesibilidad */}
-      {false && (
+      {/* Desktop no utiliza overlay */}
+      {/* 
         <button
           type="button"
           className="leftbar-overlay"
           aria-label="Close navigation"
           onClick={handleCloseDrawer}
         />
-      )}
+      */}
 
       <main className="layout-content">
         <LayoutRoutes />

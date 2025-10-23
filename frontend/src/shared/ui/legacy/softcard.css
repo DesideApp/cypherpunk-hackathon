@@ -1,0 +1,68 @@
+.soft-card {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  width: var(--soft-card-width, var(--bubble-card-width, 340px));
+  border-radius: var(--soft-card-radius, 16px);
+  background: var(--soft-card-bg, color-mix(in srgb, var(--surface-color, #0b101b) 92%, transparent));
+  color: var(--soft-card-fg, var(--text-primary, #ffffff));
+  box-shadow: var(--soft-card-shadow, 0 24px 42px rgba(0, 0, 0, 0.35));
+  overflow: hidden;
+  transition: box-shadow 160ms ease, transform 160ms ease;
+}
+
+.soft-card:hover {
+  box-shadow: var(--soft-card-shadow-hover, 0 28px 48px rgba(0, 0, 0, 0.4));
+  transform: translateY(-1px);
+}
+
+.soft-card__accent {
+  width: var(--soft-card-accent-width, 8px);
+  flex: 0 0 var(--soft-card-accent-width, 8px);
+  background: var(--soft-card-accent, rgba(255, 255, 255, 0.18));
+}
+
+.soft-card__content {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: var(--soft-card-content-padding, 0);
+}
+
+.soft-card--neutral {
+  --soft-card-bg: color-mix(in srgb, var(--surface-color, #0b101b) 90%, transparent);
+  --soft-card-fg: var(--text-primary, #ffffff);
+  --soft-card-accent: rgba(255, 255, 255, 0.12);
+}
+
+.soft-card--own {
+  --soft-card-bg: color-mix(in srgb, var(--sent-message, #6851f8) 88%, transparent);
+  --soft-card-fg: var(--sent-text, #ffffff);
+  --soft-card-accent: color-mix(in srgb, var(--accent-color, #8b5cf6) 80%, transparent);
+}
+
+.soft-card--contact {
+  --soft-card-bg: color-mix(in srgb, var(--bubble-received, #24283b) 90%, transparent);
+  --soft-card-fg: var(--text-primary, #e5e7ff);
+  --soft-card-accent: color-mix(in srgb, var(--accent-color, #4f46e5) 45%, transparent);
+}
+
+.soft-card--success {
+  --soft-card-bg: color-mix(in srgb, var(--success-color, #10b981) 18%, transparent);
+  --soft-card-fg: var(--text-on-success, #e6fffa);
+  --soft-card-accent: color-mix(in srgb, var(--success-color, #10b981) 70%, transparent);
+}
+
+.soft-card--error {
+  --soft-card-bg: color-mix(in srgb, var(--error-color, #ef4444) 18%, transparent);
+  --soft-card-fg: var(--surface-color, #fff5f5);
+  --soft-card-accent: color-mix(in srgb, var(--error-color, #ef4444) 70%, transparent);
+}
+
+@media (max-width: 640px) {
+  .soft-card {
+    width: 100%;
+    border-radius: 14px;
+  }
+}

@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import PropTypes from "prop-types";
 import { SOLANA } from "@shared/config/env.js";
-import "./BlinkActionCard.css";
+import ActionCardBase from "@shared/ui/bubbles/ActionCardBase.jsx";
 
 function buildExplorerUrl(signature) {
   if (!signature) return null;
@@ -18,8 +18,8 @@ function short(value) {
   return `${value.slice(0, 6)}…${value.slice(-4)}`;
 }
 
-export default function BlinkActionCard({ msg = {} }) {
-  const isMine = msg?.sender === "me";
+export default function BlinkActionCard({ msg = {}, direction = "received" }) {
+  const isMine = direction === "sent";
   const blink = msg?.blinkAction || {};
   const variant = isMine ? "own" : "contact";
 
@@ -39,26 +39,31 @@ export default function BlinkActionCard({ msg = {} }) {
     return Number.isFinite(numeric) ? numeric : null;
   }, [amountInSol]);
 
-  const primaryLabel = isMine ? null : "Comprar";
+  const primaryLabel = isMine ? null : "Buy";
   const infoText = isMine
-    ? "Compra completada y compartida con tu contacto."
-    : "Tu contacto acaba de ejecutar este blink. Ábrelo para revisarlo o repetirlo.";
+    ? "Purchase completed and shared with your contact."
+    : "Your contact just executed this blink. Open it to review or repeat.";
 
   const metaRows = useMemo(() => {
     const rows = [];
     if (amountInSol !== null && amountInSol !== undefined && amountInSol !== "") {
-      rows.push({ label: "Gastado", value: `${amountInSol} SOL` });
+      rows.push({ id: "spent", label: "Spent", value: `${amountInSol} SOL` });
     }
     if (expectedOut && token) {
-      rows.push({ label: "Recibido", value: `≈ ${expectedOut} ${token}` });
+      rows.push({ id: "received", label: "Received", value: `≈ ${expectedOut} ${token}` });
     } else if (token) {
-      rows.push({ label: "Token", value: token });
+      rows.push({ id: "token", label: "Token", value: token });
     }
     if (blink.source) {
-      rows.push({ label: "Origen", value: blink.source });
+      rows.push({ id: "source", label: "Source", value: blink.source });
     }
-    if (txSig && !explorerUrl) {
-      rows.push({ label: "Tx", value: short(txSig) });
+    if (txSig) {
+      rows.push({
+        id: "tx",
+        label: "Tx",
+        value: short(txSig),
+        link: explorerUrl || undefined,
+      });
     }
     return rows;
   }, [amountInSol, expectedOut, token, blink.source, txSig, explorerUrl]);
@@ -82,78 +87,70 @@ export default function BlinkActionCard({ msg = {} }) {
     );
   };
 
-  return (
-    <div className={`blink-card-wrapper blink-card-wrapper--${variant}`} role="group" aria-label="Blink action">
-      <div className={`blink-card blink-card--${variant}`}>
-        <header className="blink-card-header">
-          <div className="blink-card-heading">
-            <p className="blink-card-title">{token ? `Blink · ${token}` : "Blink action"}</p>
-            {createdLabel && <span className="blink-card-date">{createdLabel}</span>}
-          </div>
-          <span className="blink-card-chip">{(blink.kind || "blink").toUpperCase()}</span>
-        </header>
+  const bodyContent = (
+    <>
+      <p className="bubble-action-card__note blink-card-note">{infoText}</p>
 
-        <p className="blink-card-subtitle">
-          {isMine ? "Compartido con tu contacto" : "Compartido por tu contacto"}
-        </p>
+      {!isMine && token && baseAmountNumber !== null && (
+        <div className="bubble-action-card__quick-actions">
+          {[1, 2, 5, 10].map((multiplier) => {
+            const next = baseAmountNumber * multiplier;
+            const formatted = Number(next.toFixed(6)).toString().replace(/\.?0+$/, "");
+            return (
+              <button
+                type="button"
+                key={`mult-${multiplier}`}
+                className="bubble-action-card__quick-button"
+                onClick={() => {
+                  window.dispatchEvent(
+                    new CustomEvent("chat:blink:buy", {
+                      detail: { token, amount: formatted, multiplier, shareOnComplete: false },
+                    })
+                  );
+                }}
+              >
+                {multiplier === 1 ? "Same" : `x${multiplier}`}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
 
-        {metaRows.length > 0 && (
-          <div className="blink-card-meta">
-            {metaRows.map(({ label, value }, idx) => (
-              <React.Fragment key={`${label}-${idx}`}>
-                <span className="blink-card-meta-label">{label}</span>
-                <span className="blink-card-meta-value">{value}</span>
-              </React.Fragment>
-            ))}
-          </div>
-        )}
-
-        <p className="blink-card-note">{infoText}</p>
-
-        {!isMine && token && baseAmountNumber !== null && (
-          <div className="blink-card-quick-actions">
-            {[1, 2, 5, 10].map((multiplier) => {
-              const next = baseAmountNumber * multiplier;
-              const formatted = Number(next.toFixed(6)).toString().replace(/\.?0+$/, "");
-              return (
-                <button
-                  type="button"
-                  key={`mult-${multiplier}`}
-                  className="payment-card-secondary blink-card-quick"
-                  onClick={() => {
-                    window.dispatchEvent(
-                      new CustomEvent("chat:blink:buy", {
-                        detail: { token, amount: formatted, multiplier, shareOnComplete: false },
-                      })
-                    );
-                  }}
-                >
-                  {multiplier === 1 ? "Igual" : `x${multiplier}`}
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        <footer className="blink-card-footer">
-          {!isMine && primaryLabel && (
-            <button type="button" className="payment-card-primary blink-card-primary" onClick={handleOpen}>
-              {primaryLabel}
-            </button>
-          )}
-          {isMine && explorerUrl && (
-            <a
-              className="payment-card-secondary"
-              href={explorerUrl}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Ver tx ↗
-            </a>
-          )}
-        </footer>
-      </div>
+  const footerContent = (
+    <div className="bubble-action-card__button-group">
+      {!isMine && primaryLabel && (
+        <button
+          type="button"
+          className="bubble-action-card__button bubble-action-card__button--primary"
+          onClick={handleOpen}
+        >
+          {primaryLabel}
+        </button>
+      )}
+      {isMine && explorerUrl && (
+        <a
+          className="bubble-action-card__button bubble-action-card__button--secondary bubble-action-card__button--link"
+          href={explorerUrl}
+          target="_blank"
+          rel="noreferrer"
+        >
+          View tx
+        </a>
+      )}
     </div>
+  );
+
+  return (
+    <ActionCardBase
+      variant={variant}
+      title="Blink"
+      metaRows={metaRows}
+      body={bodyContent}
+      footer={footerContent}
+      ariaLabel="Blink action"
+    />
   );
 }
 
@@ -174,8 +171,4 @@ BlinkActionCard.propTypes = {
       createdAt: PropTypes.number,
     }),
   }),
-};
-
-BlinkActionCard.defaultProps = {
-  msg: {},
 };

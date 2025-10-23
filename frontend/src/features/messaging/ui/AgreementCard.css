@@ -1,91 +1,25 @@
 .agreement-card {
-  border: 1px solid color-mix(in srgb, var(--border-color) 60%, transparent);
-  border-radius: 16px;
-  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  max-width: min(var(--bubble-card-max-width, 340px), 100%);
-  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.12);
-  box-sizing: border-box;
-}
-
-.agreement-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
   gap: 12px;
 }
 
-.agreement-card-status {
-  margin: 0 0 2px;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-secondary);
-}
-
-.agreement-card-title {
-  margin: 0;
-  font-size: 1.05rem;
-  font-weight: var(--font-title-weight);
-  color: var(--text-primary);
-}
-
-.agreement-card-hash {
-  font-family: var(--font-mono, monospace);
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-}
-
-.agreement-card-body {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-  white-space: break-spaces;
-}
-
-.agreement-card-amount {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-weight: var(--font-title-weight);
-  color: var(--text-primary);
-}
-
-.agreement-card-amount span:last-child {
-  font-weight: var(--font-body-weight);
-  color: var(--text-secondary);
-}
-
-.agreement-card-deadline {
-  margin: 0;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-}
-
-.agreement-card-actions,
-.agreement-card-footer {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
-}
-
-.agreement-link {
-  color: var(--accent-color);
-  font-size: 0.85rem;
-  text-decoration: none;
-}
-
-.agreement-link:hover {
-  text-decoration: underline;
+.agreement-card-meta {
+  grid-template-columns: 80px 1fr;
 }
 
 .agreement-card-expired {
   margin: 0;
   color: var(--warning-color, #d9480f);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+}
+
+.agreement-card-footer {
+  justify-content: flex-start;
+}
+
+.agreement-card-footer .agreement-download {
+  margin-left: auto;
 }
 
 .agreement-card-settled {
@@ -106,57 +40,19 @@
 .agreement-links {
   display: inline-flex;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
-.agreement-primary,
-.agreement-secondary {
-  border-radius: 999px;
-  padding: 8px 16px;
-  font-size: 0.9rem;
-  border: 1px solid transparent;
-  cursor: pointer;
-  transition: var(--transition-all);
+.agreement-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.agreement-primary {
-  background: var(--accent-color);
-  color: var(--surface-color);
-}
-
-.agreement-primary:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.agreement-secondary {
-  border-color: var(--border-color);
-  color: var(--text-secondary);
-}
-
-.agreement-secondary:hover:not(:disabled) {
-  color: var(--text-primary);
-  border-color: var(--border-color-active);
-}
-
-.agreement-card-footer {
-  justify-content: flex-start;
-}
-
-.agreement-card-footer .agreement-download {
-  margin-left: auto;
-}
-
-@media (max-width: 640px) {
-  .agreement-card {
-    padding: 14px;
-  }
-
-  .agreement-card-footer {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .agreement-card-footer button {
-    width: 100%;
-  }
+.agreement-card__title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: inherit;
 }

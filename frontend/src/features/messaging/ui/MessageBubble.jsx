@@ -2,10 +2,7 @@
 import React from "react";
 import { Lock } from "lucide-react";
 import TextBubble from "../../../shared/ui/bubbles/TextBubble.jsx";
-import AgreementCard from "./AgreementCard.jsx";
-import PaymentRequestCard from "./PaymentRequestCard.jsx";
-import ActionBubbleShell from "../../../shared/ui/bubbles/ActionBubbleShell.jsx";
-import BlinkActionCard from "./BlinkActionCard.jsx";
+import ActionMessage from "./ActionMessage.jsx";
 import "./MessageBubble.css";
 
 function resolveTransport(via) {
@@ -67,11 +64,12 @@ function Footer({ msg, overlay = false }) {
   );
 }
 
-const MessageBubble = ({ msg = {}, isMe, position }) => {
+const MessageBubble = ({ msg = {}, direction = "received", position }) => {
   const hasMedia = !!msg?.media;
   const media = msg?.media || null;
   const hasText = typeof msg.text === "string" && msg.text.length > 0;
   const isTiny = !hasMedia && typeof msg.text === "string" && msg.text.trim().length === 1;
+  const isMe = direction === "sent";
 
   const bubbleClasses = [
     "message-bubble",
@@ -84,60 +82,8 @@ const MessageBubble = ({ msg = {}, isMe, position }) => {
 
   const dataUri = (m) => `data:${m.mime || "application/octet-stream"};base64,${m.base64}`;
 
-  if (msg?.kind === "agreement" && msg?.agreement) {
-    const bubbleClasses = [
-      "message-bubble",
-      "agreement-wrapper",
-      isMe ? "sent" : "received",
-      position,
-    ].join(" ");
-    return (
-      <div className={bubbleClasses} role="listitem">
-        <AgreementCard msg={msg} />
-      </div>
-    );
-  }
-
-  if (msg?.kind === "payment-request" && msg?.paymentRequest) {
-    const bubbleClasses = [
-      "message-bubble",
-      "payment-request-wrapper",
-      isMe ? "sent" : "received",
-      position,
-    ].join(" ");
-    return (
-      <div
-        className={bubbleClasses}
-        role="listitem"
-        data-status={msg.status || (msg.deliveredAt ? "delivered" : "sent")}
-        data-via={resolveTransport(msg?.via) || ""}
-      >
-        <div className="message-content message-content--action">
-          <ActionBubbleShell
-            timestamp={msg?.timestamp || msg?.createdAt || Date.now()}
-            isMe={isMe}
-            encrypted={!!msg?.isEncrypted}
-            transport={msg?.via || null}
-          >
-            <PaymentRequestCard msg={msg} />
-          </ActionBubbleShell>
-        </div>
-      </div>
-    );
-  }
-
-  if (msg?.kind === "blink-action" && msg?.blinkAction) {
-    const bubbleClasses = [
-      "message-bubble",
-      "blink-action-wrapper",
-      isMe ? "sent" : "received",
-      position,
-    ].join(" ");
-    return (
-      <div className={bubbleClasses} role="listitem">
-        <BlinkActionCard msg={msg} />
-      </div>
-    );
+  if (msg?.kind === "agreement" || msg?.kind === "payment-request" || msg?.kind === "blink-action") {
+    return <ActionMessage msg={msg} direction={direction} position={position} />;
   }
 
   const ts = msg?.timestamp || Date.now();

@@ -41,13 +41,3 @@ UiButton.propTypes = {
   className: PropTypes.string,
   children: PropTypes.node,
 };
-
-UiButton.defaultProps = {
-  as: "button",
-  type: "button",
-  variant: "primary",
-  size: "md",
-  block: false,
-  className: undefined,
-  children: null,
-};

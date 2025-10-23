@@ -1,0 +1,656 @@
+/* =========================================================================
+   ACTION MODALS — SISTEMA DE DISEÑO UNIFICADO
+   Para Send, Request, Agreement, Settlement, Fund, Buy modals
+   ========================================================================= */
+
+:root {
+  /* ===== MODAL CONTAINER (compartido por todos) ===== */
+  /* Copiado EXACTO de BuyTokenModal */
+  --action-modal-width: min(420px, 85vw);
+  --action-modal-max-height: min(700px, 90vh);
+  --action-modal-padding: 20px;
+  --action-modal-border-radius: calc(var(--radius-xl, 20px) + 2px);
+  --action-modal-gap: 16px;  /* gap principal del modal */
+  
+  /* Background gradient - COPIADO EXACTO */
+  --action-modal-background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--action-modal-container-bg-base) 96%, white 4%) 0%,
+    color-mix(in srgb, var(--action-modal-container-bg-base) 94%, white 6%) 42%,
+    color-mix(in srgb, var(--action-modal-container-bg-base) 88%, black 12%) 100%
+  );
+  
+  /* Border y shadows - COPIADO EXACTO */
+  --action-modal-border: 1px solid color-mix(in srgb, var(--border-color) 62%, transparent);
+  --action-modal-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), inset 0 -1px 0 rgba(0, 0, 0, 0.28);
+  
+  /* Accent line superior - COPIADO EXACTO */
+  --action-modal-accent-line: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent-color) 55%, transparent), transparent);
+  --action-modal-accent-line-height: 2px;
+  --action-modal-accent-opacity: 0.7;
+
+  /* Backdrop - COPIADO EXACTO */
+  --action-modal-backdrop: var(--action-modal-overlay-bg);
+  --action-modal-backdrop-blur: 2px;
+
+  /* ===== HEADER (compartido) ===== */
+  --action-modal-header-padding-bottom: 10px;
+  --action-modal-header-border: 1px solid color-mix(in srgb, var(--border-color) 65%, transparent);
+  --action-modal-header-gap: 18px;  /* COPIADO DE BUY: era 14px, BUY usa 18px */
+  
+  /* Tipografía header - COPIADO EXACTO */
+  --action-modal-heading-size: 1.22rem;
+  --action-modal-heading-weight: var(--font-title-weight, 600);
+  --action-modal-heading-spacing: 0.012em;
+  --action-modal-subheading-size: 0.9rem;
+
+  /* ===== BODY (compartido) ===== */
+  --action-modal-body-gap: 18px;  /* COPIADO DE BUY: era 16px, BUY usa 18px */
+  
+  /* ===== COMPONENTES BÁSICOS COMPARTIDOS ===== */
+  
+  /* Card interna (para agrupar info) - COPIADO DE buy-selected-card */
+  --action-modal-card-background: linear-gradient(135deg,
+    color-mix(in srgb, var(--window-background) 96%, transparent) 0%,
+    color-mix(in srgb, var(--background-color) 72%, transparent) 100%);
+  --action-modal-card-border: 1px solid color-mix(in srgb, var(--card-accent, rgba(59,130,246,0.6)) 22%, rgba(255,255,255,0.06));
+  --action-modal-card-shadow: 0 16px 34px rgba(0, 0, 0, 0.24),
+    0 1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --action-modal-card-radius: var(--radius-lg, 16px);
+  --action-modal-card-padding: 20px 22px;
+  --action-modal-card-gap: 16px;
+  
+  /* Fields y inputs */
+  --action-modal-field-gap: 6px;
+  --action-modal-input-padding: 10px 12px;
+  --action-modal-input-font-size: 0.9375rem;
+  --action-modal-input-max-width: 140px; /* Para inputs de cantidad */
+  
+  /* Scrollbar */
+  --action-modal-scrollbar-width: 6px;
+}
+
+/* =========================================================================
+   HEADER — Estilos compartidos del header
+   ========================================================================= */
+
+.action-modal-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--action-modal-header-gap);
+  padding-bottom: var(--action-modal-header-padding-bottom);
+  border-bottom: var(--action-modal-header-border);
+}
+
+.action-modal-heading {
+  margin: 0;
+  font-size: var(--action-modal-heading-size);
+  font-weight: var(--action-modal-heading-weight);
+  letter-spacing: var(--action-modal-heading-spacing);
+  color: color-mix(in srgb, var(--text-primary) 96%, transparent);
+}
+
+.action-modal-subheading {
+  margin: 0;
+  font-size: var(--action-modal-subheading-size);
+  color: color-mix(in srgb, var(--text-secondary) 92%, transparent);
+}
+
+/* =========================================================================
+   BODY — Estilos compartidos del body
+   ========================================================================= */
+
+.action-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--action-modal-body-gap);
+  flex: 1;
+  min-height: 0;
+}
+
+/* =========================================================================
+   CARD INTERNA — Para agrupar información importante (estilo Blink)
+   ========================================================================= */
+
+.action-modal-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--action-modal-card-gap);
+  padding: var(--action-modal-card-padding);
+  border-radius: var(--action-modal-card-radius);
+  border: var(--action-modal-card-border);
+  background: var(--action-modal-card-background);
+  box-shadow: var(--action-modal-card-shadow);
+  overflow: hidden;
+  min-height: 260px; /* Más cuadrada, similar a BuyTokenModal */
+}
+
+/* Efecto de brillo (como BuyToken) */
+.action-modal-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      120% 100% at 0% 0%,
+      color-mix(in srgb, var(--card-accent, rgba(59, 130, 246, 0.45)) 30%, transparent) 0%,
+      transparent 70%
+    ),
+    radial-gradient(
+      160% 120% at 100% 0%,
+      color-mix(in srgb, var(--card-sheen, rgba(59, 130, 246, 0.12)) 40%, transparent) 0%,
+      transparent 80%
+    );
+  opacity: 0.45;
+  pointer-events: none;
+  mix-blend-mode: normal;
+}
+
+.action-modal-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Header de la card (identidad: avatar + nombre + info derecha) */
+.action-modal-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+/* Identidad (avatar + nombre) */
+.action-modal-identity {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.action-modal-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--surface-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-modal-avatar--small {
+  width: 32px;
+  height: 32px;
+  font-size: 1rem;
+}
+
+.action-modal-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.action-modal-identity-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.action-modal-identity-name {
+  margin: 0;
+  font-size: var(--font-ui-size, 14px);
+  font-weight: var(--font-ui-weight, 500);
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
+}
+
+.action-modal-identity-address {
+  margin: 0;
+  font-family: var(--font-caption-family);
+  font-size: var(--font-caption-size, 12px);
+  font-weight: var(--font-caption-weight, 500);
+  text-transform: none; /* No uppercase para pubkeys */
+  letter-spacing: 0.02em;
+  color: color-mix(in srgb, var(--text-secondary) 88%, transparent);
+}
+
+/* Transaction flow (para Request/Send/Agreement: muestra 2 partes + dirección) */
+.action-modal-transaction-flow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.action-modal-party {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0; /* Para que text-overflow funcione */
+}
+
+.action-modal-arrow {
+  font-size: 1.5rem;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+/* =========================================================================
+   LAYOUT HELPERS — Para organizar contenido
+   ========================================================================= */
+
+/* Campos en línea (ej: Amount + Token juntos) */
+.action-modal-inline-fields {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+/* Sección con scroll (para contenido largo) */
+.action-modal-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--action-modal-body-gap);
+  max-height: 65vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.action-modal-section::-webkit-scrollbar {
+  width: var(--action-modal-scrollbar-width);
+}
+
+.action-modal-section::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.action-modal-section::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--border-color) 40%, transparent);
+  border-radius: 10px;
+}
+
+.action-modal-section::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--border-color) 60%, transparent);
+}
+
+/* =========================================================================
+   COMPONENTES BÁSICOS — Inputs, selects, fields
+   ========================================================================= */
+
+/* Field container (label + input) */
+.action-modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--action-modal-field-gap);
+}
+
+.action-modal-field-label {
+  font-size: var(--font-ui-size, 14px);
+  font-weight: var(--font-ui-weight, 500);
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.action-modal-field-help {
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: color-mix(in srgb, var(--text-secondary) 88%, transparent);
+  margin: 2px 0 0 0;
+  line-height: 1.5;
+}
+
+/* Input básico (compacto) */
+.action-modal-input {
+  padding: var(--action-modal-input-padding);
+  border-radius: var(--radius-md, 12px);
+  border: 1px solid var(--border-color);
+  background: var(--surface-secondary, rgba(255, 255, 255, 0.05));
+  color: var(--text-primary);
+  font-size: var(--action-modal-input-font-size);
+  transition: all 0.2s ease;
+  line-height: 1.4;
+  width: 100%;
+}
+
+.action-modal-input:focus {
+  outline: none;
+  border-color: var(--border-color-active, rgba(255, 255, 255, 0.15));
+  background: var(--surface-secondary, rgba(255, 255, 255, 0.08));
+}
+
+/* Input compacto (para cantidades) */
+.action-modal-input--compact {
+  max-width: var(--action-modal-input-max-width);
+}
+
+/* Select básico */
+.action-modal-select {
+  padding: var(--action-modal-input-padding);
+  border-radius: var(--radius-md, 12px);
+  border: 1px solid var(--border-color);
+  background: var(--surface-secondary, rgba(255, 255, 255, 0.05));
+  color: var(--text-primary);
+  font-size: var(--action-modal-input-font-size);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  max-width: 120px;
+}
+
+.action-modal-select:focus {
+  outline: none;
+  border-color: var(--border-color-active, rgba(255, 255, 255, 0.15));
+  background: var(--surface-secondary, rgba(255, 255, 255, 0.08));
+}
+
+/* Textarea */
+.action-modal-textarea {
+  padding: var(--action-modal-input-padding);
+  border-radius: var(--radius-md, 12px);
+  border: 1px solid var(--border-color);
+  background: var(--surface-secondary, rgba(255, 255, 255, 0.05));
+  color: var(--text-primary);
+  font-size: var(--action-modal-input-font-size);
+  transition: all 0.2s ease;
+  line-height: 1.4;
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+}
+
+.action-modal-textarea:focus {
+  outline: none;
+  border-color: var(--border-color-active, rgba(255, 255, 255, 0.15));
+  background: var(--surface-secondary, rgba(255, 255, 255, 0.08));
+}
+
+/* =========================================================================
+   ELEMENTOS ESPECÍFICOS — Chips, grids, etc (pueden usarse opcionalmente)
+   ========================================================================= */
+
+/* Chip/badge estilo accent */
+.action-modal-chip {
+  display: inline-flex;
+  align-items: center;
+  background:
+    linear-gradient(135deg,
+      color-mix(in srgb, var(--accent-color) 24%, transparent) 0%,
+      color-mix(in srgb, var(--accent-color) 8%, transparent) 100%);
+  border: 1px solid color-mix(in srgb, var(--accent-color) 45%, transparent);
+  color: var(--surface-color);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+
+/* Insight/stats container */
+.action-modal-insight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.action-modal-insight-values {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.action-modal-quote {
+  font-family: var(--font-data-family);
+  font-size: 0.98rem;
+  letter-spacing: 0.02em;
+  color: color-mix(in srgb, var(--text-primary) 98%, transparent);
+}
+
+/* Hint text (info dentro de la card) - COPIADO DE buy-selected-card__hint */
+.buy-selected-card__hint,
+.action-modal-hint {
+  margin-top: var(--action-modal-card-gap, 16px);
+  margin-bottom: var(--action-modal-card-gap, 16px);
+  font-size: 0.78rem;
+  color: color-mix(in srgb, var(--text-secondary) 88%, transparent);
+  line-height: 1.5;
+}
+
+/* =========================================================================
+   TOKEN HEADER — Para mostrar token seleccionado con logo y conversión
+   (Estilo Blink, copiado de BuyTokenModal)
+   ========================================================================= */
+
+.action-modal-token-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 12px;
+  /* Sin border-bottom para evitar línea entre token y transaction flow */
+}
+
+.action-modal-token-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--icon-outline, rgba(255,255,255,0.18)) 65%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    linear-gradient(160deg,
+      color-mix(in srgb, var(--icon-bg, color-mix(in srgb, var(--background-color) 82%, transparent)) 100%, transparent) 0%,
+      color-mix(in srgb, var(--icon-bg, color-mix(in srgb, var(--background-color) 82%, transparent)) 70%, transparent) 100%);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.22), 0 0 16px var(--icon-glow, transparent);
+  flex-shrink: 0;
+}
+
+.action-modal-token-logo-inner {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--background-color) 92%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.action-modal-token-logo-inner img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  clip-path: circle(50%);
+  transform: scale(var(--icon-scale, 0.9));
+  transform-origin: center;
+}
+
+.action-modal-token-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.action-modal-token-name {
+  margin: 0;
+  font-size: var(--font-title-size, 18px);
+  font-weight: var(--font-title-weight, 600);
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
+}
+
+.action-modal-token-subtitle {
+  margin: 0;
+  font-size: var(--font-ui-size, 14px);
+  font-weight: var(--font-ui-weight, 500);
+  color: color-mix(in srgb, var(--text-secondary) 92%, transparent);
+}
+
+.action-modal-token-conversion {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+.action-modal-token-usd {
+  margin: 0;
+  font-size: var(--font-subtitle-size, 16px);
+  font-weight: var(--font-subtitle-weight, 500);
+  color: var(--text-primary);
+}
+
+.action-modal-token-action-text {
+  margin: 0;
+  font-size: var(--font-caption-size, 12px);
+  font-weight: var(--font-caption-weight, 500);
+  color: color-mix(in srgb, var(--text-secondary) 88%, transparent);
+  text-transform: none;
+}
+
+/* =========================================================================
+   AMOUNT BUTTONS — Botones de cantidades predefinidas (0.001, 0.1, 1)
+   (Estilo Blink, copiado de .buy-amounts)
+   ========================================================================= */
+
+.action-modal-amounts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--border-color) 54%, transparent);
+}
+
+.action-modal-amount-button {
+  padding: 12px;
+  border-radius: var(--radius-md, 12px);
+  border: 1px solid var(--border-color);
+  background: var(--surface-secondary, rgba(255, 255, 255, 0.05));
+  color: var(--text-primary);
+  font-size: var(--font-ui-size, 14px);
+  font-weight: var(--font-ui-weight, 500);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.action-modal-amount-button:hover {
+  background: var(--surface-secondary, rgba(255, 255, 255, 0.08));
+  border-color: var(--border-color-active, rgba(255, 255, 255, 0.15));
+}
+
+.action-modal-amount-button.selected {
+  background: color-mix(in srgb, var(--accent-color) 20%, transparent);
+  border-color: color-mix(in srgb, var(--accent-color) 50%, transparent);
+  color: var(--text-primary);
+}
+
+/* =========================================================================
+   CUSTOM ROW — Input Custom + input de nota inline
+   (Layout especial: Custom input pequeño + note input más ancho)
+   ========================================================================= */
+
+.action-modal-custom-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 10px;
+  align-items: center;
+}
+
+.action-modal-custom-input {
+  padding: 12px;
+  border-radius: var(--radius-md, 12px);
+  border: 1px solid var(--border-color);
+  background: var(--surface-secondary, rgba(255, 255, 255, 0.05));
+  color: var(--text-primary);
+  font-size: var(--font-ui-size, 14px);
+  font-weight: var(--font-ui-weight, 500);
+  transition: all 0.2s ease;
+  text-align: center;
+  width: 100%;
+}
+
+.action-modal-custom-input:focus {
+  outline: none;
+  border-color: var(--border-color-active, rgba(255, 255, 255, 0.15));
+  background: var(--surface-secondary, rgba(255, 255, 255, 0.08));
+}
+
+.action-modal-custom-input::placeholder {
+  color: color-mix(in srgb, var(--text-secondary) 70%, transparent);
+}
+
+.action-modal-note-input {
+  padding: 12px;
+  border-radius: var(--radius-md, 12px);
+  border: 1px solid var(--border-color);
+  background: var(--surface-secondary, rgba(255, 255, 255, 0.05));
+  color: var(--text-primary);
+  font-size: var(--font-ui-size, 14px);
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.action-modal-note-input:focus {
+  outline: none;
+  border-color: var(--border-color-active, rgba(255, 255, 255, 0.15));
+  background: var(--surface-secondary, rgba(255, 255, 255, 0.08));
+}
+
+.action-modal-note-input::placeholder {
+  color: color-mix(in srgb, var(--text-secondary) 70%, transparent);
+}
+
+/* =========================================================================
+   SKELETON — Loading state para nombres no disponibles
+   ========================================================================= */
+
+.skeleton {
+  display: inline-block;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 25%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+  border-radius: 4px;
+  color: transparent;
+  user-select: none;
+}
+
+.skeleton--text {
+  width: 80px;
+  height: 14px;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* =========================================================================
+   RESPONSIVE
+   ========================================================================= */
+
+@media (max-width: 640px) {
+  :root {
+    --action-modal-padding: 16px;
+    --action-modal-card-padding: 16px;
+    --action-modal-gap: 14px;
+    --action-modal-body-gap: 16px;
+  }
+}

@@ -166,16 +166,16 @@
     left: 0;
     right: 0;
     bottom: 0;
-    height: 68px;
-    width: 100vw;
-    transform: translateY(100%);
-    transition: var(--transition-all);
-    box-shadow: 0 -6px 18px rgba(0,0,0,.24);
-    border-top: 1px solid var(--border-color);
-    background: var(--window-background);
-    z-index: 700;
-    overflow: visible;
-    pointer-events: none;
+  height: 68px;
+  width: 100vw;
+  transform: translateY(100%);
+  transition: var(--transition-all);
+  box-shadow: none;
+  border-top: 1px solid var(--border-color);
+  background: var(--window-background);
+  z-index: 700;
+  overflow: visible;
+  pointer-events: none;
   }
   .leftbar-inner {
     flex-direction: row;

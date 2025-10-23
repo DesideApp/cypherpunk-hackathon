@@ -2,7 +2,7 @@
 // Compositor simplificado: sólo texto + envío rápido.
 
 import React, { useState, useRef, useCallback, useMemo, useEffect } from "react";
-import { Smile, X, Zap, Zap as ZapIcon } from "lucide-react";
+import { Smile, X, Zap as ZapIcon } from "lucide-react";
 import data from "@emoji-mart/data";
 import Picker from "@emoji-mart/react";
 import ENV from "@shared/config/env.js";
@@ -26,7 +26,7 @@ const WritingPanel = React.memo(function WritingPanel({
   activePeer,
   isContactConfirmed = true,
   canSend = true,
-  sendPaymentRequest, // función para enviar payment requests
+  _sendPaymentRequest, // función para enviar payment requests
   onOpenSendModal, // función para abrir modal de Send
   mode = "desktop",
   mobileActionBarProps = null,
@@ -167,7 +167,7 @@ const WritingPanel = React.memo(function WritingPanel({
     } finally {
       setIsProcessingCommand(false);
     }
-  }, [message, hasContact, activePeer, isContactConfirmed, canSend, myWallet, ensureReadyOnce, onSendText, onOpenSendModal]);
+  }, [message, hasContact, activePeer, isContactConfirmed, canSend, myWallet, ensureReadyOnce, onSendText, onOpenSendModal, resetInput]);
 
   // attachments removed in this MVP
 

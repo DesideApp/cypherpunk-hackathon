@@ -12,7 +12,14 @@ import { Buffer } from "buffer";
 import { getAllowedTokens, clearAllowedTokensCache } from "@features/messaging/services/allowedTokensService.js";
 import { executeBuyBlink } from "@features/messaging/services/buyBlinkService.js";
 import { fetchPrices } from "@shared/services/priceService.js";
-import { ModalShell, UiButton, UiChip } from "@shared/ui";
+import { 
+  ModalShell, 
+  UiChip, 
+  ActionButtons, 
+  ActionCancelButton, 
+  ActionBackButton, 
+  ActionPrimaryButton 
+} from "@shared/ui";
 import TokenSearch from "../TokenSearch.jsx";
 import TokenButton from "./TokenButton.jsx";
 import "./BuyTokenModal.css";
@@ -286,6 +293,12 @@ export default function BuyTokenModal({
   };
 
   const executeTransaction = async (serializedTx) => {
+    if (!adapter) {
+      throw new Error("Wallet adapter not available.");
+    }
+    if (!connection) {
+      throw new Error("RPC connection not available.");
+    }
     const tx = deserializeTransaction(serializedTx);
     let signature = null;
     if (typeof adapter.sendTransaction === "function") {
@@ -435,26 +448,22 @@ export default function BuyTokenModal({
 
   const modalFooter = step === "pick-amount"
     ? (
-      <>
-        <UiButton variant="ghost" onClick={() => onClose?.()} disabled={busy}>
-          Close
-        </UiButton>
-        <UiButton variant="secondary" onClick={() => setStep("pick-token")} disabled={busy}>
-          Back
-        </UiButton>
-        <UiButton 
+      <ActionButtons>
+        <ActionCancelButton onClick={() => onClose?.()} disabled={busy} />
+        <ActionBackButton onClick={() => setStep("pick-token")} disabled={busy} />
+        <ActionPrimaryButton 
           onClick={onBuyNow} 
           disabled={!proceedEnabled || busy}
-          className="ui-action-card-primary"
+          busy={busy}
         >
-          {busy ? "Processing…" : `Buy ${selected?.code}`}
-        </UiButton>
-      </>
+          Buy {selected?.code}
+        </ActionPrimaryButton>
+      </ActionButtons>
     )
     : (
-      <UiButton variant="secondary" onClick={() => onClose?.()} disabled={busy}>
-        Close
-      </UiButton>
+      <ActionButtons>
+        <ActionCancelButton onClick={() => onClose?.()} disabled={busy} />
+      </ActionButtons>
     );
 
   if (!open) return null;
@@ -625,13 +634,4 @@ BuyTokenModal.propTypes = {
   shareOnComplete: PropTypes.bool,
   onClose: PropTypes.func,
   onBlinkShared: PropTypes.func,
-};
-
-BuyTokenModal.defaultProps = {
-  open: false,
-  presetToken: null,
-  presetAmount: null,
-  shareOnComplete: true,
-  onClose: undefined,
-  onBlinkShared: undefined,
 };

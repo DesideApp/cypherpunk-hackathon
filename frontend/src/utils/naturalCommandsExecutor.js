@@ -158,7 +158,7 @@ export class NaturalCommandExecutor {
    * @param {Object} context - Contexto de ejecución
    * @returns {Promise<Object>} - Resultado
    */
-  async executeBuy(params, context) {
+  async executeBuy(params, _context) {
     const { amount, token } = params;
     
     // Validar parámetros
@@ -195,7 +195,7 @@ export class NaturalCommandExecutor {
    * @param {Object} context - Contexto de ejecución
    * @returns {Promise<Object>} - Resultado
    */
-  async executeSwap(params, context) {
+  async executeSwap(params, _context) {
     const { amount, fromToken, toToken } = params;
     
     // Validar parámetros

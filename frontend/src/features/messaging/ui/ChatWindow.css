@@ -308,7 +308,7 @@
   }
 
   .chat-window--mobile .chat-composer-zone {
-    padding: 0 18px 0;
+    padding: 0 12px 0;
   }
 
   .chat-window--mobile .action-bar-button {
@@ -484,38 +484,6 @@
 .chat-action-help {
   font-size: 0.75rem;
   color: var(--text-secondary);
-}
-
-.agreement-modal textarea {
-  resize: vertical;
-  min-height: 90px;
-}
-
-.agreement-payer-toggle {
-  display: inline-flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.agreement-toggle {
-  border-radius: 999px;
-  padding: 6px 14px;
-  border: 1px solid var(--border-color);
- /* Hereda del contenedor padre */
-  cursor: pointer;
-  font-size: 0.85rem;
-  transition: var(--transition-all);
-}
-
-.agreement-toggle.active {
-  background: color-mix(in srgb, var(--window-background) 85%, transparent);
-  border-color: var(--border-color-active);
-  color: var(--text-primary);
-}
-
-.agreement-toggle:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 
 .chat-action-field {

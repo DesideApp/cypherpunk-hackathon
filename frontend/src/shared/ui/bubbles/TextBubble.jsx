@@ -36,11 +36,9 @@ export default function TextBubble({
   const [processedText, setProcessedText] = React.useState(text);
   const [previews, setPreviews] = React.useState([]);
   const [hasPreviews, setHasPreviews] = React.useState(false);
-  const [loading, setLoading] = React.useState(false);
 
   React.useEffect(() => {
     const processText = async () => {
-      setLoading(true);
       try {
         const result = await processTextWithPreviews(text, isMe);
         setProcessedText(result.processedText);
@@ -51,8 +49,6 @@ export default function TextBubble({
         setProcessedText(text);
         setPreviews([]);
         setHasPreviews(false);
-      } finally {
-        setLoading(false);
       }
     };
 

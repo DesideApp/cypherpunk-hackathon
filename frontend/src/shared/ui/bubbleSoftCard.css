@@ -1,0 +1,79 @@
+.bubble-soft-card {
+  --bubble-soft-card-width: var(--bubble-card-width, 300px);
+  --bubble-soft-card-radius: var(--bubble-card-radius, 14px);
+  --bubble-soft-card-padding: 16px;
+  --bubble-soft-card-gap: 12px;
+  --bubble-soft-card-shadow: none;
+  --bubble-soft-card-shadow-hover: none;
+  --bubble-soft-card-border: color-mix(in srgb, #ffffff 12%, transparent);
+  --bubble-soft-card-bg: color-mix(in srgb, var(--bubble-received, #0d1422) 85%, #ffffff 15%);
+  --bubble-soft-card-fg: var(--text-primary, #f5f5f5);
+  --bubble-soft-card-stripe-width: 6px;
+  --bubble-soft-card-stripe-color: color-mix(in srgb, var(--accent-color, #4f46e5) 55%, transparent);
+
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  width: min(100%, var(--bubble-soft-card-width));
+  border-radius: var(--bubble-soft-card-radius);
+  border: 1px solid var(--bubble-soft-card-border);
+  background: var(--bubble-soft-card-bg);
+  color: var(--bubble-soft-card-fg);
+  box-shadow: var(--bubble-soft-card-shadow, none);
+  overflow: hidden;
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+.bubble-soft-card:hover {
+  transform: none;
+  box-shadow: var(--bubble-soft-card-shadow-hover);
+}
+
+.bubble-soft-card__stripe {
+  flex: 0 0 var(--bubble-soft-card-stripe-width);
+  background: var(--bubble-soft-card-stripe-color);
+}
+
+.bubble-soft-card__surface {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--bubble-soft-card-gap);
+  padding: var(--bubble-soft-card-padding);
+  min-width: 0;
+}
+
+.bubble-soft-card--sent {
+  --bubble-soft-card-bg: color-mix(in srgb, var(--sent-message, #7c61ff) 85%, #ffffff 15%);
+  --bubble-soft-card-fg: var(--sent-text, #ffffff);
+  --bubble-soft-card-stripe-color: color-mix(in srgb, var(--accent-color, #16a34a) 70%, transparent);
+  --bubble-soft-card-border: color-mix(in srgb, var(--sent-message, #7c61ff) 24%, transparent);
+}
+
+.bubble-soft-card--neutral {
+  --bubble-soft-card-bg: color-mix(in srgb, var(--surface-color, #101728) 85%, #ffffff 15%);
+  --bubble-soft-card-fg: var(--text-primary, #f5f5f5);
+  --bubble-soft-card-stripe-color: color-mix(in srgb, var(--accent-color, #3b82f6) 58%, transparent);
+}
+
+.bubble-soft-card--received {
+  --bubble-soft-card-bg: color-mix(in srgb, var(--bubble-received, #0d1422) 85%, #ffffff 15%);
+  --bubble-soft-card-fg: var(--text-primary, #f5f5f5);
+  --bubble-soft-card-stripe-color: color-mix(in srgb, var(--accent-color, #4f46e5) 50%, transparent);
+  --bubble-soft-card-border: color-mix(in srgb, #ffffff 16%, transparent);
+}
+
+.bubble-soft-card--no-stripe {
+  --bubble-soft-card-stripe-width: 0px;
+}
+
+.bubble-soft-card--no-stripe .bubble-soft-card__stripe {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .bubble-soft-card {
+    --bubble-soft-card-width: min(100%, 300px);
+    border-radius: 14px;
+  }
+}

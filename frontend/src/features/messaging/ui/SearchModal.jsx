@@ -1,7 +1,7 @@
 // src/features/messaging/ui/SearchModal.jsx
-import React, { useState, useEffect, useRef } from "react";
-import { Search, X } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
 import { UiSearchInput } from "@shared/ui";
+import { X } from "lucide-react";
 import "./SearchModal.css";
 
 const SearchModal = ({ messages = [], onClose, onSelectMessage }) => {

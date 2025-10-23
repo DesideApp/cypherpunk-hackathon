@@ -64,13 +64,13 @@
   overflow: hidden;
 }
 
+
 .layout-mobile-content {
   flex: 1 1 auto;
   min-height: 0;
   width: 100%;
   overflow: hidden;
   position: relative;
-  padding-bottom: 72px; /* espacio reservado para bottom nav */
 }
 
 .layout-mobile.nav-hidden .layout-mobile-content {

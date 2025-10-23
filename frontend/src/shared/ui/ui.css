@@ -7,23 +7,58 @@
   align-items: center;
   justify-content: center;
   padding: var(--space-xl, 24px);
-  background: var(--overlay-dark-heavy, rgba(0, 0, 0, 0.45));
-  backdrop-filter: blur(6px);
+  background: var(--action-modal-overlay-bg, rgba(10, 11, 14, 0.40));
+  backdrop-filter: blur(2px);
   z-index: 999;
 }
 
 .ui-modal {
   position: relative;
-  width: min(480px, 94vw);
+  width: var(--action-modal-width, min(420px, 85vw));
+  max-height: var(--action-modal-max-height, min(700px, 90vh));
   display: flex;
   flex-direction: column;
-  gap: var(--space-md, 12px);
-  padding: var(--space-xl, 24px);
-  border-radius: var(--radius-xl, 20px);
-  background: var(--modal-background, var(--background-color));
+  gap: var(--action-modal-gap, 16px);
+  padding: var(--action-modal-padding, 20px);
+  border-radius: calc(var(--radius-xl, 20px) + 2px);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--action-modal-container-bg-base) 96%, white 4%) 0%,
+    color-mix(in srgb, var(--action-modal-container-bg-base) 94%, white 6%) 42%,
+    color-mix(in srgb, var(--action-modal-container-bg-base) 88%, black 12%) 100%
+  );
   color: var(--text-primary, #f5f5f5);
-  box-shadow: var(--elevated-shadow, 0 24px 60px rgba(0, 0, 0, 0.32));
-  border: 1px solid color-mix(in srgb, var(--border-color, rgba(255,255,255,0.12)) 70%, transparent);
+  box-shadow: 
+    var(--elevated-shadow, 0 24px 60px rgba(0, 0, 0, 0.32)),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.28);
+  border: 1px solid color-mix(in srgb, var(--border-color, rgba(255,255,255,0.12)) 62%, transparent);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Línea de acento superior (como BuyTokenModal) */
+.ui-modal::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--accent-color, #3b82f6) 55%, transparent),
+    transparent
+  );
+  opacity: 0.7;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.ui-modal > * {
+  position: relative;
+  z-index: 1;
 }
 
 .ui-modal--lg {
@@ -50,14 +85,16 @@
 .ui-modal__body {
   display: flex;
   flex-direction: column;
-  gap: var(--space-md, 12px);
+  gap: var(--action-modal-gap, var(--space-md, 12px));
 }
 
 .ui-modal__footer {
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-sm, 8px);
+  gap: var(--action-modal-gap, var(--space-sm, 8px));
   flex-wrap: wrap;
+  padding-top: var(--action-modal-gap, 18px);
+  border-top: 1px solid color-mix(in srgb, var(--border-color) 60%, transparent);
 }
 
 @media (max-width: 640px) {
@@ -121,15 +158,15 @@
 }
 
 .ui-button--secondary {
-  background: transparent;
-  border-color: var(--border-color, rgba(255, 255, 255, 0.08));
-  color: var(--text-secondary, #b5b5b5);
+  border: 1px solid color-mix(in srgb, var(--border-color) 80%, transparent);
+  background: color-mix(in srgb, var(--window-background) 78%, transparent);
+  color: var(--text-secondary);
 }
 
 .ui-button--secondary:hover:not(:disabled) {
-  background: var(--hover-overlay, rgba(224, 222, 217, 0.08));
-  color: var(--text-primary, #f5f5f5);
-  border-color: var(--border-color-active, #4a4e55);
+  color: var(--text-primary);
+  border-color: var(--border-color-active);
+  background: color-mix(in srgb, var(--background-color) 82%, transparent);
 }
 
 .ui-button--ghost {
@@ -658,20 +695,25 @@
 }
 
 .ui-action-card-primary {
-  padding: 8px 16px;
+  padding: 10px 22px;
   border: none;
-  border-radius: 12px;
+  border-radius: var(--radius-full, 999px);
   background: var(--action-color, #fc554f);
   color: var(--sent-text, #ffffff);
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.95rem;
+  font-weight: var(--font-caption-weight, 600);
   cursor: pointer;
   transition: var(--transition-all);
   box-shadow: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm, 8px);
+  text-decoration: none;
 }
 
 .ui-action-card-primary:hover:not(:disabled) {
-  background: var(--action-color, #fc554f);
+  background: var(--action-color-hover, #ff6b65);
   transform: none;
   box-shadow: none;
 }

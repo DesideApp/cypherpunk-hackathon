@@ -367,7 +367,7 @@ export default function LeftBar() {
     const openSafely = () => (window.Jupiter.resume?.() || window.Jupiter.open?.());
     if (!pluginBootstrappedRef.current) {
       const walletContextState = buildJupiterWalletPassthrough(adapter, walletStatus, connection);
-      const shape = initJupiterRobust({
+      const _shape = initJupiterRobust({
         branding: getBranding(theme),
         endpoint: jupiterEndpoint,
         walletPassthrough: walletContextState,

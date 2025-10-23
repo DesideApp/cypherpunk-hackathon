@@ -1,0 +1,38 @@
+.scroll-bottom-fab {
+  position: fixed;
+  width: 36px;
+  height: 36px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  border: none;
+  background: var(--window-background);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 12px 20px rgba(12, 16, 24, 0.26);
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.scroll-bottom-fab:hover {
+  transform: translate(-50%, -2px);
+  box-shadow: 0 16px 26px rgba(12, 16, 24, 0.32);
+  color: var(--text-primary);
+}
+
+.scroll-bottom-fab:active {
+  transform: translate(-50%, -1px);
+  box-shadow: 0 10px 18px rgba(12, 16, 24, 0.26);
+}
+
+.scroll-bottom-fab svg {
+  color: inherit;
+}
+
+@media (max-width: 640px) {
+  .scroll-bottom-fab {
+    width: 32px;
+    height: 32px;
+  }
+}

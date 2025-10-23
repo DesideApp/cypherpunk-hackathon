@@ -16,10 +16,3 @@ UiCard.propTypes = {
   className: PropTypes.string,
   children: PropTypes.node,
 };
-
-UiCard.defaultProps = {
-  as: "div",
-  elevated: false,
-  className: undefined,
-  children: null,
-};

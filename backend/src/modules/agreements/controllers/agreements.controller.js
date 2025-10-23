@@ -1,6 +1,7 @@
 import Agreement from '../models/agreement.model.js';
 import { AgreementStatus } from '../constants.js';
 import { buildSignatureTransaction, verifySignatureTransaction, fetchAgreementTransaction } from '../services/signature.service.js';
+import { sendAgreementUpdate } from '#modules/relay/services/actionMessaging.service.js';
 
 function asIsoOrNull(value) {
   if (!value) return null;
@@ -117,8 +118,26 @@ export async function createAgreement(req, res) {
       },
     });
 
+    const sanitizedAgreement = sanitize(agreement);
+
+    try {
+      const counterparty = roster.find((p) => p && p !== normalizedCreator) || null;
+      if (counterparty) {
+        await sendAgreementUpdate({
+          agreement: sanitizedAgreement,
+          receipt: agreement.receipt,
+          fromWallet: normalizedCreator,
+          toWallet: counterparty,
+          stage: AgreementStatus.PENDING_B,
+          role: "signer_b",
+        });
+      }
+    } catch (notifyError) {
+      console.warn('[agreement] initial notify failed', notifyError?.message || notifyError);
+    }
+
     return res.status(201).json({
-      agreement: sanitize(agreement),
+      agreement: sanitizedAgreement,
       receipt: agreement.receipt,
     });
   } catch (error) {
@@ -259,9 +278,43 @@ export async function confirmAgreementSignature(req, res) {
 
     agreement.markModified('receipt');
     await agreement.save();
+
+    const sanitized = sanitize(agreement);
+    const participants = Array.isArray(agreement.participants) ? agreement.participants : [];
+    const otherParticipant = participants.find((p) => p && p !== normalizedSigner) || null;
+
+    try {
+      if (agreement.receipt.status === AgreementStatus.PENDING_A) {
+        const creator = agreement.createdBy || null;
+        if (creator && creator !== normalizedSigner) {
+          await sendAgreementUpdate({
+            agreement: sanitized,
+            receipt: agreement.receipt,
+            fromWallet: normalizedSigner,
+            toWallet: creator,
+            stage: AgreementStatus.PENDING_A,
+            role: "signer_a",
+          });
+        }
+      } else if (agreement.receipt.status === AgreementStatus.SIGNED_BOTH) {
+        if (otherParticipant && otherParticipant !== normalizedSigner) {
+          await sendAgreementUpdate({
+            agreement: sanitized,
+            receipt: agreement.receipt,
+            fromWallet: normalizedSigner,
+            toWallet: otherParticipant,
+            stage: AgreementStatus.SIGNED_BOTH,
+            role: "finalized",
+          });
+        }
+      }
+    } catch (notifyError) {
+      console.warn('[agreement] notify failed', notifyError?.message || notifyError);
+    }
+
     return res.status(200).json({
       receipt: agreement.receipt,
-      agreement: sanitize(agreement),
+      agreement: sanitized,
     });
   } catch (error) {
     return res.status(500).json({ error: 'AGREEMENT_CONFIRM_FAILED', message: error?.message || 'Unexpected error.' });

@@ -22,10 +22,3 @@ UiChip.propTypes = {
   as: PropTypes.elementType,
   children: PropTypes.node,
 };
-
-UiChip.defaultProps = {
-  selected: false,
-  className: undefined,
-  as: "button",
-  children: null,
-};

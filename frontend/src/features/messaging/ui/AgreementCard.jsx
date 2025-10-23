@@ -19,6 +19,7 @@ import { formatAmountForDisplay } from "@shared/tokens/tokens.js";
 import { actions } from "@features/messaging/store/messagesStore.js";
 import { IS_DEMO, FEATURES } from "@shared/config/env.js";
 import { executeBlink } from "@features/messaging/services/blinkExecutionService.js";
+import ActionCardBase from "@shared/ui/bubbles/ActionCardBase.jsx";
 import SettlementModal from "./modals/SettlementModal.jsx";
 import "./AgreementCard.css";
 
@@ -40,12 +41,12 @@ function deserializeTransaction(base64) {
   const raw = Buffer.from(base64, "base64");
   try {
     return VersionedTransaction.deserialize(raw);
-  } catch (err) {
+  } catch (_err) {
     return Transaction.from(raw);
   }
 }
 
-function AgreementCard({ msg }) {
+function AgreementCard({ msg, direction = "received" }) {
   const { pubkey: myWallet } = useAuthManager();
   const { connection } = useRpc();
   const walletCtx = useWallet();
@@ -105,6 +106,8 @@ function AgreementCard({ msg }) {
   const enableVerify = FEATURES.AGREEMENT_VERIFY;
   const enableSettlementAttachment = FEATURES.AGREEMENT_SETTLEMENT;
 
+  const variant = direction === "sent" ? "own" : "contact";
+
   const [signing, setSigning] = useState(false);
   const [settling, setSettling] = useState(false);
   const [savingSettlement, setSavingSettlement] = useState(false);
@@ -123,9 +126,23 @@ function AgreementCard({ msg }) {
   const counterpartyLabel = short(counterparty) || "contact";
 
   const deadlineLabel = deadline ? deadline.toLocaleString() : null;
+  const createdAtRaw = agreement?.createdAt || msg?.timestamp || null;
+  const createdLabel = useMemo(() => {
+    if (!createdAtRaw) return null;
+    const date = new Date(createdAtRaw);
+    if (Number.isNaN(date.getTime())) return null;
+    return date.toLocaleString();
+  }, [createdAtRaw]);
 
-  const convId = msg?.convId;
-  const clientId = msg?.clientId || msg?.id;
+  const convId = msg?.convId || agreement?.conversationId || agreement?.convId || null;
+  const existingClientId = msg?.clientId || msg?.clientMsgId || msg?.meta?.clientId || msg?.meta?.messageId || null;
+  const messageId =
+    msg?.id ||
+    msg?.serverId ||
+    msg?.meta?.messageId ||
+    msg?.meta?.clientId ||
+    agreement?.id ||
+    null;
 
   const applyReceiptUpdate = (nextReceipt, nextAgreement = null) => {
     const mergedReceipt = { ...receipt, ...nextReceipt };
@@ -134,25 +151,50 @@ function AgreementCard({ msg }) {
     setReceipt(mergedReceipt);
     if (nextAgreement) setAgreement(mergedAgreement);
 
-    actions.upsertMessage?.(convId, {
-      clientId,
-      receipt: mergedReceipt,
-      ...(nextAgreement ? { agreement: mergedAgreement } : {}),
+    console.debug('[AgreementCard] applyReceiptUpdate', {
+      convId,
+      existingClientId,
+      messageId,
+      hasConv: !!convId,
+      hasClient: !!existingClientId,
+      hasMessage: !!messageId,
+      msgMeta: msg?.meta,
     });
+
+    if (convId && (existingClientId || messageId)) {
+      const payload = {
+        receipt: mergedReceipt,
+        ...(nextAgreement ? { agreement: mergedAgreement } : {}),
+        meta: {
+          agreementId: mergedAgreement?.id || agreement?.id || msg?.meta?.agreementId || null,
+          clientId: existingClientId || messageId,
+          messageId: messageId,
+          kind: 'agreement',
+          convId,
+          role: msg?.meta?.role || null,
+          status: mergedReceipt?.status || msg?.meta?.status || null,
+        },
+      };
+      if (existingClientId) payload.clientId = existingClientId;
+      if (messageId) payload.id = messageId;
+      actions.upsertMessage?.(convId, payload);
+    }
 
     return { mergedReceipt, mergedAgreement };
   };
 
   const broadcastAgreementUpdate = (nextReceipt, nextAgreement = null) => {
-    if (!convId || !clientId) return;
-    window.dispatchEvent(new CustomEvent('chat:agreement:update', {
-      detail: {
-        convId,
-        clientId,
-        agreement: nextAgreement || agreement,
-        receipt: nextReceipt,
-      },
-    }));
+    if (convId && (existingClientId || messageId)) {
+      window.dispatchEvent(new CustomEvent('chat:agreement:update', {
+        detail: {
+          convId,
+          clientId: existingClientId || null,
+          messageId,
+          agreement: nextAgreement || agreement,
+          receipt: nextReceipt,
+        },
+      }));
+    }
   };
 
   const sendThroughWallet = async (serializedTx) => {
@@ -183,7 +225,7 @@ function AgreementCard({ msg }) {
       setSigning(true);
       const prepare = await prepareAgreementSignature(agreement.id, { signer: walletPk });
       if (prepare?.error) {
-        throw new Error(prepare?.message || "No se pudo preparar la firma");
+        throw new Error(prepare?.message || "Unable to prepare agreement signature.");
       }
 
       const requiresWallet = !!prepare?.transaction;
@@ -222,24 +264,16 @@ function AgreementCard({ msg }) {
           } catch (rebuildError) {
             debug("sign-rebuild-fallback", { error: rebuildError?.message });
             signature = await sendThroughWallet(serializedTx);
-            try {
-              const confirmation = await connection.confirmTransaction(signature, "confirmed");
-              if (!confirmation?.value || confirmation.value.err) {
-                throw new Error("wallet-tx-not-confirmed");
-              }
-            } catch (confirmError) {
-              throw confirmError;
-            }
-          }
-        } else {
-          signature = await sendThroughWallet(serializedTx);
-          try {
             const confirmation = await connection.confirmTransaction(signature, "confirmed");
             if (!confirmation?.value || confirmation.value.err) {
               throw new Error("wallet-tx-not-confirmed");
             }
-          } catch (confirmError) {
-            throw confirmError;
+          }
+        } else {
+          signature = await sendThroughWallet(serializedTx);
+          const confirmation = await connection.confirmTransaction(signature, "confirmed");
+          if (!confirmation?.value || confirmation.value.err) {
+            throw new Error("wallet-tx-not-confirmed");
           }
         }
       } else {
@@ -266,7 +300,6 @@ function AgreementCard({ msg }) {
         : agreement;
 
       const { mergedReceipt, mergedAgreement } = applyReceiptUpdate(nextReceipt, updatedAgreement);
-      broadcastAgreementUpdate(mergedReceipt, mergedAgreement);
       notify(requiresWallet ? "Agreement signed." : "Agreement accepted.", "success");
     } catch (error) {
       debug('sign-error', { message: error?.message });
@@ -418,7 +451,7 @@ function AgreementCard({ msg }) {
       anchor.click();
       URL.revokeObjectURL(url);
     } catch (error) {
-      notify(error?.message || "No se pudo descargar el acuerdo.", "error");
+      notify(error?.message || "Unable to download agreement.", "error");
     }
   };
 
@@ -440,7 +473,7 @@ function AgreementCard({ msg }) {
         notify("Not verified: the transaction does not contain the expected proof.", "warning");
       }
     } catch (error) {
-      notify(error?.message || "No se pudo verificar el acuerdo.", "error");
+      notify(error?.message || "Unable to verify agreement proof.", "error");
     } finally {
       setVerifying(false);
     }
@@ -461,126 +494,169 @@ function AgreementCard({ msg }) {
       };
       const { mergedReceipt } = applyReceiptUpdate(settlementUpdate);
       broadcastAgreementUpdate(mergedReceipt);
-      notify("Pago registrado.", "success");
+      notify("Settlement recorded.", "success");
       setSettlementModalOpen(false);
     } catch (error) {
-      notify(error?.message || "No se pudo registrar el pago.", "error");
+      notify(error?.message || "Unable to record settlement.", "error");
     } finally {
       setSavingSettlement(false);
     }
   };
 
-  const statusLabel = {
-    [AGREEMENT_STATUSES.PENDING_B]: `Sent to ${counterpartyLabel}`,
-    [AGREEMENT_STATUSES.PENDING_A]: `Signed by ${counterpartyLabel}`,
-    [AGREEMENT_STATUSES.SIGNED_BOTH]: 'Signed by both',
-    [AGREEMENT_STATUSES.EXPIRED]: 'Agreement expired',
-  }[status];
+  const metaRows = useMemo(() => {
+    const rows = [];
+    if (payerLabel) {
+      rows.push({ id: "from", label: "From", value: payerLabel });
+    }
+    if (payeeLabel) {
+      rows.push({ id: "to", label: "To", value: payeeLabel });
+    }
+    if (displayAmount) {
+      rows.push({ id: "amount", label: "Amount", value: displayAmount });
+    }
+    const tokenLabel =
+      token?.symbol || token?.code || token?.ticker || token?.name || token?.mint || null;
+    if (tokenLabel && (!displayAmount || !String(displayAmount).includes(tokenLabel))) {
+      rows.push({ id: "token", label: "Token", value: tokenLabel });
+    }
+    if (deadlineLabel) {
+      rows.push({ id: "deadline", label: "Deadline", value: deadlineLabel });
+    }
+    if (hash) {
+      rows.push({ id: "agreement-hash", label: "Agreement", value: `${hash.slice(0, 8)}…` });
+    }
+    return rows;
+  }, [payerLabel, payeeLabel, displayAmount, token, deadlineLabel, hash]);
 
-  return (
-    <div className="agreement-card" role="group" aria-label="On-chain agreement">
-      <header className="agreement-card-header">
-        <div>
-          <p className="agreement-card-status">{statusLabel}</p>
-          <h3 className="agreement-card-title">{agreement.title || 'Agreement'}</h3>
-        </div>
-        {hash && <span className="agreement-card-hash">{hash.slice(0, 8)}…</span>}
-      </header>
+  const bodyContent = (
+    <>
+      <div className="agreement-card__header">
+        <h3 className="agreement-card__title">
+          {agreement.title || "Agreement"}
+        </h3>
+      </div>
 
-      {agreement.body && <p className="agreement-card-body">{agreement.body}</p>}
+      {agreement.body && (
+        <p className="bubble-action-card__note bubble-action-card__note--multiline">
+          {agreement.body}
+        </p>
+      )}
 
       {displayAmount && (
-        <div className="agreement-card-amount">
+        <div className="bubble-action-card__amount">
           <span>{displayAmount}</span>
-          <span>{payerLabel} → {payeeLabel}</span>
+          <span className="bubble-action-card__amount-sub">
+            {payerLabel || "—"} → {payeeLabel || "—"}
+          </span>
         </div>
       )}
 
-      {deadlineLabel && status !== AGREEMENT_STATUSES.EXPIRED && (
-        <p className="agreement-card-deadline">Deadline: {deadlineLabel}</p>
+      {status === AGREEMENT_STATUSES.EXPIRED && (
+        <p className="agreement-card-expired">The agreement has expired.</p>
+      )}
+    </>
+  );
+
+  const actionButtons = (
+    <div className="bubble-action-card__button-group">
+      {needsMySignature && (
+        <button
+          type="button"
+          className="bubble-action-card__button bubble-action-card__button--primary"
+          onClick={handleSign}
+          disabled={signing}
+        >
+          {signing ? "Signing…" : "Sign in my wallet"}
+        </button>
       )}
 
-      <div className="agreement-card-actions">
-        {needsMySignature && (
-          <button
-            type="button"
-            className="agreement-primary"
-            onClick={handleSign}
-            disabled={signing}
-          >
-            {signing ? "Signing…" : "Sign in my wallet"}
-          </button>
-        )}
+      {status === AGREEMENT_STATUSES.PENDING_A && txSigB && (
+        <a
+          className="bubble-action-card__button bubble-action-card__button--secondary bubble-action-card__button--link"
+          href={explorerB}
+          target="_blank"
+          rel="noreferrer"
+        >
+          View tx (B)
+        </a>
+      )}
 
-        {status === AGREEMENT_STATUSES.PENDING_A && txSigB && (
+      {status === AGREEMENT_STATUSES.SIGNED_BOTH && txSigA && (
+        <div className="agreement-links">
+          {txSigB && (
+            <a
+              className="bubble-action-card__button bubble-action-card__button--secondary bubble-action-card__button--link"
+              href={explorerB}
+              target="_blank"
+              rel="noreferrer"
+            >
+              View tx (B)
+            </a>
+          )}
           <a
-            className="agreement-link"
-            href={explorerB}
+            className="bubble-action-card__button bubble-action-card__button--secondary bubble-action-card__button--link"
+            href={explorerA}
             target="_blank"
             rel="noreferrer"
           >
-            View transaction (B)
+            View tx (A)
           </a>
-        )}
+        </div>
+      )}
 
-        {status === AGREEMENT_STATUSES.SIGNED_BOTH && txSigA && (
-          <div className="agreement-links">
-            {txSigB && (
-              <a className="agreement-link" href={explorerB} target="_blank" rel="noreferrer">View tx (B)</a>
-            )}
-            <a className="agreement-link" href={explorerA} target="_blank" rel="noreferrer">View tx (A)</a>
-          </div>
-        )}
+      {enableVerify && status === AGREEMENT_STATUSES.SIGNED_BOTH && isParticipant && (
+        <button
+          type="button"
+          className="bubble-action-card__button bubble-action-card__button--secondary"
+          onClick={handleVerify}
+          disabled={verifying}
+        >
+          {verifying ? "Verifying…" : "Verify"}
+        </button>
+      )}
 
-        {status === AGREEMENT_STATUSES.EXPIRED && (
-          <p className="agreement-card-expired">The agreement has expired.</p>
-        )}
+      {isSettled && settlementSig && (
+        <span className="agreement-card-settled">
+          Settled ·{" "}
+          <a href={settlementExplorer} target="_blank" rel="noreferrer">
+            view tx
+          </a>
+        </span>
+      )}
+    </div>
+  );
 
-        {enableVerify && status === AGREEMENT_STATUSES.SIGNED_BOTH && isParticipant && (
+  const footerButtons = (
+    <div className="bubble-action-card__button-group agreement-card-footer">
+      {canSettle && isPayer && (
+        <button
+          type="button"
+          className="bubble-action-card__button bubble-action-card__button--primary"
+          onClick={handleSettle}
+          disabled={settling}
+        >
+          {settling ? "Opening…" : "Pay now"}
+        </button>
+      )}
+
+      {canSettle && isPayee && (
+        <button
+          type="button"
+          className="bubble-action-card__button bubble-action-card__button--secondary"
+          onClick={handleRequestSettle}
+          disabled={settling}
+        >
+          {settling ? "Opening…" : "Request payment"}
+        </button>
+      )}
+
+      {enableSettlementAttachment &&
+        status === AGREEMENT_STATUSES.SIGNED_BOTH &&
+        !isSettled &&
+        isParticipant && (
           <button
             type="button"
-            className="agreement-secondary"
-            onClick={handleVerify}
-            disabled={verifying}
-          >
-            {verifying ? "Verifying…" : "Verify"}
-          </button>
-        )}
-
-        {isSettled && settlementSig && (
-          <span className="agreement-card-settled">
-            Settled · <a href={settlementExplorer} target="_blank" rel="noreferrer">view tx</a>
-          </span>
-        )}
-      </div>
-
-      <div className="agreement-card-footer">
-        {canSettle && isPayer && (
-          <button
-            type="button"
-            className="agreement-primary"
-            onClick={handleSettle}
-            disabled={settling}
-          >
-            {settling ? "Opening…" : "Pay now"}
-          </button>
-        )}
-
-        {canSettle && isPayee && (
-          <button
-            type="button"
-            className="agreement-secondary"
-            onClick={handleRequestSettle}
-            disabled={settling}
-          >
-            {settling ? "Opening…" : "Request payment"}
-          </button>
-        )}
-
-        {enableSettlementAttachment && status === AGREEMENT_STATUSES.SIGNED_BOTH && !isSettled && isParticipant && (
-          <button
-            type="button"
-            className="agreement-secondary"
+            className="bubble-action-card__button bubble-action-card__button--secondary"
             onClick={() => setSettlementModalOpen(true)}
             disabled={savingSettlement}
           >
@@ -588,10 +664,33 @@ function AgreementCard({ msg }) {
           </button>
         )}
 
-        <button type="button" className="agreement-secondary agreement-download" onClick={handleDownload}>
-          Download
-        </button>
-      </div>
+      <button
+        type="button"
+        className="bubble-action-card__button bubble-action-card__button--secondary agreement-download"
+        onClick={handleDownload}
+      >
+        Download
+      </button>
+    </div>
+  );
+
+  return (
+    <>
+      <ActionCardBase
+        variant={variant}
+        title="Agreement"
+        metaRows={metaRows}
+        body={bodyContent}
+        footer={
+          <>
+            {actionButtons}
+            {footerButtons}
+          </>
+        }
+        className="agreement-card"
+        metaClassName="agreement-card-meta"
+        ariaLabel="On-chain agreement"
+      />
 
       {enableSettlementAttachment && (
         <SettlementModal
@@ -601,12 +700,13 @@ function AgreementCard({ msg }) {
           loading={savingSettlement}
         />
       )}
-    </div>
+    </>
   );
 }
 
 AgreementCard.propTypes = {
   msg: PropTypes.object.isRequired,
+  direction: PropTypes.string,
 };
 
 export default AgreementCard;

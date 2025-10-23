@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+/* global global */
 import { authedFetchJson as fetchJson } from './fetcher.js';
 import {
   ACCESS_TOKEN_COOKIE,

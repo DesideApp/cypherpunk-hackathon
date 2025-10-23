@@ -20,6 +20,13 @@ function readEnv(key, fallback = null) {
 
 const BUY_TOKENS = [
   {
+    code: "SOL",
+    label: "Solana",
+    mintMainnet: WSOL_MINT,
+    decimals: 9,
+    dialPath: null, // SOL no necesita swap, es nativo
+  },
+  {
     code: "BONK",
     label: "Bonk",
     mintMainnet: readEnv("VITE_MINT_BONK", null),

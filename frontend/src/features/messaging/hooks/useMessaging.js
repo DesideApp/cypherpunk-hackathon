@@ -83,6 +83,11 @@ export default function useMessaging({
   );
 
   useEffect(() => {
+    if (!convId || !selfWallet) return;
+    try { actions.sanitizeConversation?.(convId, selfWallet); } catch {}
+  }, [convId, selfWallet]);
+
+  useEffect(() => {
     let cancelled = false;
     (async () => {
       if (!sharedKeyBase64) {
@@ -184,7 +189,7 @@ export default function useMessaging({
       text,
       envelope,
       aad,
-    });
+    }, selfWallet);
     registerRecent({ text, timestamp: Date.now() });
 
     try {
@@ -230,7 +235,7 @@ export default function useMessaging({
             };
             const ok = rtcClient.sendChat(payload);
             if (ok) {
-              actions.upsertMessage?.(convId, { clientId, status: "sent", via: "rtc", aad });
+              actions.upsertMessage?.(convId, { clientId, status: "sent", via: "rtc", aad }, selfWallet);
               trackMessageSent(convId, "rtc");
               debugMsg('sendText:success', { via: 'rtc', clientId });
               try {
@@ -281,7 +286,7 @@ export default function useMessaging({
         forced: true,
         warning: res.warning || null,
         aad,
-      });
+      }, selfWallet);
 
       trackMessageSent(convId, "relay");
       debugMsg('sendText:success', { via: 'relay', clientId, forced: true });
@@ -357,7 +362,7 @@ export default function useMessaging({
           paymentRequest: request,
           envelope,
           aad,
-        });
+        }, selfWallet);
         registerRecent({ text: `Payment request: ${amount || ''} ${token || ''}`.trim(), timestamp: createdAt });
 
         try {
@@ -384,7 +389,7 @@ export default function useMessaging({
             deliveredAt: res?.deliveredAt || null,
             via: 'relay',
             forced: true,
-          });
+          }, selfWallet);
         } catch (relayError) {
           debugMsg('payment-request:relay-error', relayError?.message);
           actions.markFailed?.(convId, clientId, relayError?.message || 'send-failed');
@@ -465,7 +470,7 @@ export default function useMessaging({
           blinkAction: blink,
           envelope,
           aad,
-        });
+        }, selfWallet);
 
         const recentLabelParts = [
           'Blink',
@@ -500,7 +505,7 @@ export default function useMessaging({
             deliveredAt: res?.deliveredAt || null,
             via: 'relay',
             forced: true,
-          });
+          }, selfWallet);
         } catch (relayError) {
           debugMsg('blink-action:relay-error', relayError?.message);
           actions.markFailed?.(convId, clientId, relayError?.message || 'send-failed');
@@ -559,7 +564,7 @@ export default function useMessaging({
           txSigA: null,
         };
         debugAgreement('created', { convId, agreementId: agreement?.id, payer, payee });
-        const clientId = nextClientMsgId();
+        const messageId = agreement?.id ? `${agreement.id}:signer_b` : nextClientMsgId();
         const aad = buildAAD({ convId, from: selfWallet, to: peerWallet, isMedia: false });
         const envelope = await encryptPayload({ type: 'agreement', agreement, receipt }, convKey, aad);
         const createdAt = Date.now();
@@ -567,7 +572,7 @@ export default function useMessaging({
         const previewText = agreement?.title ? `Agreement: ${agreement.title}` : 'Agreement created';
 
         actions.upsertMessage?.(convId, {
-          clientId,
+          clientId: messageId,
           from: selfWallet,
           to: peerWallet,
           sender: 'me',
@@ -579,39 +584,17 @@ export default function useMessaging({
           receipt,
           envelope,
           aad,
-        });
+          meta: {
+            agreementId: agreement?.id || null,
+            clientId: messageId,
+            messageId,
+            kind: 'agreement',
+            convId,
+            role: 'signer_b',
+            status: receipt?.status || 'pending_b',
+          },
+        }, selfWallet);
         registerRecent({ text: previewText, timestamp: createdAt });
-
-        try {
-          const res = await relay.sendEnvelope({
-            toWallet: peerWallet,
-            clientId,
-            envelope,
-            meta: {
-              kind: 'agreement',
-              convId,
-              from: selfWallet,
-              to: peerWallet,
-              agreementId: agreement?.id || null,
-            },
-            force: true,
-          });
-
-          actions.upsertMessage?.(convId, {
-            clientId,
-            id: res?.id,
-            status: 'sent',
-            deliveredAt: res?.deliveredAt || null,
-            via: 'relay',
-            forced: true,
-          });
-        } catch (relayError) {
-          debugAgreement('relay-error', { message: relayError?.message });
-          console.warn('[agreement] relay send failed', relayError);
-          actions.markFailed?.(convId, clientId, relayError?.message || 'send-failed');
-          return { ok: false, reason: relayError?.message || 'send-failed' };
-        }
-
         return { ok: true, agreement };
       } catch (error) {
         console.warn('[agreement] create failed', error);
@@ -621,7 +604,7 @@ export default function useMessaging({
   }, [convId, selfWallet, peerWallet, convKey, registerRecent, debugAgreement]);
 
   const shareAgreementUpdate = useCallback(
-    async ({ agreement, receipt, clientId }) => {
+    async ({ agreement, receipt, clientId, messageId }) => {
       if (!convId || !selfWallet || !peerWallet) {
         return { ok: false, reason: "missing-context" };
       }
@@ -630,12 +613,13 @@ export default function useMessaging({
         return { ok: false, reason: "e2e-key-missing" };
       }
       try {
+        const finalId = clientId || messageId || agreement?.id || nextClientMsgId();
         const aad = buildAAD({ convId, from: selfWallet, to: peerWallet, isMedia: false });
         const envelope = await encryptPayload({ type: 'agreement', agreement, receipt }, convKey, aad);
 
         await relay.sendEnvelope({
           toWallet: peerWallet,
-          clientId: clientId || nextClientMsgId(),
+          clientId: finalId,
           envelope,
           meta: {
             kind: 'agreement',
@@ -643,6 +627,7 @@ export default function useMessaging({
             from: selfWallet,
             to: peerWallet,
             agreementId: agreement?.id || null,
+            messageId: finalId,
           },
           force: true,
         });
@@ -692,7 +677,7 @@ export default function useMessaging({
         durMs,
         envelope: { iv, cipher, aad: mediaAad },
         aad: mediaAad,
-      });
+      }, selfWallet);
       registerRecent({ text: kind || "media", timestamp: Date.now() });
 
       const res = await relay.enqueue({
@@ -714,7 +699,7 @@ export default function useMessaging({
         forced: !!res.forced,
         warning: res.warning || null,
         aad: mediaAad,
-      });
+      }, selfWallet);
       try {
         debugTransport('sent-media', {
           direction: 'outgoing',
@@ -743,7 +728,7 @@ export default function useMessaging({
             to: peerWallet,
           });
           if (ok) {
-            actions.upsertMessage?.(convId, { clientId: localId, status: "sent", via: "rtc-fallback", aad: mediaAad });
+            actions.upsertMessage?.(convId, { clientId: localId, status: "sent", via: "rtc-fallback", aad: mediaAad }, selfWallet);
             try {
               debugTransport('sent-media', {
                 direction: 'outgoing',
@@ -769,7 +754,7 @@ export default function useMessaging({
           actions.upsertMessage?.(convId, {
             clientId: localId, id: forced.id || forced.serverId, status: "sent", deliveredAt: forced.deliveredAt || null, via: "relay",
             forced: true, warning: forced.warning || null
-          });
+          }, selfWallet);
           try {
             debugTransport('sent-media', {
               direction: 'outgoing',

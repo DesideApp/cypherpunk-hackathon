@@ -1,12 +1,11 @@
 import {
   createContext,
   useContext,
-  useEffect,
   useState,
+  useEffect,
   ReactNode,
   useCallback,
 } from 'react';
-import { tokens } from './tokens';
 
 type ThemeMode = 'light' | 'dark';
 
@@ -59,32 +58,15 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     `;
   }, []);
 
-  const applyTheme = useCallback((mode: ThemeMode) => {
-    const themeVars = tokens[mode];
-    for (const key in themeVars) {
-      document.documentElement.style.setProperty(key, themeVars[key]);
-    }
-    localStorage.setItem('theme', mode);
-
-    // Inyectar estilos CSS específicos del wallet-adapter
+  // Inyectar estilos al montar (theme.js maneja las variables CSS)
+  useEffect(() => {
     injectWalletAdapterStyles();
   }, [injectWalletAdapterStyles]);
-
-  // COMENTADO para evitar conflicto con theme.js
-  // useEffect(() => {
-  //   const preferred = localStorage.getItem('theme') as ThemeMode | null;
-  //   const fallback = window.matchMedia('(prefers-color-scheme: dark)').matches
-  //     ? 'dark'
-  //     : 'light';
-  //   const active = preferred === 'light' || preferred === 'dark' ? preferred : fallback;
-  //   setTheme(active);
-  //   applyTheme(active);
-  // }, [applyTheme]);
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
-    applyTheme(newTheme);
+    // Note: theme.js maneja la aplicación real de temas
   };
 
   return (

@@ -1,5 +1,6 @@
 import React from "react";
 import PropTypes from "prop-types";
+import "./actionmodals.css";
 
 /**
  * Generic modal shell using shared UI tokens.
@@ -13,6 +14,7 @@ export function ModalShell({
   children,
   labelledBy,
   size = "md",
+  showCloseButton = false,
   overlayProps = {},
   modalProps = {},
 }) {
@@ -20,7 +22,22 @@ export function ModalShell({
   if (!legacyIdRef.current) {
     legacyIdRef.current = `ui-modal-title-${Math.random().toString(36).slice(2)}`;
   }
-  const autoId = React.useId ? React.useId() : legacyIdRef.current;
+
+  React.useEffect(() => {
+    if (!open || typeof onClose !== "function") return undefined;
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        event.stopPropagation();
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open, onClose]);
+  
+  // Hook must be called unconditionally - always call useId if available
+  const reactId = React.useId?.() || null;
+  const autoId = reactId || legacyIdRef.current;
   const titleId = typeof title === "string" ? labelledBy || autoId : labelledBy;
 
   if (!open) return null;
@@ -44,7 +61,7 @@ export function ModalShell({
   return (
     <div {...mergedOverlayProps}>
       <div {...mergedModalProps}>
-        {(title || onClose) && (
+        {(title || (onClose && showCloseButton)) && (
           <header className="ui-modal__header">
             {title && (
               typeof title === "string" ? (
@@ -55,7 +72,7 @@ export function ModalShell({
                 title
               )
             )}
-            {onClose && (
+            {onClose && showCloseButton && (
               <button
                 type="button"
                 className="ui-button ui-button--ghost ui-modal__close"
@@ -84,18 +101,7 @@ ModalShell.propTypes = {
   children: PropTypes.node,
   labelledBy: PropTypes.string,
   size: PropTypes.oneOf(["md", "lg"]),
+  showCloseButton: PropTypes.bool,
   overlayProps: PropTypes.object,
   modalProps: PropTypes.object,
-};
-
-ModalShell.defaultProps = {
-  open: false,
-  onClose: undefined,
-  title: null,
-  footer: null,
-  children: null,
-  labelledBy: undefined,
-  size: "md",
-  overlayProps: {},
-  modalProps: {},
 };

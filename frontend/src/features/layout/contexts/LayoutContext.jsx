@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useLayoutEffect } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import { getPreferredTheme, applyTheme } from "@shared/utils/theme.js";
 
 const LayoutContext = createContext({
@@ -14,6 +14,7 @@ const LayoutContext = createContext({
   isDesktop: true,
   isTablet: false,
   isMobile: false,
+  isMobileLayout: false,
   theme: "light",
   toggleTheme: () => {},
 });
@@ -107,6 +108,7 @@ export const LayoutProvider = ({ children }) => {
         isDesktop: device !== "mobile",
         isTablet: device === "tablet",
         isMobile: device === "mobile",
+        isMobileLayout: device === "mobile",
         theme,
         toggleTheme,
       }}

@@ -3,7 +3,6 @@ import { useWallet } from "@wallet-adapter/core/contexts/WalletProvider";
 import { useAuthManager } from "@features/auth/hooks/useAuthManager.js";
 import { notify } from "@shared/services/notificationService.js";
 import { ModalShell, UiButton, UiChip } from "@shared/ui";
-import "./FundWalletModal.css";
 
 const FUND_OPTIONS = [
   { label: "$50", amount: 50 },
@@ -109,7 +108,7 @@ export default function FundWalletModal({ open, onClose }) {
   if (showDemo) {
     const provider = PROVIDER_OPTIONS.find(p => p.id === selectedProvider);
     const demoFooter = (
-      <>
+      <div className="action-modal-actions">
         <UiButton variant="secondary" onClick={handleBack} disabled={busy}>
           Volver
         </UiButton>
@@ -122,7 +121,7 @@ export default function FundWalletModal({ open, onClose }) {
         >
           Simular pago completado
         </UiButton>
-      </>
+      </div>
     );
 
     return (
@@ -132,29 +131,29 @@ export default function FundWalletModal({ open, onClose }) {
         title="Completar pago"
         footer={demoFooter}
         size="lg"
-        modalProps={{ className: "fund-modal fund-modal-demo" }}
       >
-        <div className="fund-demo-container">
-          <div className="fund-demo-content">
-            <div className="fund-demo-icon">{provider?.icon}</div>
-            <h3 className="fund-demo-title">{provider?.name} - Demo Mode</h3>
-            <div className="fund-demo-details">
+        <div className="action-modal-section">
+          <div className="action-modal-insight" style={{ flexDirection: 'column', gap: '1rem', padding: '1.5rem' }}>
+            <div style={{ fontSize: '3rem', textAlign: 'center' }}>{provider?.icon}</div>
+            <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>{provider?.name} - Demo Mode</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <p><strong>Monto:</strong> ${activeAmount} USD</p>
               <p><strong>Recibirás:</strong> ~{(activeAmount / 150).toFixed(4)} SOL</p>
               <p><strong>Wallet:</strong> {walletAddress?.slice(0, 8)}...{walletAddress?.slice(-8)}</p>
               <p><strong>Proveedor:</strong> {provider?.name}</p>
             </div>
-            <div className="fund-demo-info">
-              <p>🎭 <strong>Modo Demo</strong></p>
-              <p>En producción, aquí se integraría con un proveedor on-ramp real como:</p>
-              <ul>
-                <li>Coinflow (Solana nativo)</li>
-                <li>Transak (Global)</li>
-                <li>MoonPay (Popular)</li>
-                <li>Ramp Network</li>
-              </ul>
-              <p>El usuario completaría el pago con tarjeta de crédito/débito y los fondos llegarían automáticamente a su wallet.</p>
-            </div>
+          </div>
+
+          <div className="action-modal-insight" style={{ backgroundColor: 'var(--color-surface-secondary)' }}>
+            <p>🎭 <strong>Modo Demo</strong></p>
+            <p>En producción, aquí se integraría con un proveedor on-ramp real como:</p>
+            <ul style={{ margin: '0.5rem 0', paddingLeft: '1.5rem' }}>
+              <li>Coinflow (Solana nativo)</li>
+              <li>Transak (Global)</li>
+              <li>MoonPay (Popular)</li>
+              <li>Ramp Network</li>
+            </ul>
+            <p style={{ marginBottom: 0 }}>El usuario completaría el pago con tarjeta de crédito/débito y los fondos llegarían automáticamente a su wallet.</p>
           </div>
         </div>
       </ModalShell>
@@ -163,14 +162,14 @@ export default function FundWalletModal({ open, onClose }) {
 
   // Vista de selección
   const selectionFooter = (
-    <>
+    <div className="action-modal-actions">
       <UiButton variant="secondary" onClick={handleClose} disabled={busy}>
         Cancelar
       </UiButton>
       <UiButton onClick={handleFund} disabled={busy || !walletAddress || !activeAmount}>
         {busy ? "Abriendo..." : `Fondear ${activeAmount ? `$${activeAmount}` : ""}`}
       </UiButton>
-    </>
+    </div>
   );
 
   return (
@@ -179,19 +178,19 @@ export default function FundWalletModal({ open, onClose }) {
       onClose={handleClose}
       title="Fondear Wallet"
       footer={selectionFooter}
-      modalProps={{ className: "fund-modal" }}
+      size="md"
     >
-      <div className="fund-modal-body">
-        <div className="fund-wallet-info">
-          <p className="fund-label">Tu wallet:</p>
-          <code className="fund-wallet-address">
+      <div className="action-modal-section">
+        <div className="action-modal-insight">
+          <span className="action-modal-insight-label">Tu wallet:</span>
+          <code className="action-modal-insight-value">
             {walletAddress ? `${walletAddress.slice(0, 8)}...${walletAddress.slice(-8)}` : "No conectada"}
           </code>
         </div>
 
-        <div className="fund-section">
-          <label className="fund-label">Selecciona el monto:</label>
-          <div className="fund-amount-grid">
+        <div className="action-modal-field">
+          <span className="action-modal-field-label">Selecciona el monto:</span>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem', marginTop: '0.5rem' }}>
             {FUND_OPTIONS.map((option) => {
               const isSelected = selectedAmount === option.amount && !customAmount;
               return (
@@ -200,7 +199,6 @@ export default function FundWalletModal({ open, onClose }) {
                   as="button"
                   type="button"
                   selected={isSelected}
-                  className="fund-amount-chip"
                   onClick={() => {
                     setSelectedAmount(option.amount);
                     setCustomAmount("");
@@ -212,42 +210,55 @@ export default function FundWalletModal({ open, onClose }) {
               );
             })}
           </div>
+        </div>
 
-          <div className="fund-custom-amount">
-            <label className="fund-label">O ingresa un monto personalizado:</label>
-            <div className="fund-input-group">
-              <span className="fund-currency">$</span>
-              <input
-                type="number"
-                min="10"
-                max="10000"
-                step="10"
-                placeholder="Ej: 150"
-                value={customAmount}
-                onChange={(e) => setCustomAmount(e.target.value)}
-                disabled={busy}
-                className="fund-input"
-              />
-              <span className="fund-currency-label">USD</span>
-            </div>
+        <div className="action-modal-field">
+          <span className="action-modal-field-label">O ingresa un monto personalizado:</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '1.25rem', fontWeight: 600 }}>$</span>
+            <input
+              type="number"
+              min="10"
+              max="10000"
+              step="10"
+              placeholder="Ej: 150"
+              value={customAmount}
+              onChange={(e) => setCustomAmount(e.target.value)}
+              disabled={busy}
+              className="action-modal-input"
+              style={{ flex: 1 }}
+            />
+            <span style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>USD</span>
           </div>
         </div>
 
-        <div className="fund-section">
-          <label className="fund-label">Proveedor:</label>
-          <div className="fund-provider-grid">
+        <div className="action-modal-field">
+          <span className="action-modal-field-label">Proveedor:</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
             {PROVIDER_OPTIONS.map((provider) => (
               <button
                 key={provider.id}
                 type="button"
-                className={`fund-provider-button${selectedProvider === provider.id ? " active" : ""}`}
+                className="action-modal-option-button"
+                data-active={selectedProvider === provider.id}
                 onClick={() => setSelectedProvider(provider.id)}
                 disabled={busy}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  padding: '0.75rem',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: '8px',
+                  backgroundColor: selectedProvider === provider.id ? 'var(--color-surface-secondary)' : 'transparent',
+                  cursor: busy ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
               >
-                <span className="fund-provider-icon">{provider.icon}</span>
-                <div className="fund-provider-info">
-                  <span className="fund-provider-name">{provider.name}</span>
-                  <span className="fund-provider-desc">{provider.description}</span>
+                <span style={{ fontSize: '1.5rem' }}>{provider.icon}</span>
+                <div style={{ flex: 1, textAlign: 'left' }}>
+                  <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>{provider.name}</div>
+                  <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>{provider.description}</div>
                 </div>
               </button>
             ))}
@@ -255,15 +266,17 @@ export default function FundWalletModal({ open, onClose }) {
         </div>
 
         {requiresKYC && (
-          <div className="fund-warning">
-            ⚠️ Este monto puede requerir verificación KYC en {activeProvider.name}
+          <div className="action-modal-insight" style={{ backgroundColor: 'var(--color-warning-bg)', border: '1px solid var(--color-warning)' }}>
+            <span>⚠️ Este monto puede requerir verificación KYC en {activeProvider.name}</span>
           </div>
         )}
 
-        <div className="fund-info">
-          <p>• Los fondos llegarán directamente a tu wallet</p>
-          <p>• Tiempo estimado: 5-15 minutos</p>
-          <p>• Soporta tarjetas de crédito/débito</p>
+        <div className="action-modal-insight" style={{ fontSize: '0.875rem' }}>
+          <ul style={{ margin: 0, paddingLeft: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            <li>Los fondos llegarán directamente a tu wallet</li>
+            <li>Tiempo estimado: 5-15 minutos</li>
+            <li>Soporta tarjetas de crédito/débito</li>
+          </ul>
         </div>
       </div>
     </ModalShell>

@@ -41,7 +41,7 @@
 
 @media (max-width: 640px) {
   .chat-window--mobile .chat-messages {
-    padding: 0 18px;
+    padding: 0 12px;
   }
 
   .chat-window--mobile .chat-messages > * {
@@ -125,38 +125,3 @@
 .load-more-btn:hover { background: var(--hover-overlay); }
 
 /* Botón flotante scroll/panel */
-.scroll-to-bottom-btn {
-  position: absolute;
-  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
-  right: 20px;
-  background: var(--accent-color);
-  border: none;
-  border-radius: 50%;
-  width: 46px;
-  height: 46px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: var(--window-shadow);
-  color: var(--surface-color);
-  font-size: var(--font-title-size);
-  z-index: 2; /* no debe tapar el WritingPanel */
-  transition: var(--transition-all);
-}
-.scroll-to-bottom-btn:hover { background: var(--accent-color-hover); }
-.scroll-to-bottom-btn svg { color: var(--surface-color); }
-
-.chat-window--mobile .scroll-to-bottom-btn {
-  bottom: calc(104px + env(safe-area-inset-bottom, 0px));
-  width: 36px;
-  height: 36px;
-  right: 12px;
-  box-shadow: 0 12px 22px rgba(0, 0, 0, 0.35);
-  z-index: 6;
-}
-
-/* Desktop: ocultar botón flotante */
-@media (min-width: 1025px) {
-  .scroll-to-bottom-btn { display: none !important; }
-}

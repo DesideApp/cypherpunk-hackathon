@@ -14,6 +14,20 @@ export const THEME_TOKENS = {
     "--bubble-received": "#E7EDF3",
     "--sent-message": "#8A6EFF", // Unificado con accent-color
 
+    // 🎭 Action Modals (Buy, Request, Send, etc.)
+    "--action-modal-container-bg-base": "#F4F6FA",   // Base para el fondo del modal
+    "--action-modal-overlay-bg": "rgba(10, 11, 14, 0.40)",  // Backdrop detrás del modal
+    "--action-modal-width": "min(420px, 85vw)",      // Ancho del modal
+    "--action-modal-max-height": "min(700px, 90vh)", // Altura máxima del modal
+    "--action-modal-padding": "20px",                // Padding interno del modal
+    "--action-modal-gap": "18px",                    // Gap entre secciones principales (header, card, botones)
+    
+    // Botón primario de action cards (Request, Buy, Send, etc.)
+    "--action-card-btn-padding": "8px 16px",
+    "--action-card-btn-radius": "12px",
+    "--action-card-btn-font-size": "0.85rem",
+    "--action-card-btn-font-weight": "600",
+
     "--highlight-color": "#2A3442",
     "--border-color": "#C7C9CD",
     "--border-color-active": "#9B9DA0",
@@ -129,6 +143,20 @@ export const THEME_TOKENS = {
     "--surface-actions": "#2C333C",
     "--bubble-received": "#2A2B30",
     "--sent-message": "#8A6EFF",
+
+    // 🎭 Action Modals (Buy, Request, Send, etc.) - MISMO QUE BUY
+    "--action-modal-container-bg-base": "#2C333C",   // Base oscuro para fondo del modal (mismo que surface-actions)
+    "--action-modal-overlay-bg": "rgba(10, 11, 14, 0.40)",  // Backdrop detrás del modal
+    "--action-modal-width": "min(420px, 85vw)",      // Ancho del modal
+    "--action-modal-max-height": "min(700px, 90vh)", // Altura máxima del modal
+    "--action-modal-padding": "20px",                // Padding interno del modal
+    "--action-modal-gap": "18px",                    // Gap entre secciones principales (header, card, botones)
+    
+    // Botón primario de action cards (Request, Buy, Send, etc.)
+    "--action-card-btn-padding": "8px 16px",
+    "--action-card-btn-radius": "12px",
+    "--action-card-btn-font-size": "0.85rem",
+    "--action-card-btn-font-weight": "600",
 
     "--highlight-color": "#E0DED9",
     "--border-color": "rgba(255, 255, 255, 0.08)",

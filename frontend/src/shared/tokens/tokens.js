@@ -42,9 +42,11 @@ export function listSupportedTokens() {
   return Object.keys(TOKENS).map((code) => ({ code, ...TOKENS[code] }));
 }
 
-function clampDecimals(token, value) {
+function clampDecimals(token, _value) {
   const { ui } = TOKENS[token];
-  const [whole, fraction = ""] = value.split(".");
+  const display = parseFloat(_value);
+  const [, fraction = ""] = String(display).split(".");
+  const whole = Math.floor(display);
   const trimmedFraction = fraction.slice(0, ui.max);
   if (trimmedFraction.length === 0) {
     return whole;
@@ -79,7 +81,7 @@ export function validateAmount(token, rawAmount) {
     return validateAmount(upperToken, trimmed);
   }
 
-  const [whole, fraction = ""] = normalized.split(".");
+  const [_whole, fraction = ""] = normalized.split(".");
   const decimals = fraction.length;
   const allowed = TOKENS[upperToken].ui.max;
   if (decimals > allowed) {

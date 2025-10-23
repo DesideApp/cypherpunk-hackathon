@@ -29,14 +29,14 @@ export default function SettlementModal({ open, onClose, onSubmit, loading }) {
   };
 
   const footer = (
-    <>
+    <div className="action-modal-actions">
       <UiButton variant="secondary" onClick={onClose} disabled={loading}>
         Cancel
       </UiButton>
       <UiButton onClick={handleConfirm} disabled={loading}>
         Save
       </UiButton>
-    </>
+    </div>
   );
 
   return (
@@ -45,20 +45,21 @@ export default function SettlementModal({ open, onClose, onSubmit, loading }) {
       onClose={onClose}
       title="Attach transaction"
       footer={footer}
-      modalProps={{ className: "settlement-modal" }}
+      size="md"
     >
-      <div className="chat-action-body">
-        <p className="chat-action-description">
+      <div className="action-modal-section">
+        <p className="action-modal-section-subtitle">
           Paste the payment transaction to mark this agreement as settled.
         </p>
-        <label className="chat-action-field">
-          <span>Transaction (txSig)</span>
+        <label className="action-modal-field">
+          <span className="action-modal-field-label">Transaction (txSig)</span>
           <input
             type="text"
             value={txSig}
             onChange={(ev) => setTxSig(ev.target.value)}
             placeholder="E.g. 4aQh..."
             disabled={loading}
+            className="action-modal-input"
           />
         </label>
       </div>

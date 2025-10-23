@@ -1,8 +1,11 @@
-// Parser de comandos naturales para el chat
+// src/features/messaging/actions/command-parser.js
+// Parseador de comandos naturales
+
+import React from 'react';
+import { useBlinkExplorer } from "@features/messaging/hooks/useBlinkExplorer";
 // Sistema modular que detecta comandos y los convierte en acciones
 
 import { detectAction, processAction, detectBlinkUrls } from './actions-registry.js';
-import { useBlinkExplorer } from './blink-explorer.jsx';
 
 /**
  * Parser principal de comandos

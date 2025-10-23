@@ -2,7 +2,6 @@
 // Usa los estilos existentes de BlinkActionCard para consistencia
 
 import React, { useState, useEffect } from 'react';
-import { ExternalLink, Zap, AlertCircle, Play } from 'lucide-react';
 import './DialBlinkCard.css';
 
 /**

@@ -7,7 +7,7 @@
  * @returns {Promise<{primary: string, secondary: string}>}
  */
 export async function extractTokenColors(imageUrl) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve, _reject) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
     
@@ -128,8 +128,9 @@ function findSecondaryColor(colors, primary) {
  * @param {string} imageUrl - Token logo URL
  * @returns {Promise<{tint: string, background: string, glow: string}>}
  */
-export async function generateTokenColors(code, imageUrl) {
-  const { primary, secondary } = await extractTokenColors(imageUrl);
+export async function generateTokenColors(_code, _imageUrl) {
+  try {
+    const { primary } = await extractTokenColors(_imageUrl);
   
   // Generate tint (primary color)
   const tint = primary;
@@ -148,6 +149,10 @@ export async function generateTokenColors(code, imageUrl) {
   const glow = `rgba(${glowRgb.r},${glowRgb.g},${glowRgb.b},0.3)`;
   
   return { tint, background, glow };
+  } catch (_error) {
+    // Fallback colors
+    return { tint: '#8B5CF6', background: '#1E1B4B', glow: 'rgba(139,92,246,0.3)' };
+  }
 }
 
 // Utility functions

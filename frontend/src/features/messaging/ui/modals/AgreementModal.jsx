@@ -1,12 +1,21 @@
 import React, { useEffect, useMemo, useState } from "react";
 import PropTypes from "prop-types";
 import { notify } from "@shared/services/notificationService.js";
-import { ModalShell, UiButton } from "@shared/ui";
+import {
+  ModalShell,
+  UiButton,
+  ActionButtons,
+  ActionCancelButton,
+  ActionPrimaryButton,
+  ActionModalCard,
+  ActionModalHint,
+} from "@shared/ui";
 import { validateAmount, isSupportedToken } from "@shared/tokens/tokens.js";
+import "./AgreementModal.css";
+import "./AgreementModal.css";
 
-const MAX_BODY_LEN = 500;
+const MAX_BODY_LEN = 560;
 const MAX_TITLE_LEN = 120;
-const MAX_REASON_LEN = 120;
 
 function nowPlusHours(hours = 24) {
   const d = new Date(Date.now() + hours * 3600 * 1000);
@@ -124,7 +133,9 @@ export default function AgreementModal({
     });
     setBusy(false);
 
-    if (result?.ok) {
+    const isExplicitFailure = result && result.ok === false;
+
+    if (!isExplicitFailure) {
       notify("Agreement created.", "success");
       onClose();
     } else if (result?.reason) {
@@ -134,16 +145,15 @@ export default function AgreementModal({
 
   const presetDeadline = toInputDate(nowPlusHours());
   const currentDeadline = deadline;
-
-  const modalFooter = (
-    <>
-      <UiButton variant="secondary" onClick={onClose} disabled={busy}>
-        Cancel
-      </UiButton>
-      <UiButton onClick={handleSubmit} disabled={busy}>
+  const payerLabel = selfLabel || "You";
+  const counterpartyLabel = peerLabel || "Contact";
+  const footer = (
+    <ActionButtons>
+      <ActionCancelButton onClick={onClose} disabled={busy} />
+      <ActionPrimaryButton onClick={handleSubmit} disabled={busy} busy={busy}>
         Create agreement
-      </UiButton>
-    </>
+      </ActionPrimaryButton>
+    </ActionButtons>
   );
 
   return (
@@ -151,119 +161,127 @@ export default function AgreementModal({
       open={open}
       onClose={onClose}
       title="On-chain agreement"
-      footer={modalFooter}
-      modalProps={{ className: "agreement-modal" }}
+      size="md"
+      footer={footer}
     >
-      <div className="chat-action-body">
-        <p className="chat-action-description">
-          Define the terms. Your contact will sign first and then you will sign. We will store a proof on-chain.
-        </p>
-
-        <label className="chat-action-field">
-          <span>Title</span>
-          <input
-            type="text"
-            value={title}
-            onChange={(ev) => setTitle(ev.target.value)}
-            placeholder="E.g. Website redesign"
-            maxLength={MAX_TITLE_LEN}
-            autoFocus
-            disabled={busy}
-          />
-        </label>
-
-        <label className="chat-action-field">
-          <span>Description (optional)</span>
-          <textarea
-            value={body}
-            onChange={(ev) => setBody(ev.target.value)}
-            placeholder="Agreement details (optional)"
-            maxLength={MAX_BODY_LEN}
-            rows={3}
-            disabled={busy}
-          />
-        </label>
-
-        <div className="chat-action-field">
-          <span>Payer → Recipient</span>
-          <div className="agreement-payer-toggle" role="radiogroup" aria-label="Select who pays">
-            <button
-              type="button"
-              className={`agreement-toggle ${payer === selfWallet ? "active" : ""}`}
-              onClick={() => setPayer(selfWallet)}
+      <div className={`action-modal-body${showOptions ? " agreement-modal-body--scroll" : ""}`}>
+        <ActionModalCard>
+          <label className="action-modal-field">
+            <span className="action-modal-field-label">Title</span>
+            <input
+              type="text"
+              value={title}
+              onChange={(ev) => setTitle(ev.target.value)}
+              placeholder="E.g. Website redesign"
+              maxLength={MAX_TITLE_LEN}
+              autoFocus
               disabled={busy}
-              aria-pressed={payer === selfWallet}
-            >
-              I pay ({selfLabel})
-            </button>
-            <button
-              type="button"
-              className={`agreement-toggle ${payer === peerWallet ? "active" : ""}`}
-              onClick={() => setPayer(peerWallet)}
+              className="action-modal-input"
+            />
+          </label>
+
+          <label className="action-modal-field">
+            <span className="action-modal-field-label">Description (optional)</span>
+            <textarea
+              value={body}
+              onChange={(ev) => setBody(ev.target.value)}
+              placeholder="Agreement details (optional)"
+              maxLength={MAX_BODY_LEN}
+              rows={1}
               disabled={busy}
-              aria-pressed={payer === peerWallet}
+              className="action-modal-textarea agreement-modal-textarea"
+            />
+          </label>
+
+          <ActionModalHint>
+            Define the terms. Your contact will sign first and then you will sign. We will store a proof on-chain.
+          </ActionModalHint>
+        </ActionModalCard>
+
+        <div className="action-modal-section agreement-modal-options">
+          <div className="action-modal-field">
+            <UiButton
+              variant="ghost"
+              onClick={() => setShowOptions((prev) => !prev)}
+              disabled={busy}
+              aria-expanded={showOptions}
             >
-              {peerLabel} pays
-            </button>
+              {showOptions ? "Hide payment options" : "Add payment details"}
+            </UiButton>
           </div>
+
+          {showOptions && (
+            <>
+              <div className="action-modal-field">
+                <span className="action-modal-field-label">Payer → Recipient</span>
+                <div className="agreement-payer-toggle" role="radiogroup" aria-label="Select who pays">
+                  <button
+                    type="button"
+                    className={`agreement-toggle ${payer === selfWallet ? "active" : ""}`}
+                    onClick={() => setPayer(selfWallet)}
+                    disabled={busy}
+                    aria-pressed={payer === selfWallet}
+                  >
+                    I pay ({payerLabel})
+                  </button>
+                  <button
+                    type="button"
+                    className={`agreement-toggle ${payer === peerWallet ? "active" : ""}`}
+                    onClick={() => setPayer(peerWallet)}
+                    disabled={busy}
+                    aria-pressed={payer === peerWallet}
+                  >
+                    {counterpartyLabel} pays
+                  </button>
+                </div>
+              </div>
+
+              <label className="action-modal-field">
+                <span className="action-modal-field-label">Amount (optional)</span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  placeholder="0.00"
+                  value={amount}
+                  onChange={(ev) => setAmount(ev.target.value)}
+                  aria-describedby="agreement-amount-help"
+                  disabled={busy}
+                  className="action-modal-input"
+                />
+                <small id="agreement-amount-help" className="action-modal-field-help">
+                  {token === "SOL" ? "Recommended minimum 0.001 SOL." : "Up to 2 decimals."}
+                </small>
+              </label>
+
+              <label className="action-modal-field">
+                <span className="action-modal-field-label">Token</span>
+                <select
+                  value={token}
+                  onChange={(ev) => setToken(ev.target.value)}
+                  disabled={busy}
+                  className="action-modal-select"
+                >
+                  {tokens.map(({ code, symbol }) => (
+                    <option key={code} value={code}>{symbol || code}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="action-modal-field">
+                <span className="action-modal-field-label">Deadline (optional)</span>
+                <input
+                  type="datetime-local"
+                  value={currentDeadline}
+                  min={presetDeadline}
+                  onChange={(ev) => setDeadline(ev.target.value)}
+                  disabled={busy}
+                  className="action-modal-input"
+                />
+              </label>
+            </>
+          )}
         </div>
-
-        <div className="chat-action-field">
-          <UiButton
-            variant="ghost"
-            onClick={() => setShowOptions((prev) => !prev)}
-            disabled={busy}
-            aria-expanded={showOptions}
-          >
-            {showOptions ? "Hide optional fields" : "More options"}
-          </UiButton>
-        </div>
-
-        {showOptions && (
-          <>
-            <label className="chat-action-field">
-              <span>Amount (optional)</span>
-              <input
-                type="text"
-                inputMode="decimal"
-                autoComplete="off"
-                placeholder="0.00"
-                value={amount}
-                onChange={(ev) => setAmount(ev.target.value)}
-                aria-describedby="agreement-amount-help"
-                disabled={busy}
-              />
-              <small id="agreement-amount-help" className="chat-action-help">
-                {token === "SOL" ? "Recommended minimum 0.001 SOL." : "Up to 2 decimals."}
-              </small>
-            </label>
-
-            <label className="chat-action-field">
-              <span>Token</span>
-              <select
-                value={token}
-                onChange={(ev) => setToken(ev.target.value)}
-                disabled={busy}
-              >
-                {tokens.map(({ code, symbol }) => (
-                  <option key={code} value={code}>{symbol || code}</option>
-                ))}
-              </select>
-              <small className="chat-action-help">You can change the token later.</small>
-            </label>
-
-            <label className="chat-action-field">
-              <span>Deadline (optional)</span>
-              <input
-                type="datetime-local"
-                value={currentDeadline}
-                min={presetDeadline}
-                onChange={(ev) => setDeadline(ev.target.value)}
-                disabled={busy}
-              />
-            </label>
-          </>
-        )}
       </div>
     </ModalShell>
   );

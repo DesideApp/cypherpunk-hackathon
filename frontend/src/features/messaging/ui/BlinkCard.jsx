@@ -2,7 +2,8 @@
 // Se integra con el sistema de mensajería para mostrar blinks detectados
 
 import React, { useState, useEffect } from 'react';
-import { ExternalLink, Zap, AlertCircle, Play } from 'lucide-react';
+import { AlertCircle, Zap, Play } from 'lucide-react';
+
 import { getBlinkInfo, executeBlink } from '../actions/blink-explorer.jsx';
 import './BlinkCard.css';
 

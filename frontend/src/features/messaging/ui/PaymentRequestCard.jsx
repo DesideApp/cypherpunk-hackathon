@@ -11,6 +11,7 @@ import { useAuthManager } from "@features/auth/hooks/useAuthManager.js";
 import { actions } from "@features/messaging/store/messagesStore.js";
 import { executeBlink } from "@features/messaging/services/blinkExecutionService.js";
 import { FEATURES, IS_DEMO } from "@shared/config/env.js";
+import ActionCardBase from "@shared/ui/bubbles/ActionCardBase.jsx";
 import "./PaymentRequestCard.css";
 
 function shortAddress(addr) {
@@ -69,7 +70,7 @@ function copyToClipboard(value) {
   }
 }
 
-export default function PaymentRequestCard({ msg = {} }) {
+export default function PaymentRequestCard({ msg = {}, direction = "received" }) {
   const { pubkey: myWallet } = useAuthManager();
   const walletCtx = useWallet();
   const { connection } = useRpc();
@@ -110,13 +111,13 @@ export default function PaymentRequestCard({ msg = {} }) {
   }, [walletPublicKey, myWallet]);
 
   const payerAccount = walletAddress ? String(walletAddress).trim() : null;
-  const isMine = myWallet && payee === myWallet; // I am the payee (I requested payment)
+  const isMine = direction === "sent";
   const payerMatches = payer && payerAccount && payer === payerAccount;
   const canPay = payerMatches && dialToUrl && !isPaid;
   const inlineEnabled = FEATURES.PAYMENT_INLINE_EXEC;
   const inlineCapable = inlineEnabled && adapter && connection && payerMatches && actionUrl;
 
-  const titleText = isPaid ? "Payment completed" : "Payment request";
+  const titleText = "Payment request";
 
   const counterpartyShort = isMine
     ? payer
@@ -132,22 +133,6 @@ export default function PaymentRequestCard({ msg = {} }) {
     : isMine
       ? "Share the link with your contact or wait for their payment."
       : "You can pay directly from your wallet.";
-
-  const amountParts = useMemo(() => {
-    if (!displayAmount) {
-      return {
-        value: amount ? String(amount) : "—",
-        tokenLabel: token || "",
-      };
-    }
-    const parts = displayAmount.split(/\s+/);
-    return {
-      value: parts[0] || displayAmount,
-      tokenLabel: parts.slice(1).join(" ") || token || "",
-    };
-  }, [displayAmount, amount, token]);
-
-  // Mostramos identidad en el subtítulo; evitamos duplicar FROM/TO más abajo
 
   const createdAt = useMemo(() => {
     if (!createdAtRaw) return null;
@@ -318,15 +303,40 @@ export default function PaymentRequestCard({ msg = {} }) {
 
   const variant = isMine ? "own" : "contact";
 
-  const wrapperClassName = useMemo(() => {
-    return ["payment-card-wrapper", `payment-card-wrapper--${variant}`].join(" ");
-  }, [variant]);
+  const chipText = isPaid ? "PAID" : "REQUEST";
 
-  const surfaceClassName = useMemo(() => {
-    const classes = ["payment-card", `payment-card--${variant}`];
-    if (isPaid) classes.push("is-paid");
-    return classes.join(" ");
-  }, [variant, isPaid]);
+  const metaRows = useMemo(() => {
+    const rows = [];
+    if (displayAmount) {
+      rows.push({
+        id: "amount",
+        label: "Amount",
+        value: displayAmount,
+      });
+    }
+    if (token) {
+      rows.push({
+        id: "token",
+        label: "Token",
+        value: token,
+      });
+    }
+    const counterpart = isMine ? payer : payee;
+    rows.push({
+      id: "counterparty",
+      label: isMine ? "Payer" : "Payee",
+      value: counterpart ? shortAddress(counterpart) : "—",
+    });
+    if (isPaid && paidSignature && explorerUrl) {
+      rows.push({
+        id: "tx",
+        label: "Tx",
+        value: shortAddress(paidSignature),
+        link: explorerUrl,
+      });
+    }
+    return rows;
+  }, [displayAmount, token, isMine, payer, payee, isPaid, paidSignature, explorerUrl]);
 
   const handleCopy = () => {
     if (!dialToUrl) {
@@ -342,61 +352,61 @@ export default function PaymentRequestCard({ msg = {} }) {
       ? "Pay now"
       : "Open in wallet";
 
-  return (
-    <div className={wrapperClassName} role="group" aria-label="Payment request">
-      <div className={surfaceClassName}>
-      <header className="payment-card-header">
-        <div className="payment-card-heading">
-          <p className="payment-card-title">{titleText}</p>
-          {createdLabel && <span className="payment-card-date">{createdLabel}</span>}
+  const bodyContent = (
+    <>
+      {displayAmount && (
+        <div className="bubble-action-card__amount">
+          <span>{displayAmount}</span>
         </div>
-        <p className="payment-card-subtitle">{subtitleText}</p>
-      </header>
-
-      <div className="payment-card-amount-block">
-        <span className="payment-card-amount-value">{amountParts.value}</span>
-        {amountParts.tokenLabel && <span className="payment-card-amount-token">{amountParts.tokenLabel}</span>}
-      </div>
-
-      {/* FROM/TO duplican el subtítulo; los omitimos para mantener limpieza */}
-
-      {note && <p className="payment-card-note">Note: {note}</p>}
-      <p className="payment-card-note">{infoNote}</p>
-      {isPaid && paidSignature && (
-        <p className="payment-card-note">
-          Transaction: {" "}
-          <a href={explorerUrl} target="_blank" rel="noreferrer">
-            {shortAddress(paidSignature)} ↗
-          </a>
-        </p>
       )}
+      {note && <p className="bubble-action-card__note">Note: {note}</p>}
+      <p className="bubble-action-card__note">{infoNote}</p>
+    </>
+  );
 
-      <div className="payment-card-divider" />
-
-      <footer className="payment-card-footer">
-        {!isPaid && !isMine && (
-          <button
-            type="button"
-            className="payment-card-primary"
-            onClick={handlePay}
-            disabled={!canPay || paying}
-          >
-            {primaryButtonLabel}
-          </button>
-        )}
-
-        {isPaid && explorerUrl && (
-          <a className="payment-card-secondary" href={explorerUrl} target="_blank" rel="noreferrer">
-            View tx
-          </a>
-        )}
-
-        <button type="button" className="payment-card-secondary" onClick={handleCopy} disabled={!dialToUrl}>
-          Copy link
+  const footerContent = (
+    <div className="bubble-action-card__button-group">
+      {!isPaid && !isMine && (
+        <button
+          type="button"
+          className="bubble-action-card__button bubble-action-card__button--primary"
+          onClick={handlePay}
+          disabled={!canPay || paying}
+        >
+          {primaryButtonLabel}
         </button>
-      </footer>
-      </div>
+      )}
+      {isPaid && explorerUrl && (
+        <a
+          className="bubble-action-card__button bubble-action-card__button--secondary bubble-action-card__button--link"
+          href={explorerUrl}
+          target="_blank"
+          rel="noreferrer"
+        >
+          View tx
+        </a>
+      )}
+      <button
+        type="button"
+        className="bubble-action-card__button bubble-action-card__button--secondary"
+        onClick={handleCopy}
+        disabled={!dialToUrl}
+      >
+        Copy link
+      </button>
     </div>
+  );
+
+  return (
+    <ActionCardBase
+      variant={variant}
+      title={titleText}
+      metaRows={metaRows}
+      body={bodyContent}
+      footer={footerContent}
+      className={isPaid ? "payment-card is-paid" : "payment-card"}
+      ariaLabel={titleText}
+    />
   );
 }
 

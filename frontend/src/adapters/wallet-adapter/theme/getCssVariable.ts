@@ -1,19 +1,15 @@
 // theme/getCssVariable.ts
-
-import { tokens } from './tokens';
-
-type ThemeMode = keyof typeof tokens;
-type CssVarName = keyof typeof tokens['light']; // ⬅️ Aquí tipamos explícitamente
+// Reads CSS variables from DOM with fallback values
 
 export const getCssVariable = (
-  varName: CssVarName,
-  fallbackTheme: ThemeMode = 'light'
+  varName: string,
+  fallback: string = ''
 ): string => {
-  if (typeof window === 'undefined') return tokens[fallbackTheme][varName];
+  if (typeof window === 'undefined') return fallback;
 
   const value = getComputedStyle(document.documentElement)
     .getPropertyValue(varName)
     .trim();
 
-  return value || tokens[fallbackTheme][varName];
+  return value || fallback;
 };

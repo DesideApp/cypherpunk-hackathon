@@ -7,24 +7,6 @@
   word-break: break-word;
 }
 
-.message-bubble.agreement-wrapper {
-  padding: 0;
-  background: none;
-  max-width: 100%;
-}
-
-.message-bubble.payment-request-wrapper {
-  padding: 0;
-  background: none;
-  max-width: 100%;
-}
-
-.message-bubble.blink-action-wrapper {
-  padding: 0;
-  background: none;
-  max-width: 100%;
-}
-
 .message-bubble.sent { 
   align-self: flex-end;
   margin-right: 0; /* Alineado al borde DERECHO de WritingPanel (donde está el botón) */
@@ -64,31 +46,31 @@
   padding: 0;
   border-radius: 0;
   background: transparent;
-  --bubble-max-width: 100%;
+  --bubble-max-width: min(var(--bubble-card-max-width, 340px), 100%);
   --bubble-meta-width: calc(var(--time-width) + var(--bubble-meta-icon-size) + var(--bubble-gap) + var(--bubble-right-pad));
   min-height: auto;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  width: max-content;
-  max-width: 100%;
+  width: var(--bubble-card-width);
+  max-width: var(--bubble-card-width);
 }
 
 .message-content--action .bubble-inner {
   display: inline-flex;
   flex-direction: column;
   align-self: flex-start;
-  width: auto;
-  max-width: 100%;
+  width: var(--bubble-card-width);
+  max-width: var(--bubble-card-width);
 }
 
 .message-bubble.sent .message-content--action {
-  align-items: flex-end;
+  align-items: flex-start;
   margin-left: auto;
 }
 
 .message-bubble.sent .message-content--action .bubble-inner {
-  align-self: flex-end;
+  align-self: flex-start;
 }
 
 .message-bubble.received .message-content--action {
@@ -167,10 +149,24 @@
 .message-bubble.received.middle .message-content--text { border-top-left-radius: 4px;  border-bottom-left-radius: 4px; }
 .message-bubble.received.last   .message-content--text { border-top-left-radius: 4px;   border-bottom-left-radius: 16px; }
 
+.message-bubble.received.first  .message-content--action .bubble-action-card { border-top-left-radius: 16px; border-bottom-left-radius: 4px; }
+.message-bubble.received.middle .message-content--action .bubble-action-card { border-top-left-radius: 4px;  border-bottom-left-radius: 4px; }
+.message-bubble.received.last   .message-content--action .bubble-action-card { border-top-left-radius: 4px;   border-bottom-left-radius: 16px; }
+
+.message-bubble.received.first.last .message-content--text { border-top-left-radius: 16px; border-bottom-left-radius: 16px; }
+.message-bubble.received.first.last .message-content--action .bubble-action-card { border-top-left-radius: 16px; border-bottom-left-radius: 16px; }
+
 /* Agrupación enviados */
 .message-bubble.sent.first  .message-content--text { border-top-right-radius: 16px; border-bottom-right-radius: 4px; }
 .message-bubble.sent.middle .message-content--text { border-top-right-radius: 4px;  border-bottom-right-radius: 4px; }
 .message-bubble.sent.last   .message-content--text { border-top-right-radius: 4px;   border-bottom-right-radius: 16px; }
+
+.message-bubble.sent.first  .message-content--action .bubble-action-card { border-top-right-radius: 16px; border-bottom-right-radius: 4px; }
+.message-bubble.sent.middle .message-content--action .bubble-action-card { border-top-right-radius: 4px;  border-bottom-right-radius: 4px; }
+.message-bubble.sent.last   .message-content--action .bubble-action-card { border-top-right-radius: 4px;   border-bottom-right-radius: 16px; }
+
+.message-bubble.sent.first.last .message-content--text { border-top-right-radius: 16px; border-bottom-right-radius: 16px; }
+.message-bubble.sent.first.last .message-content--action .bubble-action-card { border-top-right-radius: 16px; border-bottom-right-radius: 16px; }
 
 /* ---- Nueva estructura: texto con meta fija ---- */
 .bubble-inner { position: relative; }
@@ -219,9 +215,9 @@
 /* Opcional: burbuja saliente más estrecha (look Telegram) */
 .message-bubble.sent .message-content--text { max-width: 60vw; }
 
-.message-bubble.middle { margin-bottom: 2px; }
-.message-bubble.first  { margin-bottom: 2px; }
-.message-bubble.last   { margin-bottom: 8px; }
+.message-bubble.middle { margin-bottom: 4px; }
+.message-bubble.first  { margin-bottom: 4px; }
+.message-bubble.last   { margin-bottom: 12px; }
 
 /* ======= Mobile overrides ======= */
 

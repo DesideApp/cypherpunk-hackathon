@@ -29,6 +29,7 @@ export function MessagingProvider({ children, pollMs = 4000 }) {
   const inboxRef = useRef(null);
   const [isRunning, setRunning] = useState(false);
   const [lastFetchAt, setLastFetchAt] = useState(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const transportLog = useMemo(
     () => createDebugLogger("transport", { envKey: "VITE_DEBUG_TRANSPORT_LOGS" }),
     []
@@ -220,6 +221,7 @@ function RtcAutoAnswerBridge() {
                   ? { ...payload, via: payload?.via || 'rtc' }
                   : { via: 'rtc' };
                 try {
+                  // eslint-disable-next-line no-undef
                   transportLog('incoming-rtc', {
                     direction: 'incoming',
                     transport: 'rtc',
@@ -228,7 +230,7 @@ function RtcAutoAnswerBridge() {
                     hasEnvelope: !!tagged?.envelope,
                   });
                 } catch {}
-                actions.addIncoming?.(convId, tagged);
+                actions.addIncoming?.(convId, tagged, myWallet);
                 try {
                   const previewText = typeof tagged?.text === 'string'
                     ? tagged.text

@@ -1,59 +1,22 @@
-// Simple token metadata for Buy modal and future cards
-// Icons are expected under public/tokens/<lower>.png
+// Token metadata orchestrator
+// 3-layer system: Premium → Auto-extracted → Fallback
 
 import { generateTokenColors } from './tokenColorExtractor.js';
+import { getPremiumToken, listPremiumTokens } from './premiumTokens.js';
 
 // Cache for generated colors to avoid re-processing
 const colorCache = new Map();
 
-const META = {
-  BONK: {
-    code: 'BONK',
-    label: 'Bonk',
-    icon: '/tokens/bonk.png',
-    tint: '#ff9f1a',
-    background: '#2c1608',
-    glow: 'rgba(255,159,26,0.32)',
-    iconScale: 0.88,
-  },
-  JUP: {
-    code: 'JUP',
-    label: 'Jupiter',
-    icon: '/tokens/jup.png',
-    tint: '#2ed47a',
-    background: '#0f2118',
-    glow: 'rgba(46,212,122,0.28)',
-    iconScale: 0.84,
-  },
-  PENGU: {
-    code: 'PENGU',
-    label: 'Pudgy Penguins',
-    icon: '/tokens/pengu.png',
-    tint: '#5cc8f8',
-    background: '#0c1d2d',
-    glow: 'rgba(92,200,248,0.32)',
-    iconScale: 0.9,
-  },
-  PUMP: {
-    code: 'PUMP',
-    label: 'Pump',
-    icon: '/tokens/pump.png',
-    tint: '#62f5a6',
-    background: '#0d261a',
-    glow: 'rgba(98,245,166,0.3)',
-    iconScale: 0.87,
-  },
-};
-
 export async function getTokenMeta(code) {
   const key = String(code || '').toUpperCase();
   
-  // Return predefined metadata if available
-  if (META[key]) {
-    return META[key];
+  // 🎨 LAYER 1: Check premium tokens first (hardcoded partnerships/special effects)
+  const premiumToken = getPremiumToken(key);
+  if (premiumToken) {
+    return premiumToken;
   }
   
-  // Generate automatic colors for unknown tokens
+  // 🤖 LAYER 2: Generate automatic colors for unknown tokens
   const iconPath = `/tokens/${key.toLowerCase()}.png`;
   const cacheKey = `${key}_${iconPath}`;
   
@@ -83,7 +46,7 @@ export async function getTokenMeta(code) {
   } catch (error) {
     console.warn('Failed to generate colors for token:', key, error);
     
-    // Fallback to default colors
+    // 🪙 LAYER 3: Fallback to default colors
     const fallback = {
       tint: '#64748b',
       background: 'rgba(148,163,184,0.08)',
@@ -103,5 +66,5 @@ export async function getTokenMeta(code) {
 }
 
 export function listKnownTokens() {
-  return Object.values(META);
+  return listPremiumTokens();
 }

@@ -1,6 +1,5 @@
 // src/features/messaging/ui/UnifiedList.jsx
-import React, { useState, memo, useMemo, useCallback } from "react";
-import { Search } from "lucide-react";
+import React, { useState, useCallback, useMemo, memo } from "react";
 import { useAuthManager } from "@features/auth/hooks/useAuthManager.js";
 import useConversationsPreview from "@features/messaging/hooks/useConversationsPreview.js";
 import { UiChip, UiSearchInput } from "@shared/ui";

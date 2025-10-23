@@ -96,7 +96,7 @@ export function useRtcDialer() {
           try {
             import('@features/messaging/store/messagesStore.js').then(({ actions, convId: mkConvId }) => {
               const convId = mkConvId(myWallet, remoteId);
-              actions.addIncoming?.(convId, payload);
+              actions.addIncoming?.(convId, payload, myWallet);
             });
           } catch {}
         },

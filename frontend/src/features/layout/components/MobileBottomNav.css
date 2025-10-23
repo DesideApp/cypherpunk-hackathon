@@ -5,16 +5,27 @@
   right: 0;
   height: auto;
   padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
-  background: rgba(20, 20, 24, 0.95);
-  backdrop-filter: blur(12px);
+  background: var(--background-color);
   border-top: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 10px;
   border-radius: 20px 20px 0 0;
-  box-shadow: 0 -10px 24px rgba(0,0,0,0.25);
+  box-shadow: none;
   z-index: 750;
+  overflow: hidden;
+}
+
+.mobile-bottom-nav::before {
+  content: "";
+  position: absolute;
+  top: -16px;
+  left: 0;
+  right: 0;
+  height: 16px;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent 0%, var(--background-color) 60%);
 }
 
 .mobile-bottom-nav__item {

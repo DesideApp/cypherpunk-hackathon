@@ -1,0 +1,220 @@
+import { base64ToUtf8 } from "@shared/utils/base64.js";
+import { canonicalWallet } from "@features/messaging/domain/id.js";
+
+function inferKindFromMime(mime = "") {
+  if (mime.startsWith("image/")) return "image";
+  if (mime.startsWith("video/")) return "video";
+  if (mime.startsWith("audio/")) return "audio";
+  return "binary";
+}
+
+function canonicalOrNull(value) {
+  const trimmed = canonicalWallet(value);
+  return trimmed || null;
+}
+
+function computeDirection({ sender, kind, payload, paymentRequest, blinkAction, agreement }, myWallet) {
+  const lowerSender = sender === "me" ? "me" : sender;
+  const fallback = lowerSender === "me" ? "sent" : "received";
+
+  if (!myWallet) {
+    return fallback;
+  }
+
+  if (kind === "payment-request" || paymentRequest || payload?.type === "payment_request") {
+    const request = paymentRequest || payload?.request || {};
+    if (request.payee && canonicalOrNull(request.payee) === canonicalOrNull(myWallet)) {
+      return "sent";
+    }
+    if (request.payer && canonicalOrNull(request.payer) === canonicalOrNull(myWallet)) {
+      return "received";
+    }
+    return fallback;
+  }
+
+  if (kind === "blink-action" || blinkAction || payload?.type === "blink_action") {
+    const blink = blinkAction || payload?.blink || {};
+    const blinkSender = blink.sender || blink.author || blink.wallet || null;
+    if (blinkSender && canonicalOrNull(blinkSender) === canonicalOrNull(myWallet)) {
+      return "sent";
+    }
+    return fallback;
+  }
+
+  if (kind === "agreement" || agreement) {
+    const agreementPayload = agreement || payload?.agreement || {};
+    const createdBy = agreementPayload.createdBy || agreementPayload.creator || null;
+    if (createdBy && canonicalOrNull(createdBy) === canonicalOrNull(myWallet)) {
+      return "sent";
+    }
+
+    const receipt = agreementPayload.receipt || payload?.receipt || {};
+    const payer = agreementPayload.payer || receipt.payer || null;
+    if (payer && canonicalOrNull(payer) === canonicalOrNull(myWallet)) {
+      return "sent";
+    }
+
+    const payee = agreementPayload.payee || receipt.payee || null;
+    if (payee && canonicalOrNull(payee) === canonicalOrNull(myWallet)) {
+      return "received";
+    }
+
+    const signerA = receipt?.signerA || receipt?.aSigner || null;
+    if (signerA && canonicalOrNull(signerA) === canonicalOrNull(myWallet)) {
+      return "sent";
+    }
+
+    const signerB = receipt?.signerB || receipt?.bSigner || null;
+    if (signerB && canonicalOrNull(signerB) === canonicalOrNull(myWallet)) {
+      return "sent";
+    }
+
+    return fallback;
+  }
+
+  return fallback;
+}
+
+function mapAgreement(base, message) {
+  return {
+    ...base,
+    kind: "agreement",
+    agreement: message.agreement || message.payload?.agreement || null,
+    receipt: message.receipt || message.payload?.receipt || null,
+  };
+}
+
+function mapPaymentRequest(base, message) {
+  return {
+    ...base,
+    kind: "payment-request",
+    paymentRequest: message.paymentRequest || message.payload?.request || null,
+  };
+}
+
+function mapBlinkAction(base, message) {
+  return {
+    ...base,
+    kind: "blink-action",
+    blinkAction: message.blinkAction || message.payload?.blink || null,
+  };
+}
+
+function mapPaymentSend(base, message) {
+  return {
+    ...base,
+    kind: "payment-send",
+    paymentSend: message.paymentSend,
+  };
+}
+
+function mapDefault(base, message, { text, media }) {
+  return {
+    ...base,
+    kind: message.kind || (media ? "media" : "text"),
+    text: text || null,
+    media: media || null,
+  };
+}
+
+export function toUiMessage(m, myWallet, convIdHint = null) {
+  if (!m) return null;
+
+  const sender =
+    m.sender ||
+    (m.from
+      ? (m.from === myWallet ? "me" : "other")
+      : m.author
+      ? (m.author === myWallet ? "me" : "other")
+      : "other");
+
+  const timestamp =
+    m.timestamp ||
+    m.sentAt ||
+    (m.createdAt ? (typeof m.createdAt === "string" ? Date.parse(m.createdAt) : m.createdAt) : Date.now());
+
+  let text = m.text || m.body?.text || null;
+  if (!text && m.box && !m.iv && !m.envelope && (!m.mime || m.mime === "text/plain")) {
+    try {
+      text = base64ToUtf8(m.box);
+    } catch {}
+  }
+  if (!text && m.kind === "text" && typeof m.payload?.text === "string") {
+    text = m.payload.text;
+  }
+
+  let media = m.media || null;
+  if (!media) {
+    if ((m.kind === "media-inline" || m.kind === "media") && (m.base64 || m.payload?.base64)) {
+      const mime = m.mime || m.payload?.mime || "application/octet-stream";
+      media = {
+        kind: inferKindFromMime(mime),
+        base64: m.base64 || m.payload?.base64,
+        mime,
+        width: m.w || m.payload?.w,
+        height: m.h || m.payload?.h,
+        durationMs: m.durMs || m.payload?.durMs,
+      };
+    } else if (m.mime && m.box && (m.meta?.kind === "media" || inferKindFromMime(m.mime) !== "binary")) {
+      media = {
+        kind: inferKindFromMime(m.mime),
+        base64: m.box,
+        mime: m.mime,
+        width: m.meta?.w,
+        height: m.meta?.h,
+        durationMs: m.meta?.durMs,
+      };
+    }
+  }
+
+  const deliveredAt = m.deliveredAt || null;
+  const status = m.status || (deliveredAt ? "delivered" : "sent");
+
+  const base = {
+    id: m.id || m.serverId || m.clientId || undefined,
+    clientId: m.clientId || m.clientMsgId || m.id || m.serverId || m.agreement?.id || undefined,
+    convId: m.convId || m.conversationId || m?.meta?.convId || convIdHint || null,
+    from: m.from || m.author || m?.payload?.from || null,
+    to: m.to || m.recipient || m?.payload?.to || null,
+    sender,
+    timestamp,
+    deliveredAt,
+    status,
+    isEncrypted: !!(m.iv || m.envelope),
+    isBackedUp: !!m.isBackedUp,
+    via: m.via,
+  };
+
+  const baseDirection = computeDirection(
+    {
+      sender,
+      kind: m.kind,
+      payload: m.payload,
+      paymentRequest: m.paymentRequest,
+      blinkAction: m.blinkAction,
+      agreement: m.agreement,
+    },
+    myWallet
+  );
+
+  base.direction = baseDirection;
+  base.sender = baseDirection === "sent" ? "me" : "other";
+
+  if (m.kind === "agreement" || m.agreement) {
+    return mapAgreement(base, m);
+  }
+
+  if (m.kind === "payment-request" || m.paymentRequest || m.payload?.type === "payment_request") {
+    return mapPaymentRequest(base, m);
+  }
+
+  if (m.kind === "blink-action" || m.blinkAction || m.payload?.type === "blink_action") {
+    return mapBlinkAction(base, m);
+  }
+
+  if (m.kind === "payment-send" || m.paymentSend) {
+    return mapPaymentSend(base, m);
+  }
+
+  return mapDefault(base, m, { text, media });
+}

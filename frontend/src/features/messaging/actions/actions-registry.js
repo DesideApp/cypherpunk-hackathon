@@ -1,7 +1,7 @@
 // Registry de acciones disponibles para el parser de comandos naturales
 // Estructura modular y extensible
 
-import { buildTransfer, buildRequest } from './blinkUrlBuilder.js';
+import { buildRequest } from './blinkUrlBuilder.js';
 
 /**
  * Registry de acciones disponibles
@@ -45,7 +45,7 @@ export const ACTIONS_REGISTRY = {
       /^(?:compra|buy|comprar)\s+(\d+(?:\.\d+)?)\s*(sol|usdc|usdt)?\s+(?:de|of)\s+(.+)/i,
       /^(?:quiero|want)\s+(\d+(?:\.\d+)?)\s*(sol|usdc|usdt)?\s+(?:de|of)\s+(.+)/i,
     ],
-    handler: async (matches, context) => {
+    handler: async (_matches, _context) => {
       // TODO: Implementar cuando tengas la acción buy
       throw new Error('Acción buy no implementada aún');
     },

@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback, useRef, useEffect } from "react";
+import React, { useMemo, useState, useCallback, useEffect } from "react";
 import { useWallet } from "@wallet-adapter/core/contexts/WalletProvider";
 import { useProfile } from "@features/profile/hooks/useProfile.js";
 import { getCssVariable } from "@wallet-adapter/theme/getCssVariable";
@@ -95,7 +95,7 @@ function WalletMenuContent({ onClose }: Props) {
   const canSave = connected && dirty && !busy;
 
   // -------------------- avatar (MVP): usa URL pegada por el usuario
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  // const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // -------------------- subida opcional del avatar (deshabilitada en MVP)
   const uploadAvatarIfNeeded = async (): Promise<string | null> => {

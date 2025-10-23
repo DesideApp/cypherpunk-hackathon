@@ -27,10 +27,13 @@ export function createInboxService({
   let stopped = false;
   let fetching = false;
   let cursor = null;
+  let pausedByAuth = false;
 
   let unbindFlush = null;
   let flushTimer = null;
   let flushPending = false;
+
+  let resumeListener = null;
 
   const seenIds = new Set();
   const ackBacklog = new Set();
@@ -134,15 +137,39 @@ export function createInboxService({
       }
     }
 
-    let kind = "text";
-    if (messageType && messageType !== "text") {
-      kind = messageType;
+    let agreementData = merged.agreement || merged?.payload?.agreement || null;
+    let receiptData = merged.receipt || merged?.payload?.receipt || null;
+
+    if (typeof text === "string") {
+      try {
+        const parsed = JSON.parse(text);
+        if (parsed && typeof parsed === "object") {
+          agreementData = parsed.agreement || agreementData;
+          receiptData = parsed.receipt || receiptData;
+          if (typeof parsed.preview === "string") text = parsed.preview;
+        }
+      } catch {
+        // ignore parse errors
+      }
+    }
+
+    if (!text && agreementData?.title) {
+      text = `Agreement: ${agreementData.title}`;
+    }
+
+    let kind = meta?.kind || messageType || "text";
+    if (!meta?.kind) {
+      if (messageType && messageType !== "text") {
+        kind = messageType;
+      } else if (media) {
+        kind = "media";
+      } else if (text) {
+        kind = "text";
+      } else if (isEncrypted) {
+        kind = "text";
+      }
     } else if (media) {
       kind = "media";
-    } else if (text) {
-      kind = "text";
-    } else if (isEncrypted) {
-      kind = "text";
     }
 
     return {
@@ -176,6 +203,8 @@ export function createInboxService({
         enqueuedAt: merged.enqueuedAt,
         processingTimeMs: merged.processingTimeMs,
       },
+      agreement: agreementData || null,
+      receipt: receiptData || null,
       envelope: isEncrypted
         ? { iv: merged.iv || merged?.envelope?.iv, cipher: merged.cipher || merged.box || merged?.envelope?.cipher || merged?.envelope?.box, aad: merged.aad || merged?.envelope?.aad, aadB64: merged.aadB64 || merged?.envelope?.aadB64 }
         : null,
@@ -253,7 +282,7 @@ export function createInboxService({
             byConv.get(conv).push(m);
           }
           for (const [conv, list] of byConv.entries()) {
-            actions.upsertBatch?.(conv, list);
+            actions.upsertBatch?.(conv, list, selfWallet);
             try {
               const last = list && list.length ? list[list.length - 1] : null;
               const peer = last ? (last.from === selfWallet ? last.to : last.from) : null;
@@ -281,19 +310,32 @@ export function createInboxService({
     } catch (e) {
       const status = e?.status || e?.details?.statusCode;
       if (status === 401 || status === 403 || e?.code === 'auth-stale') {
+        pausedByAuth = true;
         try { window.dispatchEvent(new CustomEvent('inbox:paused:auth')); } catch {}
-        try { clearInterval(timer); } catch {}
-        timer = null;
+        stop();
+        fetching = false;
+        return;
       }
     } finally {
       fetching = false;
     }
   }
 
+  const resume = () => {
+    if (!pausedByAuth) return;
+    pausedByAuth = false;
+    start();
+  };
+
+  resumeListener = () => resume();
+  try { window.addEventListener('inbox:auth-resume', resumeListener); } catch {}
+
   // --- control
   function start() {
-    stopped = false;
+    if (pausedByAuth) return;
     if (!enabled) return;
+    stop();
+    stopped = false;
     if (timer) clearInterval(timer);
     timer = setInterval(tick, pollMs);
     tick();

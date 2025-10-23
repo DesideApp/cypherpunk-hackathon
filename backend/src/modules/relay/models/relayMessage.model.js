@@ -77,6 +77,18 @@ const relaySchema = new mongoose.Schema(
       userAgent: { type: String }  // para debugging
     },
 
+    /** ℹ️ Metadatos de dominio (acciones, acuerdos, etc.) */
+    meta: {
+      kind: { type: String, trim: true, index: true },          // agreement, payment-request, blink-action...
+      agreementId: { type: String, trim: true },                 // identificador de acuerdo en backend
+      convId: { type: String, trim: true },                      // conversación A:B
+      clientId: { type: String, trim: true },                    // identificador original del cliente
+      from: { type: String, trim: true },                        // redundante para auditoría
+      to: { type: String, trim: true },
+      step: { type: String, trim: true },                        // pending_a, pending_b, etc.
+      status: { type: String, trim: true },                      // estado lógico adicional
+    },
+
     /** 🌐 Metadatos de red */
     networkInfo: {
       ip: { type: String },        // IP del remitente (para auditoría)
@@ -140,6 +152,10 @@ relaySchema.index({ status: 1, createdAt: 1 });          // filtrar por estado
 relaySchema.index({ messageType: 1, createdAt: 1 });     // filtrar por tipo
 relaySchema.index({ 'conversation.threadId': 1, createdAt: 1 }); // hilos de conversación
 relaySchema.index({ 'flags.isUrgent': 1, createdAt: 1 }); // mensajes urgentes primero
+relaySchema.index(
+  { to: 1, 'meta.agreementId': 1 },
+  { partialFilterExpression: { 'meta.agreementId': { $exists: true, $type: 'string' } } }
+);
 
 // Índice TTL: elimina mensajes automáticamente después de TTL_SECONDS
 relaySchema.index({ createdAt: 1 }, { expireAfterSeconds: TTL_SECONDS });

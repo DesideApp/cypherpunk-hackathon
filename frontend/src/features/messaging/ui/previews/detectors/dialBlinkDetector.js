@@ -166,7 +166,7 @@ export async function extractDialBlinkInfo(url) {
     if (image) {
       try {
         measuredDimensions = await measureImage(image);
-      } catch (err) {
+      } catch (_err) {
         measuredDimensions = null;
       }
     }

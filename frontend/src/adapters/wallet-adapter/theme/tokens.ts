@@ -9,13 +9,19 @@ export const tokens = {
     '--text-on-surface': '#1F2937',        // ✅ Texto sobre surface
     '--surface-color': '#ffffff',          // ⚪️ Superficie clara (puedes ajustarla)
 
+    // 🎭 Action Modals (Buy, Request, Send, etc.)
+    '--action-modal-container-bg-base': '#F5F6F8',   // Color base del fondo del modal
+    '--action-modal-overlay-bg': 'rgba(10, 11, 14, 0.40)',  // Backdrop oscuro detrás del modal
+    
     // 🟠 Acción / Botón principal
     '--action-color': '#FC554F',
     '--walletbutton-shadow': '#FA6560',
+    '--accent-color': '#3b82f6',           // Color de acento (línea superior modal)
 
     // 🔹 Hover y overlays
     '--hover-overlay': 'rgba(30, 41, 59, 0.08)',
     '--border-color': '#D2D8E0',
+    '--border-color-active': '#9CA3AF',    // Borde activo/hover
 
     // � Focus y chips
     '--focus-ring': 'color-mix(in srgb, var(--action-color) 28%, transparent)',
@@ -53,13 +59,19 @@ export const tokens = {
     '--text-on-surface': '#E0E0E0',        // Texto claro sobre surface oscuro
     '--surface-color': '#1f232bff',        // 🌑 Superficie oscura
 
+    // 🎭 Action Modals (Buy, Request, Send, etc.) - MISMO QUE BUY
+    '--action-modal-container-bg-base': '#16171A',   // Color base del fondo del modal (oscuro)
+    '--action-modal-overlay-bg': 'rgba(10, 11, 14, 0.40)',  // Backdrop oscuro detrás del modal
+    
     // 🟠 Acción / Botón principal
     '--action-color': '#FC554F',
     '--walletbutton-shadow': '#E04A45',
+    '--accent-color': '#3b82f6',           // Color de acento (línea superior modal)
 
     // 🔹 Hover y overlays
     '--hover-overlay': 'rgba(224, 222, 217, 0.08)',
     '--border-color': '#2A2C31',
+    '--border-color-active': '#3A3C41',    // Borde activo/hover
 
     // � Focus y chips
     '--focus-ring': 'color-mix(in srgb, var(--action-color) 28%, transparent)',
