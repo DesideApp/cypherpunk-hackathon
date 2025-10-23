@@ -221,5 +221,17 @@ export function toUiMessage(m, myWallet, convIdHint = null) {
     return mapPaymentSend(base, m);
   }
 
-  return mapDefault(base, m, { text, media });
+  const mapped = mapDefault(base, m, { text, media });
+  const hasContent =
+    (typeof mapped.text === "string" && mapped.text.trim().length > 0) ||
+    !!mapped.media ||
+    !!mapped.paymentRequest ||
+    !!mapped.agreement ||
+    !!mapped.blinkAction;
+
+  if (!hasContent && !mapped.isPlaceholder) {
+    return null;
+  }
+
+  return mapped;
 }
