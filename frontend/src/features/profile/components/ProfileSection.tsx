@@ -82,6 +82,12 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
   };
 
   const normalizeX = (handle: string) => handle.trim().replace(/^@/, "");
+  const shorten = (value: string, head = 4, tail = 4) => {
+    if (!value) return "";
+    const trimmed = value.trim();
+    if (trimmed.length <= head + tail + 1) return trimmed;
+    return `${trimmed.slice(0, head)}…${trimmed.slice(-tail)}`;
+  };
 
   const avatarChanged =
     (initialAvatarUrl || "") !== (avatarPreview || "");
@@ -428,4 +434,3 @@ function normalizedValue(
 
 export default ProfileSection;
 export { ProfileSection };
-

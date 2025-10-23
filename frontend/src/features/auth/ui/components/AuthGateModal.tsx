@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { WalletButton } from '@features/wallet/components/WalletButton';
 import { panelEvents } from '@features/auth/ui/system/panel-bus';
+import { useLayout } from '@features/layout/contexts/LayoutContext.jsx';
 
 type Props = {
   /** Cuando true, el Gate se renderiza SIN overlay propio (lo pone el Shell). */
@@ -38,6 +39,7 @@ export default function AuthGateModal({
   termsHref = '/terms',
   privacyHref = '/privacy',
 }: Props) {
+  const { isMobile } = useLayout();
   const prefersDark =
     typeof window !== 'undefined'
       ? window.matchMedia?.('(prefers-color-scheme: dark)')?.matches
@@ -53,16 +55,23 @@ export default function AuthGateModal({
 
   // ⚠️ Importante: este componente es “contenido-only”.
   // Nada de overlay ni tarjeta: eso lo pone el Shell.
+  const rootStyle = useMemo<React.CSSProperties>(() => ({
+    display: 'grid',
+    gridAutoRows: 'min-content',
+    gap: 18,
+    justifyItems: 'center',
+    textAlign: 'center',
+    width: '100%',
+    maxWidth: 480,
+    boxSizing: 'border-box',
+    padding: isMobile
+      ? `calc(36px + var(--safe-area-top, 18px)) clamp(18px, 8vw, 40px) calc(32px + var(--safe-area-bottom, 20px))`
+      : '44px 48px 38px',
+    margin: '0 auto',
+  }), [isMobile]);
+
   return (
-    <div
-      style={{
-        display: 'grid',
-        gridAutoRows: 'min-content',
-        gap: 14,
-        justifyItems: 'center',
-        textAlign: 'center',
-      }}
-    >
+    <div style={rootStyle}>
       {/* Wordmark / marca (opcional) */}
       {brandSrc ? (
         <div style={{ minHeight: 56, display: 'grid', placeItems: 'center', width: '100%' }}>
@@ -74,7 +83,7 @@ export default function AuthGateModal({
       <h2
         style={{
           margin: '4px 0 0',
-          fontSize: 22,
+          fontSize: isMobile ? 20 : 22,
           lineHeight: 1.25,
           fontWeight: 800,
           color: 'var(--text-primary, #111827)',
@@ -88,10 +97,10 @@ export default function AuthGateModal({
       <p
         style={{
           margin: '-2px 0 4px',
-          fontSize: 14,
+          fontSize: isMobile ? 13 : 14,
           lineHeight: 1.55,
           color: 'var(--text-secondary, #4b5563)',
-          maxWidth: 420,
+          maxWidth: isMobile ? 'min(92vw, 420px)' : 420,
         }}
       >
         {description}
@@ -105,6 +114,7 @@ export default function AuthGateModal({
           minHeight: 44,
           alignItems: 'center',
           justifyContent: 'center',
+          width: isMobile ? '100%' : 'auto',
         }}
       >
         <WalletButton
@@ -112,7 +122,8 @@ export default function AuthGateModal({
           onClick={openConnect}
           style={{
             minHeight: 44,
-            minWidth: 160,
+            minWidth: isMobile ? undefined : 160,
+            width: isMobile ? '100%' : undefined,
             borderRadius: 10,
             fontWeight: 600,
             // el color viene de --action-color en el tema
@@ -130,7 +141,7 @@ export default function AuthGateModal({
             fontSize: 12,
             lineHeight: 1.45,
             color: 'var(--text-secondary, #6b7280)',
-            maxWidth: 460,
+            maxWidth: isMobile ? 'min(92vw, 420px)' : 460,
           }}
         >
           {tipText}

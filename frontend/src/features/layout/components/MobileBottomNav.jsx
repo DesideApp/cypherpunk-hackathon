@@ -3,6 +3,9 @@ import { MessageCircle, ArrowLeftRight, User, Settings } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useLayout } from "@features/layout/contexts/LayoutContext";
 import { panelEvents } from "@features/auth/ui/system/panel-bus";
+import { useJupiterSwap } from "@features/swap/contexts/JupiterSwapContext.jsx";
+import { useAuth, AUTH_STATUS } from "@features/auth/contexts/AuthContext.jsx";
+import { useWallet } from "@wallet-adapter/core/contexts/WalletProvider";
 
 import "./MobileBottomNav.css";
 
@@ -10,6 +13,11 @@ export default function MobileBottomNav({ onOpenSettings = () => {} }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { isMobile } = useLayout();
+  const { swapEnabled, openSwap } = useJupiterSwap();
+  const { status: authStatus } = useAuth();
+  const { connected, publicKey } = useWallet();
+  const walletConnected = Boolean(publicKey) || connected;
+  const authReady = authStatus === AUTH_STATUS.READY;
 
   const navItems = useMemo(() => {
     const base = [
@@ -30,12 +38,30 @@ export default function MobileBottomNav({ onOpenSettings = () => {} }) {
     }
 
     if (item.action === "openSwap") {
-      window.open("https://jup.ag/swap", "_blank", "noopener,noreferrer");
+      if (!swapEnabled) {
+        window.open("https://jup.ag/swap", "_blank", "noopener,noreferrer");
+        return;
+      }
+      openSwap()
+        .then(({ opened, reason }) => {
+          if (!opened && reason !== "wallet") {
+            window.open("https://jup.ag/swap", "_blank", "noopener,noreferrer");
+          }
+        })
+        .catch(() => {
+          window.open("https://jup.ag/swap", "_blank", "noopener,noreferrer");
+        });
       return;
     }
 
     if (item.action === "openAccount") {
-      panelEvents.open("menu");
+      const mode = authReady && walletConnected ? "menu" : "connect";
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("deside:setActiveModal", { detail: { id: "user" } })
+        );
+      }
+      panelEvents.open(mode);
       return;
     }
 

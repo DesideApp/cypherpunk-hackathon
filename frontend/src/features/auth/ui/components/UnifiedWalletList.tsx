@@ -5,7 +5,7 @@ import { TrustedWalletList } from './TrustedWalletList';
 import { UntrustedWalletList } from './UntrustedWalletList';
 import { getCssVariable } from '@wallet-adapter/theme/getCssVariable';
 
-type Props = { onConnected?: () => void };
+type Props = { onConnected?: () => void; showHeading?: boolean; padding?: string };
 
 /** Orden “pinned” (usa los nombres EXACTOS de los adapters). */
 const ORDER = ['Phantom', 'Solflare', 'Backpack', 'MagicEden'] as const;
@@ -16,14 +16,15 @@ const orderIndex = (n: string) => {
 
 /* ===================== Estilos del “body” rígido ===================== */
 
-const rootStyle: CSSProperties = {
+const BASE_ROOT_STYLE: CSSProperties = {
   // El Shell se adapta a este bloque; aquí fijamos la “caja” visual del panel
-  padding: '22px 26px 18px',
   width: '100%',
   boxSizing: 'border-box',
   display: 'grid',
   gap: 14,
 };
+
+const DEFAULT_ROOT_PADDING = '22px clamp(20px, 6vw, 28px) calc(18px + var(--safe-area-bottom, 0px))';
 
 const headerWrap: CSSProperties = {
   display: 'grid',
@@ -49,7 +50,7 @@ const microStyle: CSSProperties = {
 const sectionTitleStyle: CSSProperties = {
   marginTop: 6,
   marginBottom: 6,
-  paddingLeft: 4,
+  paddingLeft: 0,
   fontFamily: getCssVariable('--font-navigation-family'),
   fontSize: 13,
   fontWeight: 600,
@@ -58,7 +59,7 @@ const sectionTitleStyle: CSSProperties = {
 
 /* ==================================================================== */
 
-export const UnifiedWalletList = ({ onConnected }: Props) => {
+export const UnifiedWalletList = ({ onConnected, showHeading = true, padding }: Props) => {
   const {
     connect,
     status,                 // 'idle' | 'connecting' | 'connected' | 'locked' | 'error'
@@ -140,15 +141,25 @@ export const UnifiedWalletList = ({ onConnected }: Props) => {
     ? { opacity: 0.6, pointerEvents: 'none' }
     : {};
 
+  const rootStyle = useMemo<CSSProperties>(
+    () => ({
+      ...BASE_ROOT_STYLE,
+      padding: padding ?? DEFAULT_ROOT_PADDING,
+    }),
+    [padding]
+  );
+
   return (
     <div style={rootStyle} aria-busy={isConnecting}>
       {/* Encabezado rígido (título + microcopy) */}
-      <div style={headerWrap}>
-        <div style={titleStyle}>Choose a wallet</div>
-        <div style={microStyle}>
-          Installed wallets appear first. You can also install another option below.
+      {showHeading && (
+        <div style={headerWrap}>
+          <div style={titleStyle}>Choose a wallet</div>
+          <div style={microStyle}>
+            Installed wallets appear first. You can also install another option below.
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Secciones */}
       <div style={listsState}>

@@ -3,6 +3,7 @@ import { useWallet } from "@wallet-adapter/core/contexts/WalletProvider";
 import { useProfile } from "@features/profile/hooks/useProfile.js";
 import { useSolanaBalance } from "@wallet-adapter/core/hooks/useSolanaBalance";
 import ProfileSection from "@features/profile/components/ProfileSection";
+import { WalletModalContent } from "@features/auth/ui/components/WalletModalContent";
 
 type Props = { onClose?: () => void };
 
@@ -32,6 +33,17 @@ function WalletMenuContent({ onClose }: Props) {
     const n = Number(s);
     return Number.isFinite(n) ? n.toFixed(4) : s;
   }, [balanceRaw]);
+
+  if (!connected || !publicKeyStr) {
+    return (
+      <WalletModalContent
+        inShell
+        onConnected={onClose}
+        showDisclaimer
+        onClose={onClose}
+      />
+    );
+  }
 
   return (
     <ProfileSection

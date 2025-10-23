@@ -14,6 +14,7 @@ import { AuthProvider } from "@features/auth/contexts/AuthContext.jsx";
 import { MessagingProvider } from "@features/messaging/contexts/MessagingProvider.jsx";
 import { useSocket } from "@shared/socket";
 import { useAuthManager } from "@features/auth/hooks/useAuthManager.js";
+import { JupiterSwapProvider } from "@features/swap/contexts/JupiterSwapContext.jsx";
 
 function MessagingProviderHost({ children }) {
   const { socket } = useSocket();
@@ -62,13 +63,15 @@ export default function App() {
                 <SocketReauthOnAuth />
                 <MessagingProviderHost>
                   <LayoutProvider>
-                    <Router>
-                      <Layout />
-                      <NotificationsHost />
+                    <JupiterSwapProvider>
+                      <Router>
+                        <Layout />
+                        <NotificationsHost />
 
-                      <AuthFlowHost />
-                      <WalletPanelHost />
-                    </Router>
+                        <AuthFlowHost />
+                        <WalletPanelHost />
+                      </Router>
+                    </JupiterSwapProvider>
                   </LayoutProvider>
                 </MessagingProviderHost>
               </SocketProvider>

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth, AUTH_STATUS } from '@features/auth/contexts/AuthContext.jsx';
 import { useWallet } from '@wallet-adapter/core/contexts/WalletProvider';
 import { SidePanel } from '@features/wallet/components/SidePanel';
@@ -75,6 +75,12 @@ export default function WalletPanelHost() {
     if (open && !(isReady || walletConnected)) setOpen(false);
   }, [open, isReady, walletConnected]);
 
+  const handleClose = useCallback(() => {
+    setOpen(false);
+    setWantOpen(false);
+    try { panelEvents.close(); } catch {}
+  }, []);
+
   return (
     MODE === 'modal' ? (
       <AuthFlowShell
@@ -84,18 +90,19 @@ export default function WalletPanelHost() {
         // Slot gate vacío (no lo usamos en menú)
         gate={<div />}
         // Panel: contenido del menú existente, con su botón de cerrar
-        panel={<WalletMenuContent onClose={() => setOpen(false)} />}
+        panel={<WalletMenuContent onClose={handleClose} />}
         // Safe-area para no tapar el rail
         leftInsetPx={leftInsetPx}
+        onClose={handleClose}
       />
     ) : (
       <SidePanel
         key={`wa-side-${theme}`}
         isOpen={open}
-        onClose={() => setOpen(false)}
+        onClose={handleClose}
         disableBackdropClose={false}
       >
-        <WalletMenuContent onClose={() => setOpen(false)} />
+        <WalletMenuContent onClose={handleClose} />
       </SidePanel>
     )
   );
