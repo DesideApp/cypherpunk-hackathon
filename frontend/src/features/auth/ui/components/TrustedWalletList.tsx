@@ -1,5 +1,5 @@
 import type { BaseWalletAdapter } from "@wallet-adapter/core/adapters/BaseWalletAdapter";
-import { WalletListItem } from "@wallet-adapter/ui/components/WalletListItem";
+import { WalletListItem } from "@features/auth/ui/components/WalletListItem";
 
 type Props = {
   wallets: BaseWalletAdapter[];

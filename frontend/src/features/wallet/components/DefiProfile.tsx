@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useWallet } from '@wallet-adapter/core/contexts/WalletProvider';
-import { useSolanaBalance } from '../../core/hooks/useSolanaBalance';
+import { useSolanaBalance } from '@wallet-adapter/core/hooks/useSolanaBalance';
 import { getCssVariable } from '@wallet-adapter/theme/getCssVariable';
 import { iconButton } from '../styles/wallet-menu';
 import { Copy, Check } from 'lucide-react';

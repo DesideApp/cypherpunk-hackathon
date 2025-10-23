@@ -1,5 +1,5 @@
 import React from 'react';
-import { UnifiedWalletList } from '@wallet-adapter/ui/components/UnifiedWalletList';
+import { UnifiedWalletList } from '@features/auth/ui/components/UnifiedWalletList';
 import { getCssVariable } from '@wallet-adapter/theme/getCssVariable';
 
 type Props = {

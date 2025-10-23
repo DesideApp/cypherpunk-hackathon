@@ -1,7 +1,7 @@
 import { useMemo, type CSSProperties } from 'react';
 import { useWallet } from '@wallet-adapter/core/contexts/WalletProvider';
 import { getCssVariable } from '@wallet-adapter/theme/getCssVariable';
-import { panelEvents } from '@wallet-adapter/ui/system/panel-bus';
+import { panelEvents } from '@features/auth/ui/system/panel-bus';
 
 export const WalletButton = () => {
   const { connected, publicKey, status } = useWallet();

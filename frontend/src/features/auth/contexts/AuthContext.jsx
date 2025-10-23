@@ -1,7 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useWallet } from "@wallet-adapter/core/contexts/WalletProvider";
-import { panelEvents } from "@wallet-adapter/ui/system/panel-bus";
+import { panelEvents } from "@features/auth/ui/system/panel-bus";
 import { useAuthenticateWallet } from "@features/auth/hooks/useAuthenticateWallet.js";
+import { logout as apiLogout } from "@shared/services/apiService.js";
 
 export const AUTH_STATUS = {
   LOGGED_OUT: "loggedOut",
@@ -10,6 +11,7 @@ export const AUTH_STATUS = {
   READY: "ready",
   SWITCHING: "switchingAccount",
   REAUTH_REQUIRED: "reauthRequired",
+  ERROR: "error",
 };
 
 const AuthContext = createContext(null);
@@ -64,14 +66,14 @@ export function AuthProvider({ children }) {
         console.debug('[AuthContext] Authentication successful');
         setStatus(AUTH_STATUS.READY);
         return res;
-      } else {
-        console.warn('[AuthContext] Authentication failed:', res);
-        setStatus(AUTH_STATUS.LOGGED_OUT);
-        throw new Error(res?.message || 'Authentication failed');
       }
+
+      console.warn('[AuthContext] Authentication failed:', res);
+      setStatus(AUTH_STATUS.ERROR);
+      throw new Error(res?.message || 'Authentication failed');
     } catch (error) {
       console.error('[AuthContext] Authentication error:', error);
-      setStatus(AUTH_STATUS.LOGGED_OUT);
+      setStatus(AUTH_STATUS.ERROR);
       throw error;
     }
   }, [connected, publicKey, status, authenticateWalletHook]);
@@ -92,17 +94,26 @@ export function AuthProvider({ children }) {
           setStatus(AUTH_STATUS.READY);
         } else {
           // ❗ No desconectamos la wallet ni emitimos eventos: permitimos reintento inmediato
-          setStatus(AUTH_STATUS.LOGGED_OUT);
+          setStatus(AUTH_STATUS.ERROR);
         }
       } catch (_e) {
         // ❗ En error también evitamos disconnect/evento para mantener la wallet lista para reintentar
-        setStatus(AUTH_STATUS.LOGGED_OUT);
+        setStatus(AUTH_STATUS.ERROR);
       }
     }
   }, [connected, publicKey, status, authenticateWallet]);
 
   const logout = useCallback(async () => {
-    try { await disconnect(); } catch {}
+    try {
+      await apiLogout();
+    } catch (err) {
+      console.warn('[AuthContext] Logout request failed:', err);
+    }
+    try {
+      await disconnect();
+    } catch (err) {
+      console.warn('[AuthContext] Wallet disconnect failed:', err);
+    }
     setStatus(AUTH_STATUS.LOGGED_OUT);
     // No emitimos aquí: WalletProvider ya lo hace en disconnect() y en accountChanged → null
   }, [disconnect]);

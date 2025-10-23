@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
-import { useWallet } from '../../core/contexts/WalletProvider';
-import type { BaseWalletAdapter } from '../../core/adapters/BaseWalletAdapter';
+import { useWallet } from '@wallet-adapter/core/contexts/WalletProvider';
+import type { BaseWalletAdapter } from '@wallet-adapter/core/adapters/BaseWalletAdapter';
 import { TrustedWalletList } from './TrustedWalletList';
 import { UntrustedWalletList } from './UntrustedWalletList';
 import { getCssVariable } from '@wallet-adapter/theme/getCssVariable';

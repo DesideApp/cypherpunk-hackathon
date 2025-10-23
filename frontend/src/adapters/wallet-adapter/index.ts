@@ -16,16 +16,16 @@ export { RpcProvider, useRpc } from './core/contexts/RpcProvider';
 export { ThemeProvider, useTheme } from './theme/ThemeProvider';
 export { getCssVariable } from './theme/getCssVariable';
 
-// UI
-export { WalletButton } from './ui/components/WalletButton';
-export { SidePanel } from './ui/panels/SidePanel';
-export { WalletMenuContent } from './ui/components/WalletMenuContent';
-export { DefiProfile } from './ui/components/DefiProfile';
-export { default as AuthGateModal } from './ui/components/AuthGateModal';
+// UI (reexport desde features mientras se completa la migración)
+export { WalletButton } from '@features/wallet/components/WalletButton';
+export { SidePanel } from '@features/wallet/components/SidePanel';
+export { WalletMenuContent } from '@features/wallet/components/WalletMenuContent';
+export { DefiProfile } from '@features/wallet/components/DefiProfile';
+export { default as AuthGateModal } from '@features/auth/ui/components/AuthGateModal';
 
 // UI System
-export { panelEvents, PANEL_OPEN_EVENT, PANEL_CLOSE_EVENT } from './ui/system/panel-bus';
-export type { PanelMode } from './ui/system/panel-bus';
+export { panelEvents, PANEL_OPEN_EVENT, PANEL_CLOSE_EVENT } from '@features/auth/ui/system/panel-bus';
+export type { PanelMode } from '@features/auth/ui/system/panel-bus';
 
 
 // Gate (hook + modal)

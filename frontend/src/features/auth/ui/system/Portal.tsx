@@ -1,4 +1,3 @@
-// @wallet-adapter/ui/system/Portal.tsx
 import { useEffect, useRef, useState, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
