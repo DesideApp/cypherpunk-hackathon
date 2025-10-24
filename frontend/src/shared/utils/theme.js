@@ -21,6 +21,8 @@ export const THEME_TOKENS = {
     "--action-modal-max-height": "min(700px, 90vh)", // Altura máxima del modal
     "--action-modal-padding": "20px",                // Padding interno del modal
     "--action-modal-gap": "18px",                    // Gap entre secciones principales (header, card, botones)
+    "--action-modal-surface": "#F7F8FB",             // Fondo para botones/inputs (más elevado)
+    "--action-modal-surface-hover": "#EFF1F5",       // Fondo hover para botones/inputs
     
     // Botón primario de action cards (Request, Buy, Send, etc.)
     "--action-card-btn-padding": "8px 16px",
@@ -165,6 +167,8 @@ export const THEME_TOKENS = {
     "--action-modal-max-height": "min(700px, 90vh)", // Altura máxima del modal
     "--action-modal-padding": "20px",                // Padding interno del modal
     "--action-modal-gap": "18px",                    // Gap entre secciones principales (header, card, botones)
+    "--action-modal-surface": "rgba(255, 255, 255, 0.08)",  // Fondo para botones/inputs (más visible)
+    "--action-modal-surface-hover": "rgba(255, 255, 255, 0.12)",  // Fondo hover para botones/inputs
     
     // Botón primario de action cards (Request, Buy, Send, etc.)
     "--action-card-btn-padding": "8px 16px",

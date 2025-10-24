@@ -308,7 +308,7 @@
   padding: var(--action-modal-input-padding);
   border-radius: var(--radius-md, 12px);
   border: 1px solid var(--border-color);
-  background: var(--surface-secondary, rgba(255, 255, 255, 0.05));
+  background: var(--action-modal-surface);
   color: var(--text-primary);
   font-size: var(--action-modal-input-font-size);
   transition: all 0.2s ease;
@@ -318,8 +318,8 @@
 
 .action-modal-input:focus {
   outline: none;
-  border-color: var(--border-color-active, rgba(255, 255, 255, 0.15));
-  background: var(--surface-secondary, rgba(255, 255, 255, 0.08));
+  border-color: var(--border-color-active);
+  background: var(--action-modal-surface-hover);
 }
 
 /* Input compacto (para cantidades) */
@@ -332,7 +332,7 @@
   padding: var(--action-modal-input-padding);
   border-radius: var(--radius-md, 12px);
   border: 1px solid var(--border-color);
-  background: var(--surface-secondary, rgba(255, 255, 255, 0.05));
+  background: var(--action-modal-surface);
   color: var(--text-primary);
   font-size: var(--action-modal-input-font-size);
   transition: all 0.2s ease;
@@ -342,8 +342,8 @@
 
 .action-modal-select:focus {
   outline: none;
-  border-color: var(--border-color-active, rgba(255, 255, 255, 0.15));
-  background: var(--surface-secondary, rgba(255, 255, 255, 0.08));
+  border-color: var(--border-color-active);
+  background: var(--action-modal-surface-hover);
 }
 
 /* Textarea */
@@ -351,7 +351,7 @@
   padding: var(--action-modal-input-padding);
   border-radius: var(--radius-md, 12px);
   border: 1px solid var(--border-color);
-  background: var(--surface-secondary, rgba(255, 255, 255, 0.05));
+  background: var(--action-modal-surface);
   color: var(--text-primary);
   font-size: var(--action-modal-input-font-size);
   transition: all 0.2s ease;
@@ -363,8 +363,8 @@
 
 .action-modal-textarea:focus {
   outline: none;
-  border-color: var(--border-color-active, rgba(255, 255, 255, 0.15));
-  background: var(--surface-secondary, rgba(255, 255, 255, 0.08));
+  border-color: var(--border-color-active);
+  background: var(--action-modal-surface-hover);
 }
 
 /* =========================================================================
@@ -533,7 +533,7 @@
   padding: 12px;
   border-radius: var(--radius-md, 12px);
   border: 1px solid var(--border-color);
-  background: var(--surface-secondary, rgba(255, 255, 255, 0.05));
+  background: var(--action-modal-surface);
   color: var(--text-primary);
   font-size: var(--font-ui-size, 14px);
   font-weight: var(--font-ui-weight, 500);
@@ -543,8 +543,8 @@
 }
 
 .action-modal-amount-button:hover {
-  background: var(--surface-secondary, rgba(255, 255, 255, 0.08));
-  border-color: var(--border-color-active, rgba(255, 255, 255, 0.15));
+  background: var(--action-modal-surface-hover);
+  border-color: var(--border-color-active);
 }
 
 .action-modal-amount-button.selected {
@@ -569,7 +569,7 @@
   padding: 12px;
   border-radius: var(--radius-md, 12px);
   border: 1px solid var(--border-color);
-  background: var(--surface-secondary, rgba(255, 255, 255, 0.05));
+  background: var(--action-modal-surface);
   color: var(--text-primary);
   font-size: var(--font-ui-size, 14px);
   font-weight: var(--font-ui-weight, 500);
@@ -580,8 +580,8 @@
 
 .action-modal-custom-input:focus {
   outline: none;
-  border-color: var(--border-color-active, rgba(255, 255, 255, 0.15));
-  background: var(--surface-secondary, rgba(255, 255, 255, 0.08));
+  border-color: var(--border-color-active);
+  background: var(--action-modal-surface-hover);
 }
 
 .action-modal-custom-input::placeholder {
@@ -592,7 +592,7 @@
   padding: 12px;
   border-radius: var(--radius-md, 12px);
   border: 1px solid var(--border-color);
-  background: var(--surface-secondary, rgba(255, 255, 255, 0.05));
+  background: var(--action-modal-surface);
   color: var(--text-primary);
   font-size: var(--font-ui-size, 14px);
   transition: all 0.2s ease;
@@ -601,8 +601,8 @@
 
 .action-modal-note-input:focus {
   outline: none;
-  border-color: var(--border-color-active, rgba(255, 255, 255, 0.15));
-  background: var(--surface-secondary, rgba(255, 255, 255, 0.08));
+  border-color: var(--border-color-active);
+  background: var(--action-modal-surface-hover);
 }
 
 .action-modal-note-input::placeholder {
@@ -617,7 +617,7 @@
   display: flex;
   gap: 8px;
   border-radius: var(--radius-md, 12px);
-  background: var(--surface-secondary, rgba(255, 255, 255, 0.05));
+  background: var(--action-modal-surface);
   padding: 4px;
 }
 
