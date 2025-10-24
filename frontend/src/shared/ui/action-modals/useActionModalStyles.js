@@ -30,7 +30,6 @@ export function useActionModalStyles(meta) {
     cardStyle: {
       "--card-accent": tint,
       "--card-sheen": glow,
-      "--card-glow": glow,
       "--card-bg": background,
     },
     logoStyle: {
