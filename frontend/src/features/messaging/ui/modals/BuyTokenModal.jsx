@@ -573,16 +573,16 @@ export default function BuyTokenModal({
                 showGradient={true}
               />
 
-              {/* Info técnica debajo - gris y compacta */}
-              <div className="buy-selected-card__meta">
-                <span>{priceSourceLabel}</span>
+              {/* Info técnica debajo - todo inline y gris */}
+              <div className="buy-selected-card__meta buy-selected-card__meta--inline">
+                {priceSourceLabel}
                 {shortMint && (
-                  <span
-                    className="buy-selected-card__meta-mint"
-                    title={selected.outputMint || ""}
-                  >
-                    CA {shortMint}
-                  </span>
+                  <>
+                    {" · "}
+                    <span title={selected.outputMint || ""}>
+                      CA {shortMint}
+                    </span>
+                  </>
                 )}
               </div>
 

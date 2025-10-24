@@ -456,6 +456,19 @@
   color: color-mix(in srgb, var(--text-secondary) 82%, transparent);
 }
 
+/* Inline variant - todo en una línea gris */
+.buy-selected-card__meta--inline {
+  justify-content: center;
+  font-size: 0.7rem;
+  opacity: 0.8;
+}
+
+.buy-selected-card__meta--inline span {
+  font-family: var(--font-data-family, "JetBrains Mono", monospace);
+  letter-spacing: 0.04em;
+}
+
+/* Legacy mint pill (deprecated) */
 .buy-selected-card__meta-mint {
   font-family: var(--font-data-family, "JetBrains Mono", monospace);
   letter-spacing: 0.04em;

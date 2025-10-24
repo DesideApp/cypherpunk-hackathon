@@ -45,7 +45,7 @@
   --action-modal-subheading-size: 0.9rem;
 
   /* ===== BODY (compartido) ===== */
-  --action-modal-body-gap: 18px;  /* COPIADO DE BUY: era 16px, BUY usa 18px */
+  --action-modal-body-gap: 14px;  /* Reducido para más compactación */
   
   /* ===== COMPONENTES BÁSICOS COMPARTIDOS ===== */
   
@@ -59,8 +59,8 @@
     0 1px 0 rgba(255, 255, 255, 0.05),
     inset 0 1px 0 rgba(255, 255, 255, 0.06);
   --action-modal-card-radius: var(--radius-lg, 16px);
-  --action-modal-card-padding: 20px 22px;
-  --action-modal-card-gap: 16px;
+  --action-modal-card-padding: 18px 22px;
+  --action-modal-card-gap: 12px;
   
   /* Fields y inputs */
   --action-modal-field-gap: 6px;
