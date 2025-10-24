@@ -4,7 +4,15 @@ import {
   ModalShell, 
   ActionButtons, 
   ActionCancelButton, 
-  ActionPrimaryButton 
+  ActionPrimaryButton,
+  ActionModalCard,
+  ActionModalTokenHeader,
+  ActionModalIdentityFlow,
+  ActionModalHint,
+  ActionModalPresetAmounts,
+  ActionModalCustomRow,
+  ActionModalCustomInput,
+  ActionModalNoteInput,
 } from "@shared/ui";
 import { SOLANA } from "@shared/config/env.js";
 import { listBuyTokens, INPUT_MINT } from "@features/messaging/config/buyTokens.js";
@@ -209,6 +217,9 @@ export default function RequestModal({
     </ActionButtons>
   );
 
+  const conversionPrimary = usdValue ? `≈ ${usdValue} USD` : null;
+  const conversionSecondary = `Requesting ${amount || "—"} ${token}`;
+
   return (
     <ModalShell
       open={open}
@@ -217,131 +228,64 @@ export default function RequestModal({
       footer={footer}
       size="md"
     >
-      {/* Card interna estilo Blink - TODA la info importante aquí */}
-      <div className="action-modal-card" style={cardStyle}>
-        {/* ===== 1. TOKEN HEADER: Logo + conversión ===== */}
-        <div className="action-modal-token-header">
-          <div className="action-modal-token-logo" style={selectedIconStyle}>
-            <span className="action-modal-token-logo-inner" style={selectedInnerStyle}>
-              {selectedMeta?.icon ? (
-                <img 
-                  src={selectedMeta.icon} 
-                  alt={token}
-                  loading="lazy"
-                  decoding="async"
-                  onError={(e) => { 
-                    e.currentTarget.onerror = null; 
-                    e.currentTarget.src = '/tokens/default.svg'; 
-                  }}
-                />
-              ) : (
-                <span style={{ fontSize: '1.5rem' }}>🪙</span>
-              )}
-            </span>
-          </div>
-          
-          <div className="action-modal-token-info">
-            <p className="action-modal-token-name">{token}</p>
-            <p className="action-modal-token-subtitle">{selectedMeta?.name || "Solana"}</p>
-          </div>
-          
-          <div className="action-modal-token-conversion">
-            {usdValue ? (
-              <p className="action-modal-token-usd">≈ ${usdValue} USD</p>
-            ) : (
-              <p className="action-modal-token-usd">—</p>
-            )}
-            <p className="action-modal-token-action-text">
-              Requesting {amount || "—"} {token}
-            </p>
-          </div>
-        </div>
+      <ActionModalCard meta={selectedMeta}>
+        <ActionModalTokenHeader
+          meta={selectedMeta}
+          token={token}
+          conversionPrimary={conversionPrimary}
+          conversionSecondary={conversionSecondary}
+        />
 
-        {/* ===== 2. TRANSACTION FLOW: Me ← Contact ===== */}
         {(peerLabel || selfLabel) && (
-          <div className="action-modal-transaction-flow">
-            {/* Parte 1: YO (receptor) */}
-            <div className="action-modal-party">
-              <div className="action-modal-avatar action-modal-avatar--small">
-                <span>👤</span>
-              </div>
-              <div className="action-modal-identity-info">
-                <p className="action-modal-identity-name">
-                  <span className="skeleton skeleton--text">Loading...</span>
-                </p>
-                {selfLabel && (
-                  <p className="action-modal-identity-address">{selfLabel}</p>
-                )}
-              </div>
-            </div>
-
-            {/* Flecha: indica dirección del pago (← él me paga) */}
-            <span className="action-modal-arrow">←</span>
-
-            {/* Parte 2: CONTACTO (pagador) */}
-            <div className="action-modal-party">
-              <div className="action-modal-avatar action-modal-avatar--small">
-                <span>👤</span>
-              </div>
-              <div className="action-modal-identity-info">
-                <p className="action-modal-identity-name">
-                  {peerNickname || <span className="skeleton skeleton--text">Loading...</span>}
-                </p>
-                {peerPubkey && (
-                  <p className="action-modal-identity-address">
-                    {peerPubkey.slice(0, 4)}...{peerPubkey.slice(-4)}
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
+          <ActionModalIdentityFlow
+            direction="incoming"
+            left={{
+              title: selfLabel || "You",
+              subtitle: null,
+              titlePlaceholder: "You",
+            }}
+            right={{
+              title: peerNickname || (
+                <span className="skeleton skeleton--text">Loading…</span>
+              ),
+              subtitle: peerPubkey ? shortAddress(peerPubkey) : null,
+            }}
+          />
         )}
 
-        {/* ===== 3. HINT TEXT ===== */}
-        <p className="action-modal-hint">
+        <ActionModalHint>
           Blinks are executed from your connected wallet. Your contact will review and approve the request.
-        </p>
-      </div>
-      {/* Fin de action-modal-card */}
+        </ActionModalHint>
+      </ActionModalCard>
 
-      {/* ===== 4. AMOUNT BUTTONS (FUERA de la card) ===== */}
-      <div className="action-modal-amounts">
-        {presetAmounts.map((val) => (
-          <button
-            key={val}
-            type="button"
-            className={`action-modal-amount-button ${amount === val.toString() ? 'selected' : ''}`}
-            onClick={() => handlePresetClick(val)}
+      <ActionModalPresetAmounts
+        amounts={presetAmounts}
+        selected={amount}
+        onSelect={handlePresetClick}
+        disabled={busy}
+      />
+
+      <ActionModalCustomRow
+        left={
+          <ActionModalCustomInput
+            step="0.001"
+            min="0"
+            placeholder="Custom"
+            value={customAmount}
+            onChange={handleCustomChange}
             disabled={busy}
-          >
-            {val}
-          </button>
-        ))}
-      </div>
-
-      {/* ===== 5. CUSTOM ROW: Custom input + note ===== */}
-      <div className="action-modal-custom-row">
-        <input
-          type="number"
-          step="0.001"
-          min="0"
-          placeholder="Custom"
-          value={customAmount}
-          onChange={handleCustomChange}
-          className="action-modal-custom-input"
-          disabled={busy}
-        />
-        
-        <input
-          type="text"
-          maxLength={MAX_REASON_LEN}
-          placeholder="Thanks for the call"
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          className="action-modal-note-input"
-          disabled={busy}
-        />
-      </div>
+          />
+        }
+        right={
+          <ActionModalNoteInput
+            placeholder="Thanks for the call"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            maxLength={MAX_REASON_LEN}
+            disabled={busy}
+          />
+        }
+      />
     </ModalShell>
   );
 }

@@ -610,6 +610,48 @@
 }
 
 /* =========================================================================
+   TOGGLE — RadioGroup para opciones mutuamente excluyentes
+   ========================================================================= */
+
+.action-modal-toggle {
+  display: flex;
+  gap: 8px;
+  border-radius: var(--radius-md, 12px);
+  background: var(--surface-secondary, rgba(255, 255, 255, 0.05));
+  padding: 4px;
+}
+
+.action-modal-toggle-button {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: calc(var(--radius-md, 12px) - 4px);
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--font-ui-size, 14px);
+  font-weight: var(--font-ui-weight, 500);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.action-modal-toggle-button:hover:not(:disabled) {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.action-modal-toggle-button--active {
+  background: color-mix(in srgb, var(--accent-color) 20%, transparent);
+  color: var(--text-primary);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.action-modal-toggle-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* =========================================================================
    SKELETON — Loading state para nombres no disponibles
    ========================================================================= */
 

@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { useWallet } from "@wallet-adapter/core/contexts/WalletProvider";
-import { searchUserByPubkey } from "@features/contacts/services/userService.js";
 import { updateMyProfile } from "../services/profileService.js";
+import useUserProfile from "@shared/hooks/useUserProfile.js";
+import userDirectory from "@shared/services/userDirectory.js";
 
 export function useProfile() {
   const { publicKey } = useWallet();
@@ -10,35 +11,29 @@ export function useProfile() {
     return typeof publicKey === "string" ? publicKey : publicKey?.toBase58?.() || String(publicKey);
   }, [publicKey]);
 
-  const [loading, setLoading] = useState(false);
-  const [profile, setProfile] = useState(null);
+  const { profile: dirProfile, loading, refetch } = useUserProfile(base58, { ensure: true });
 
-  const refresh = useCallback(async () => {
-    if (!base58) return;
-    setLoading(true);
-    try {
-      const r = await searchUserByPubkey(base58);
-      if (!r?.error && r?.registered) {
-        setProfile({
-          nickname: r.nickname || "",
-          avatar: r.avatar || "",
-          pubkey: r.pubkey,
-          social: r.social || { x: "", website: "" },
-        });
-      } else {
-        setProfile({ nickname: "", avatar: "", pubkey: base58, social: { x: "", website: "" } });
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [base58]);
-
-  useEffect(() => { void refresh(); }, [refresh]);
+  const profile = useMemo(() => {
+    if (!base58) return null;
+    const p = dirProfile || null;
+    if (!p) return { nickname: "", avatar: "", pubkey: base58, social: { x: "", website: "" } };
+    return {
+      nickname: p.nickname || "",
+      avatar: p.avatar || "",
+      pubkey: p.pubkey || base58,
+      social: p.social || { x: "", website: "" },
+    };
+  }, [base58, dirProfile]);
 
   const update = useCallback(async ({ nickname, avatar, social }) => {
     await updateMyProfile({ nickname, avatar, social });
-    await refresh();
-  }, [refresh]);
+    if (base58) {
+      userDirectory.primeUser(base58, { nickname, avatar, social });
+    }
+    await refetch();
+  }, [base58, refetch]);
+
+  const refresh = useCallback(async () => { await refetch(); }, [refetch]);
 
   return { loading, profile, refresh, update };
 }
