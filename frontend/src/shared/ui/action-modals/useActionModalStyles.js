@@ -20,10 +20,13 @@ export function useActionModalStyles(meta) {
     };
   }
 
-  // Usar valores del token si existen, si no usar defaults
-  const tint = meta.tint || DEFAULTS.tint;
-  const glow = meta.glow || DEFAULTS.glow;
-  const background = meta.background || DEFAULTS.background;
+  // Solo usar defaults si NO hay tint definido en el meta
+  // Si meta tiene tint, debe venir de tokenMeta.js y usar SUS valores
+  const hasTokenTint = meta.tint && typeof meta.tint === 'string';
+  
+  const tint = hasTokenTint ? meta.tint : DEFAULTS.tint;
+  const glow = hasTokenTint && meta.glow ? meta.glow : DEFAULTS.glow;
+  const background = hasTokenTint && meta.background ? meta.background : DEFAULTS.background;
   const iconScale =
     typeof meta.iconScale === "number" ? meta.iconScale : DEFAULTS.iconScale;
 
