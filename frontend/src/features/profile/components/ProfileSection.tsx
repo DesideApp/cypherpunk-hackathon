@@ -154,34 +154,47 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
   }, [editMode]);
 
   const processAvatarFile = useCallback(async (f: File) => {
+    // Previsualiza inmediatamente con un ObjectURL
+    const prev = avatarPreview;
+    let tempUrl: string | null = null;
     try {
-      const ok = await ensureReady();
-      if (!ok) {
-        notify.error("Sign in required to upload");
-        return;
-      }
+      tempUrl = URL.createObjectURL(f);
+      setAvatarPreview(tempUrl);
       setBusy(true);
+
       const optimized = await optimizeAvatar(f, 512);
-      const dataUrl: string = await new Promise((ok, ko) => {
+      const toDataUrl = () => new Promise<string>((ok, ko) => {
         const r = new FileReader();
         r.onload = () => ok(String(r.result || ""));
         r.onerror = ko;
         r.readAsDataURL(optimized);
       });
-      const res: any = await apiRequest("/api/v1/uploads/avatar", {
+      const dataUrl = await toDataUrl();
+
+      const tryUpload = async () => apiRequest("/api/v1/uploads/avatar", {
         method: "POST",
         body: JSON.stringify({ dataUrl }),
       });
+
+      let res: any = await tryUpload();
+      if (res?.error && (res?.statusCode === 401 || res?.error === 'UNAUTHORIZED')) {
+        const ok = await ensureReady();
+        if (ok) res = await tryUpload();
+      }
       if (res?.error || !res?.url) throw new Error(res?.message || res?.error || "Upload failed");
       const absolute = apiUrl(res.url);
       setAvatarPreview(absolute);
     } catch (err: any) {
       console.error("Avatar upload failed:", err?.message || err);
       notify.error("Failed to upload image");
+      setAvatarPreview(prev);
     } finally {
       setBusy(false);
+      if (tempUrl) {
+        try { URL.revokeObjectURL(tempUrl); } catch {}
+      }
     }
-  }, []);
+  }, [avatarPreview, ensureReady]);
 
   const handleAvatarFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     try {
@@ -343,7 +356,10 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
               <button
                 type="button"
                 className="profile-edit-trigger"
-                onClick={() => setEditMode(true)}
+                onClick={async () => {
+                  const ok = await ensureReady();
+                  if (ok) setEditMode(true);
+                }}
               >
                 <Pencil size={14} />
                 Edit profile

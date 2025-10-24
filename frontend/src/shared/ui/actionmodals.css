@@ -49,13 +49,15 @@
   
   /* ===== COMPONENTES BÁSICOS COMPARTIDOS ===== */
   
-  /* Card interna (para agrupar info) - COPIADO DE buy-selected-card */
-  /* Usa el color del token (--card-bg) que viene del metadata */
+  /* Card interna (para agrupar info) - Con intensidad aumentada para colores token */
   --action-modal-card-background: linear-gradient(135deg,
-    color-mix(in srgb, var(--card-bg, var(--window-background)) 96%, transparent) 0%,
-    color-mix(in srgb, var(--card-bg, var(--background-color)) 88%, transparent) 100%);
-  --action-modal-card-border: 1px solid color-mix(in srgb, var(--card-accent, rgba(59,130,246,0.6)) 32%, rgba(255,255,255,0.08));
-  --action-modal-card-shadow: 0 16px 34px rgba(0, 0, 0, 0.24),
+    color-mix(in srgb, var(--window-background) 90%, var(--card-bg) 10%) 0%,
+    color-mix(in srgb, var(--background-color) 65%, var(--card-bg) 35%) 100%);
+  --action-modal-card-border: 1px solid color-mix(in srgb, var(--card-accent, rgba(59,130,246,0.6)) 50%, rgba(255,255,255,0.1));
+  --action-modal-card-shadow: 
+    0 16px 40px rgba(0, 0, 0, 0.3),
+    0 0 0 1px color-mix(in srgb, var(--card-accent) 20%, transparent),
+    0 0 40px color-mix(in srgb, var(--card-glow, var(--card-sheen)) 30%, transparent),
     0 1px 0 rgba(255, 255, 255, 0.05),
     inset 0 1px 0 rgba(255, 255, 255, 0.06);
   --action-modal-card-radius: var(--radius-lg, 16px);
@@ -129,7 +131,7 @@
   min-height: 260px; /* Más cuadrada, similar a BuyTokenModal */
 }
 
-/* Efecto de brillo (como BuyToken) */
+/* Efecto de brillo con colores token INTENSIFICADOS */
 .action-modal-card::before {
   content: "";
   position: absolute;
@@ -137,17 +139,17 @@
   background:
     radial-gradient(
       120% 100% at 0% 0%,
-      color-mix(in srgb, var(--card-accent, rgba(59, 130, 246, 0.45)) 30%, transparent) 0%,
+      color-mix(in srgb, var(--card-accent, rgba(59, 130, 246, 0.45)) 65%, transparent) 0%,
       transparent 70%
     ),
     radial-gradient(
       160% 120% at 100% 0%,
-      color-mix(in srgb, var(--card-sheen, rgba(59, 130, 246, 0.12)) 40%, transparent) 0%,
+      color-mix(in srgb, var(--card-sheen, rgba(59, 130, 246, 0.12)) 70%, transparent) 0%,
       transparent 80%
     );
-  opacity: 0.45;
+  opacity: 0.85;
   pointer-events: none;
-  mix-blend-mode: normal;
+  mix-blend-mode: soft-light;
 }
 
 .action-modal-card > * {
