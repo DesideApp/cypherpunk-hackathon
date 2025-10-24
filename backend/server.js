@@ -29,6 +29,7 @@ import '#jobs/eventScheduler.js';
 
 // ── Utils
 import { loadAppInfo } from '#utils/appInfo.js';
+import { seedDemoData } from '#utils/demoSeeder.js';
 import { assertNoStubInProd } from '#utils/stubGuard.js';
 
 // ── Logs (para eventos de proceso)
@@ -140,6 +141,8 @@ const startServer = async () => {
 
     await mongoose.connect(mongoUri, mongooseOpts);
     logger.info(`✅ MongoDB connected (autoIndex=${mongooseOpts.autoIndex})`);
+    // Seed de datos demo cuando procede (DATA_MODE=memory o SEED_DEMO=true)
+    try { await seedDemoData(); } catch (e) { logger.warn(`⚠️ Demo seed skipped: ${e?.message || e}`); }
 
     logger.info('⚙️ Setting up middleware...');
     // 2) Middlewares
