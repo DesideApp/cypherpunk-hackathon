@@ -9,6 +9,10 @@ export function ActionModalCard({ meta = null, className, style, children, ...re
     : style;
   const classes = ["action-modal-card", className].filter(Boolean).join(" ");
 
+  console.log('[ActionModalCard] Rendering with meta:', meta);
+  console.log('[ActionModalCard] cardStyle:', styles.cardStyle);
+  console.log('[ActionModalCard] mergedStyle:', mergedStyle);
+
   return (
     <div className={classes} style={mergedStyle} {...rest}>
       {children}

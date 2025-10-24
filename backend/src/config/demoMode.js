@@ -1,7 +1,14 @@
 const truthy = new Set(['1', 'true', 'yes', 'on']);
 
 const rawDemo = (process.env.DEMO_MODE || '').toLowerCase().trim();
-export const IS_DEMO_MODE = truthy.has(rawDemo);
+const NODE_ENV = (process.env.NODE_ENV || 'development').toLowerCase();
+const allowDemoInProd = String(process.env.ALLOW_DEMO_IN_PROD || '').toLowerCase() === 'true';
+
+export const IS_DEMO_MODE = truthy.has(rawDemo) && (NODE_ENV !== 'production' || allowDemoInProd);
+
+if (truthy.has(rawDemo) && NODE_ENV === 'production' && !allowDemoInProd) {
+  console.warn('[DEMO] DEMO_MODE set but ignored in production (set ALLOW_DEMO_IN_PROD=true to force).');
+}
 
 if (IS_DEMO_MODE) {
   const ensure = (key, value) => {

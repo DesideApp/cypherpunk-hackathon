@@ -75,16 +75,21 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
   const [hover, setHover] = useState(false);
   const [imgError, setImgError] = useState(false);
   const { ensureReady } = useAuthManager();
+  const [avatarDirty, setAvatarDirty] = useState(false);
 
   const base58 = useMemo(() => publicKey ?? null, [publicKey]);
 
   useEffect(() => {
-    setNickDraft(initialNickname);
-    setXDraft(initialX || "");
-    setWebDraft(initialWebsite || "");
-    setAvatarPreview(initialAvatarUrl);
-    setImgError(false);
-  }, [initialNickname, initialX, initialWebsite, initialAvatarUrl]);
+    if (!editMode) {
+      setNickDraft(initialNickname);
+      setXDraft(initialX || "");
+      setWebDraft(initialWebsite || "");
+    }
+    if (!editMode && !avatarDirty) {
+      setAvatarPreview(initialAvatarUrl);
+      setImgError(false);
+    }
+  }, [initialNickname, initialX, initialWebsite, initialAvatarUrl, editMode, avatarDirty]);
 
   const ensureHttps = (url: string) => {
     if (!url) return "";
@@ -142,6 +147,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
       });
       await onRefresh();
       setEditMode(false);
+      setAvatarDirty(false);
       notify.success("Profile saved");
     } catch (error) {
       console.error("Update profile failed:", error);
@@ -160,6 +166,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
     const prev = avatarPreview;
     let tempUrl: string | null = null;
     try {
+      setAvatarDirty(true);
       tempUrl = URL.createObjectURL(f);
       setAvatarPreview(tempUrl);
       setImgError(false);
@@ -190,6 +197,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
       notify.error("Failed to upload image");
       setAvatarPreview(prev);
       setImgError(false);
+      setAvatarDirty(false);
     } finally {
       setBusy(false);
       if (tempUrl) { try { URL.revokeObjectURL(tempUrl); } catch {} }
@@ -233,6 +241,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
     setWebDraft(initialWebsite || "");
     setAvatarPreview(initialAvatarUrl);
     setEditMode(false);
+    setAvatarDirty(false);
   };
 
   const connectionLabel = connected ? "Connected" : "Not connected";
