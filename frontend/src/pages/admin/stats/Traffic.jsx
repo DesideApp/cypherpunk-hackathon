@@ -114,16 +114,24 @@ export default function Traffic() {
   const totalMessages = messages.total ?? 0;
   const totalInteractions = connections.totalInteractions ?? 0;
 
-  const averageMessagesPerBucket = messageHistory.length
+  const averageMessagesPerBucketLocal = messageHistory.length
     ? Math.round(totalMessages / messageHistory.length)
     : 0;
-  const averageConnectionsPerBucket = connectionHistory.length
+  const averageConnectionsPerBucketLocal = connectionHistory.length
     ? Math.round(connectionHistory.reduce((sum, entry) => sum + entry.value, 0) / connectionHistory.length)
     : 0;
 
+  // Prefer backend-derived stats; keep local for labels/meta
+  const peakMessages = typeof overview?.messages?.peak === 'number' ? overview.messages.peak : (peakMessageBucket?.value ?? 0);
+  const peakConnections = typeof overview?.connections?.peak === 'number' ? overview.connections.peak : (peakConnectionBucket?.value ?? 0);
+  const p95Messages = typeof overview?.messages?.p95 === 'number' ? overview.messages.p95 : (p95MessageBucket?.value ?? 0);
+  const p95Connections = typeof overview?.connections?.p95 === 'number' ? overview.connections.p95 : (p95ConnectionBucket?.value ?? 0);
+  const averageMessagesPerBucket = typeof overview?.messages?.avgPerBucket === 'number' ? overview.messages.avgPerBucket : averageMessagesPerBucketLocal;
+  const averageConnectionsPerBucket = typeof overview?.connections?.avgPerBucket === 'number' ? overview.connections.avgPerBucket : averageConnectionsPerBucketLocal;
+
   const loadRatio =
-    averageMessagesPerBucket > 0 && peakMessageBucket
-      ? (peakMessageBucket.value / averageMessagesPerBucket).toFixed(1)
+    averageMessagesPerBucket > 0 && peakMessages
+      ? (peakMessages / averageMessagesPerBucket).toFixed(1)
       : null;
 
   return (
@@ -180,13 +188,13 @@ export default function Traffic() {
               <OverviewChart data={chartData} meta={{ ...periodMeta, bucketMinutes }} />
             </div>
 
-            <div className="panel-card">
-              <h3 className="panel-title">Load highlights</h3>
-              <ul className="traffic-highlights">
-                <Highlight label="Peak messages" value={peakMessageBucket?.value} meta={peakMessageBucket?.label} />
-                <Highlight label="Peak connections" value={peakConnectionBucket?.value} meta={peakConnectionBucket?.label} />
-                <Highlight label="P95 messages" value={p95MessageBucket?.value} meta={p95MessageBucket?.label} />
-                <Highlight label="P95 connections" value={p95ConnectionBucket?.value} meta={p95ConnectionBucket?.label} />
+              <div className="panel-card">
+                <h3 className="panel-title">Load highlights</h3>
+                <ul className="traffic-highlights">
+                <Highlight label="Peak messages" value={peakMessages} meta={peakMessageBucket?.label} />
+                <Highlight label="Peak connections" value={peakConnections} meta={peakConnectionBucket?.label} />
+                <Highlight label="P95 messages" value={p95Messages} meta={p95MessageBucket?.label} />
+                <Highlight label="P95 connections" value={p95Connections} meta={p95ConnectionBucket?.label} />
                 <Highlight
                   label="Average messages / bucket"
                   value={averageMessagesPerBucket}
@@ -198,8 +206,8 @@ export default function Traffic() {
                   meta={formatBucketDuration(bucketMinutes)}
                 />
                 {loadRatio && <Highlight label="Peak vs avg ratio" value={loadRatio} meta="x" />}
-              </ul>
-            </div>
+                </ul>
+              </div>
           </section>
 
           <section className="panel-card panel-table">

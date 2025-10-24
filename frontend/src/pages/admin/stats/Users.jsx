@@ -200,7 +200,9 @@ export default function Users() {
             <SummaryCard title="DM started 24h" value={product.messaging.dmStarted24h} accent="#f472b6" />
             <SummaryCard
               title="Avg per bucket"
-              value={statsMessages.history?.length ? Math.round((statsMessages.total ?? 0) / statsMessages.history.length) : 0}
+              value={typeof statsMessages.avgPerBucket === 'number'
+                ? statsMessages.avgPerBucket
+                : (statsMessages.history?.length ? Math.round((statsMessages.total ?? 0) / statsMessages.history.length) : 0)}
               accent="#eab308"
               subtitle={statsBucketLabel}
             />

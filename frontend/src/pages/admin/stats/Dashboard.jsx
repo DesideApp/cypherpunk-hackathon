@@ -184,12 +184,23 @@ export default function Dashboard() {
     }, null);
 
   const totalConnectionsBuckets = connectionHistory.reduce((sum, entry) => sum + entry.value, 0);
-  const averageConnections = connectionHistory.length
+  const averageConnectionsLocal = connectionHistory.length
     ? Math.round(totalConnectionsBuckets / connectionHistory.length)
     : 0;
 
   const peakMessageBucket = findExtremum(messageHistory, (candidate, best) => candidate > best);
   const peakConnectionBucket = findExtremum(connectionHistory, (candidate, best) => candidate > best);
+
+  // Prefer backend-derived metrics for consistency; fall back to client-side estimates
+  const peakMessages = typeof overview?.messages?.peak === 'number'
+    ? overview.messages.peak
+    : (peakMessageBucket?.value ?? 0);
+  const peakConnections = typeof overview?.connections?.peak === 'number'
+    ? overview.connections.peak
+    : (peakConnectionBucket?.value ?? 0);
+  const avgConnections = typeof overview?.connections?.avgPerBucket === 'number'
+    ? overview.connections.avgPerBucket
+    : averageConnectionsLocal;
 
   if (loading && !overview) {
     return (
@@ -325,18 +336,18 @@ export default function Dashboard() {
               {periodMeta.rangeLabel || overview?.period?.label || "Selected range"}
             </span>
           </div>
-          {(peakMessageBucket || peakConnectionBucket || averageConnections) && (
+          {(peakMessageBucket || peakConnectionBucket || avgConnections) && (
             <div className="panel-insights">
               {peakMessageBucket && (
-                <Insight label="Peak messages" value={peakMessageBucket.value} meta={peakMessageBucket.label} />
+                <Insight label="Peak messages" value={peakMessages} meta={peakMessageBucket.label} />
               )}
               {peakConnectionBucket && (
-                <Insight label="Peak connections" value={peakConnectionBucket.value} meta={peakConnectionBucket.label} />
+                <Insight label="Peak connections" value={peakConnections} meta={peakConnectionBucket.label} />
               )}
-              {averageConnections > 0 && (
+              {avgConnections > 0 && (
                 <Insight
                   label="Avg connections / bucket"
-                  value={averageConnections}
+                  value={avgConnections}
                   meta={`Per ${formatBucketDuration(bucketMinutes)}`}
                 />
               )}

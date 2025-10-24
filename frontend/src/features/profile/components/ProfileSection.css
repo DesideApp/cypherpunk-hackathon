@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   min-height: 100%;
-  background: var(--window-background);
+  background: var(--surface-color);
   color: var(--text-primary);
 }
 
@@ -82,7 +82,6 @@
   background: var(--surface-color);
   display: grid;
   place-items: center;
-  transition: box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
 .profile-avatar__image {
@@ -92,9 +91,14 @@
 }
 
 .profile-avatar__fallback {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
   font-family: var(--font-ui-family);
   font-weight: 700;
   font-size: 1.35rem;
+  line-height: 1;
   color: var(--text-primary);
 }
 
@@ -118,12 +122,7 @@
   pointer-events: auto;
 }
 
-.profile-modal--editing .profile-avatar:hover {
-  border-color: var(--action-color);
-  box-shadow:
-    0 0 0 2px color-mix(in srgb, var(--action-color) 55%, transparent),
-    0 0 0 6px color-mix(in srgb, var(--action-color) 20%, transparent);
-}
+
 
 .profile-avatar__action {
   display: inline-flex;

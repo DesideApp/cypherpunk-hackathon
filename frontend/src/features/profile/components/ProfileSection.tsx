@@ -10,6 +10,7 @@ import {
   Copy,
   Eye,
   Camera,
+  ImageOff,
   Pencil,
   X as CloseIcon,
 } from "lucide-react";
@@ -73,6 +74,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
   const [dragOver, setDragOver] = useState(false);
   const [hover, setHover] = useState(false);
   const { ensureReady } = useAuthManager();
+  const [imgError, setImgError] = useState(false);
 
   const base58 = useMemo(() => publicKey ?? null, [publicKey]);
 
@@ -81,6 +83,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
     setXDraft(initialX || "");
     setWebDraft(initialWebsite || "");
     setAvatarPreview(initialAvatarUrl);
+    setImgError(false);
   }, [initialNickname, initialX, initialWebsite, initialAvatarUrl]);
 
   const ensureHttps = (url: string) => {
@@ -287,15 +290,20 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
             title={editMode ? "Upload image" : undefined}
             aria-label={editMode ? "Upload image" : undefined}
           >
-            {avatarPreview ? (
+            {avatarPreview && !imgError ? (
               <img
                 src={avatarPreview}
                 alt={nickDraft}
                 className="profile-avatar__image"
+                onError={() => setImgError(true)}
               />
             ) : (
-              <span className="profile-avatar__fallback">
-                {(nickDraft || "U").slice(0, 1).toUpperCase()}
+              <span className="profile-avatar__fallback" aria-label="Avatar placeholder">
+                {avatarPreview && imgError ? (
+                  <ImageOff size={24} />
+                ) : (
+                  (nickDraft || "U").slice(0, 1).toUpperCase()
+                )}
               </span>
             )}
 
