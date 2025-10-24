@@ -14,6 +14,9 @@ import {
   XCircle,
 } from "lucide-react";
 import { UiButton, UiCard } from "@shared/ui";
+import { apiRequest } from "@shared/services/apiService.js";
+import { apiUrl } from "@shared/config/env.js";
+import { optimizeAvatar } from "@wallet-adapter/core/hooks/useAvatarUpload";
 import { notify } from "@shared/services/notificationService.js";
 
 import "./ProfileSection.css";
@@ -65,6 +68,8 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [dragOver, setDragOver] = useState(false);
 
   const base58 = useMemo(() => publicKey ?? null, [publicKey]);
 
@@ -152,6 +157,67 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
     setAvatarPreview("");
   }, [editMode]);
 
+  const handleAvatarUploadClick = useCallback(() => {
+    if (!editMode) return;
+    fileInputRef.current?.click();
+  }, [editMode]);
+
+  const processAvatarFile = useCallback(async (f: File) => {
+    try {
+      setBusy(true);
+      const optimized = await optimizeAvatar(f, 512);
+      const dataUrl: string = await new Promise((ok, ko) => {
+        const r = new FileReader();
+        r.onload = () => ok(String(r.result || ""));
+        r.onerror = ko;
+        r.readAsDataURL(optimized);
+      });
+      const res: any = await apiRequest("/api/v1/uploads/avatar", {
+        method: "POST",
+        body: JSON.stringify({ dataUrl }),
+      });
+      if (res?.error || !res?.url) throw new Error(res?.message || res?.error || "Upload failed");
+      const absolute = apiUrl(res.url);
+      setAvatarPreview(absolute);
+    } catch (err: any) {
+      console.error("Avatar upload failed:", err?.message || err);
+      notify.error("Failed to upload image");
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
+  const handleAvatarFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      const f = e.target.files?.[0];
+      if (!f) return;
+      await processAvatarFile(f);
+    } finally {
+      try { if (fileInputRef.current) fileInputRef.current.value = ""; } catch {}
+    }
+  }, [processAvatarFile]);
+
+  const onAvatarDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    if (!editMode) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(true);
+  }, [editMode]);
+
+  const onAvatarDragLeave = useCallback(() => {
+    if (!editMode) return;
+    setDragOver(false);
+  }, [editMode]);
+
+  const onAvatarDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>) => {
+    if (!editMode) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+    const f = e.dataTransfer?.files?.[0];
+    if (f) await processAvatarFile(f);
+  }, [editMode, processAvatarFile]);
+
   const handleCancel = () => {
     setNickDraft(initialNickname);
     setXDraft(initialX || "");
@@ -204,7 +270,13 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
 
       <section className="profile-modal__body">
         <div className="profile-identity">
-          <div className="profile-avatar">
+          <div
+            className="profile-avatar"
+            onDragOver={onAvatarDragOver}
+            onDragEnter={onAvatarDragOver}
+            onDragLeave={onAvatarDragLeave}
+            onDrop={onAvatarDrop}
+          >
             {avatarPreview ? (
               <img
                 src={avatarPreview}
@@ -218,7 +290,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
             )}
 
             {editMode && (
-              <div className="profile-avatar__overlay">
+              <div className="profile-avatar__overlay" aria-label="Avatar actions">
                 <button
                   type="button"
                   className="profile-avatar__action"
@@ -227,6 +299,18 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
                   <ImageIcon size={14} />
                   <span>Change</span>
                 </button>
+                <button
+                  type="button"
+                  className="profile-avatar__action"
+                  onClick={handleAvatarUploadClick}
+                  disabled={busy}
+                >
+                  <ImageIcon size={14} />
+                  <span>{busy ? "Uploading…" : "Upload"}</span>
+                </button>
+                {dragOver && (
+                  <span className="profile-avatar__hint" aria-live="polite">Drop image to upload</span>
+                )}
                 {avatarPreview && (
                   <button
                     type="button"
@@ -240,6 +324,15 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
               </div>
             )}
           </div>
+
+          {/* Hidden file input for avatar upload */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            style={{ display: "none" }}
+            onChange={handleAvatarFile}
+          />
 
           <div className="profile-identity__content">
             {editMode ? (

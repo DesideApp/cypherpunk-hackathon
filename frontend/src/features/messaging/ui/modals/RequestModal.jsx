@@ -99,25 +99,6 @@ export default function RequestModal({
     return () => { alive = false; };
   }, [selected]);
 
-  // EXACTO como BuyToken: estilos dinámicos desde selectedMeta
-  const cardStyle = selectedMeta
-    ? {
-        "--card-accent": selectedMeta.tint || "rgba(59,130,246,0.7)",
-        "--card-sheen": selectedMeta.glow || "rgba(59,130,246,0.12)",
-        "--card-bg": selectedMeta.background || "rgba(255,255,255,0.05)",
-      }
-    : undefined;
-
-  const selectedIconStyle = selectedMeta
-    ? {
-        ...(selectedMeta.tint ? { "--icon-outline": selectedMeta.tint } : {}),
-        ...(selectedMeta.background ? { "--icon-bg": selectedMeta.background } : {}),
-        ...(selectedMeta.glow ? { "--icon-glow": selectedMeta.glow } : {}),
-      }
-    : undefined;
-
-  const selectedInnerStyle = selectedMeta?.iconScale ? { "--icon-scale": selectedMeta.iconScale } : undefined;
-
   // Fetch prices EXACTO como BuyToken
   useEffect(() => {
     if (!open) return;

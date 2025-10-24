@@ -13,6 +13,7 @@ import dmRoutes           from '#modules/dm/routes/index.js';
 import rtcRoutes          from '#modules/rtc/routes/index.js';
 import blinkRoutes        from '#modules/blinks/routes/index.js';
 import blinkPublicRoutes  from '#modules/blinks/routes/public.js';
+import uploadRoutes      from '#modules/uploads/routes/index.js';
 import agreementRoutes    from '#modules/agreements/routes/index.js';
 import statsRoutes        from '#modules/stats/routes/index.js';
 import tokenRoutes        from '#modules/tokens/routes/index.js';
@@ -45,6 +46,7 @@ v1.use('/stats', statsRoutes);
 
 // Public blink endpoints for Dialect integrations (no JWT required)
 v1.use('/blinks-public', blinkPublicRoutes);
+v1.use('/uploads', uploadRoutes);
 
 // Telegram Bot endpoints (admin only)
 // v1.use('/telegram-bot', telegramBotRoutes); // Disabled for memory optimization
