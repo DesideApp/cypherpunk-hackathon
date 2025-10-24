@@ -18,7 +18,12 @@ import {
   ActionButtons, 
   ActionCancelButton, 
   ActionBackButton, 
-  ActionPrimaryButton 
+  ActionPrimaryButton,
+  ActionModalCard,
+  ActionModalTokenHeader,
+  ActionModalHint,
+  ActionModalPresetAmounts,
+  ActionModalCustomInput,
 } from "@shared/ui";
 import { useLayout } from "@features/layout/contexts/LayoutContext";
 import TokenSearch from "../TokenSearch.jsx";
@@ -278,24 +283,6 @@ export default function BuyTokenModal({
   if (pricesAgeLabel) sourceLabelParts.push(`updated ${pricesAgeLabel} ago`);
   const priceSourceLabel = sourceLabelParts.join(" · ");
 
-  const cardStyle = selectedMeta
-    ? {
-        "--card-accent": selectedMeta.tint || "rgba(59,130,246,0.7)",
-        "--card-sheen": selectedMeta.glow || "rgba(59,130,246,0.12)",
-        "--card-bg": selectedMeta.background || "rgba(255,255,255,0.05)",
-      }
-    : undefined;
-
-  const selectedIconStyle = selectedMeta
-    ? {
-        ...(selectedMeta.tint ? { "--icon-outline": selectedMeta.tint } : {}),
-        ...(selectedMeta.background ? { "--icon-bg": selectedMeta.background } : {}),
-        ...(selectedMeta.glow ? { "--icon-glow": selectedMeta.glow } : {}),
-      }
-    : undefined;
-
-  const selectedInnerStyle = selectedMeta?.iconScale ? { "--icon-scale": selectedMeta.iconScale } : undefined;
-
   const pickToken = (t) => {
     if (!t?.outputMint) {
       notify("Token not configured yet. Ask an admin to set its mint.", "warning");
@@ -549,31 +536,16 @@ export default function BuyTokenModal({
 
         {step === "pick-amount" && selected && (
           <>
-            <div className="buy-selected-card" style={cardStyle}>
-              <div className="buy-selected-card__header">
-                <div className="buy-selected-card__identity">
-                  <span className="buy-token-icon" aria-hidden style={selectedIconStyle}>
-                    <span className="inner" style={selectedInnerStyle}>
-                      <img
-                        src={selectedMeta?.icon || `/tokens/${String(selected.code || '').toLowerCase()}.png`}
-                        alt=""
-                        loading="lazy"
-                        decoding="async"
-                        onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = '/tokens/default.svg'; }}
-                      />
-                    </span>
-                  </span>
-                  <div className="buy-selected-card__titles">
-                    <p className="buy-selected-card__code">{selected.code}</p>
-                    <p className="buy-selected-card__label">{selected.label}</p>
-                  </div>
-                </div>
-                <div className="buy-selected-card__quote">
-                  <span className="buy-selected-card__quote-value">{quoteLabel}</span>
-                  <span className="buy-selected-card__quote-caption">{quoteSubLabel}</span>
-                </div>
-              </div>
+            <ActionModalCard meta={selectedMeta}>
+              <ActionModalTokenHeader
+                meta={selectedMeta}
+                token={selected.code}
+                subtitle={selected.label}
+                conversionPrimary={quoteLabel}
+                conversionSecondary={quoteSubLabel}
+              />
 
+              {/* Stats específicos de Buy - mantener como están */}
               <div className="buy-selected-card__stats">
                 <div className="buy-selected-card__stat">
                   <span className="buy-selected-card__stat-label">Precio</span>
@@ -599,43 +571,34 @@ export default function BuyTokenModal({
                 )}
               </div>
 
-              <p className="buy-selected-card__hint">
+              <ActionModalHint>
                 Blinks are executed from your connected wallet. Choose how much SOL to spend.
-              </p>
-            </div>
+              </ActionModalHint>
+            </ActionModalCard>
 
-            <div className="buy-amounts">
-              {amountOptions.map((a) => (
-                <UiChip
-                  key={a}
-                  as="button"
-                  type="button"
-                  selected={a === amount}
-                  className="buy-chip"
-                  onClick={() => setAmount(a)}
-                >
-                  {a}
-                </UiChip>
-              ))}
-              <div className="buy-custom-amount">
-                <input
-                  type="number"
-                  placeholder="Custom amount"
-                  min="0.001"
-                  step="0.001"
-                  value={amountOptions.includes(amount) ? "" : amount}
-                  onChange={(e) => {
-                    const value = parseFloat(e.target.value);
-                    if (!isNaN(value) && value > 0) {
-                      setAmount(value);
-                    }
-                  }}
-                  className="buy-custom-input"
-                />
-              </div>
-              </div>
-            </>
-          )}
+            <ActionModalPresetAmounts
+              amounts={amountOptions}
+              selected={amount}
+              onSelect={setAmount}
+              disabled={busy}
+            />
+
+            <div className="buy-custom-amount">
+              <ActionModalCustomInput
+                placeholder="Custom amount"
+                min="0.001"
+                step="0.001"
+                value={amountOptions.includes(amount) ? "" : amount}
+                onChange={(e) => {
+                  const value = parseFloat(e.target.value);
+                  if (!isNaN(value) && value > 0) {
+                    setAmount(value);
+                  }
+                }}
+              />
+            </div>
+          </>
+        )}
       </div>
     </ModalShell>
   );

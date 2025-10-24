@@ -12,6 +12,7 @@ import {
 import { useAuthenticateWallet } from "./useAuthenticateWallet";
 import { notify } from "@shared/services/notificationService.js";
 import { createDebugLogger } from "@shared/utils/debug.js";
+import userDirectory from "@shared/services/userDirectory.js";
 
 const LOG = createDebugLogger("AuthManager", { envKey: "VITE_DEBUG_AUTH_LOGS" });
 
@@ -76,6 +77,7 @@ export const useAuthManager = () => {
       // Limpia estado backend + tokens/cookies
       resetAuth();
       clearSession(reason);
+      try { userDirectory.clearAll(); } catch {}
       // No desconectamos la wallet aquí.
     },
     [resetAuth]

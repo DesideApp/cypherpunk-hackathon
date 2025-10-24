@@ -35,7 +35,6 @@ const StatsSchema = new mongoose.Schema({
   ]
 }, { timestamps: true });
 
-StatsSchema.index({ user: 1 });
 StatsSchema.index({ lastActive: -1 });
 
 export default mongoose.model('Stats', StatsSchema);

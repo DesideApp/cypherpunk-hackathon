@@ -7,6 +7,8 @@ export const env = cleanEnv(process.env, {
   WEBSOCKET_PORT:           num({ default: 5001 }),
   MONGO_URI:                str({ default: '' }),
   MONGO_DB_NAME:            str({ default: '' }),
+  // Optional override: 'true' | 'false' (empty = default behavior)
+  MONGO_AUTO_INDEX:         str({ default: '' }),
   ALLOWED_ORIGINS:          str({ default: '' }),
 
   // Relay (cap global por mensaje + ttl de red de seguridad)

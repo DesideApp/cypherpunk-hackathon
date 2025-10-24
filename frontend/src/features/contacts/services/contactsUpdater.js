@@ -1,5 +1,5 @@
 import { fetchContacts } from "./contactService";
-import { searchUserByPubkey } from "./userService";
+import userDirectory from "@shared/services/userDirectory.js";
 
 /**
  * 🔹 Carga y procesa el estado completo de los contactos
@@ -11,27 +11,30 @@ export async function getUpdatedContacts() {
 
     const confirmed = contacts.confirmed || [];
     const pending = contacts.pending || [];
+    const incomingRaw = contacts.incoming || [];
 
-    // Enriquecer con nickname/avatar para todas las listas (usa cache interna por pubkey)
-    const enrich = async (arr = []) => Promise.all(
-      arr.map(async (item) => {
-        const result = await searchUserByPubkey(item.wallet);
-        return {
-          ...item,
-          nickname: result.registered ? result.nickname : null,
-          avatar: result.registered ? result.avatar : null,
-          blocked: result.registered ? result.blocked : false,
-        };
-      })
-    );
-
-    const [confirmedEnriched, pendingEnriched, incomingEnriched] = await Promise.all([
-      enrich(confirmed),
-      enrich(pending),
-      enrich(contacts.incoming || []),
+    // 1) Recolectar pubkeys únicas y hacer batch fetch (primará el directorio)
+    const allPubkeys = new Set([
+      ...confirmed.map((c) => c.wallet).filter(Boolean),
+      ...pending.map((c) => c.wallet).filter(Boolean),
+      ...incomingRaw.map((c) => c.wallet).filter(Boolean),
     ]);
+    await userDirectory.fetchMany(Array.from(allPubkeys));
 
-    const incoming = incomingEnriched;
+    // 2) Helper: aplica datos del directorio
+    const withProfile = (item) => {
+      const prof = userDirectory.getUser(item.wallet);
+      return {
+        ...item,
+        nickname: prof?.registered ? prof.nickname : null,
+        avatar: prof?.registered ? prof.avatar : null,
+        blocked: prof?.registered ? !!prof.blocked : false,
+      };
+    };
+
+    const confirmedEnriched = confirmed.map(withProfile);
+    const pendingEnriched = pending.map(withProfile);
+    const incoming = incomingRaw.map(withProfile);
 
     return { confirmed: confirmedEnriched, pending: pendingEnriched, incoming };
   } catch (error) {

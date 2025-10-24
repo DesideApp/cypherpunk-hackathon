@@ -1,5 +1,6 @@
 // src/features/messaging/ui/ChatHeader.jsx
 import React, { useMemo, useState, useEffect, useRef } from "react";
+import useUserProfile from "@shared/hooks/useUserProfile.js";
 import { MoreVertical, Search, Menu, ChevronLeft } from "lucide-react";
 import SearchModal from "./SearchModal";
 import "./ChatHeader.css";
@@ -25,6 +26,7 @@ const ChatHeader = ({
   onOpenLeftbar,
 }) => {
   const contact = useMemo(() => normalizeContact(selectedContact), [selectedContact]);
+  const { profile } = useUserProfile(contact.pubkey, { ensure: true });
   const [showMenu, setShowMenu] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -45,7 +47,8 @@ const ChatHeader = ({
   }, [showMenu]);
 
   const getDisplayName = () => {
-    if (contact.nickname) return contact.nickname;
+    const name = profile?.nickname || contact.nickname;
+    if (name) return name;
     if (contact.pubkey) return `${contact.pubkey.slice(0, 4)}...${contact.pubkey.slice(-4)}`;
     return "No contact selected";
   };
@@ -105,12 +108,12 @@ const ChatHeader = ({
         )}
 
         <div className="chat-avatar-circle" aria-hidden="true">
-          {contact.avatar ? (
-            <img src={contact.avatar} alt="" className="chat-avatar-image" />
+          { (profile?.avatar || contact.avatar) ? (
+            <img src={profile?.avatar || contact.avatar} alt="" className="chat-avatar-image" />
           ) : (
             <span className="chat-avatar-text">
-              {contact.nickname
-                ? contact.nickname[0]
+              {(profile?.nickname || contact.nickname)
+                ? (profile?.nickname || contact.nickname)[0]
                 : contact.pubkey
                 ? contact.pubkey[0]
                 : "?"}

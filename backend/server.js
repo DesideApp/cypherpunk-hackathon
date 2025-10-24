@@ -112,9 +112,14 @@ const startServer = async () => {
     assertNoStubInProd();
     // 1) MongoDB
     logger.info('🔌 Connecting to MongoDB...');
+    const hasAutoIndexOverride = typeof env.MONGO_AUTO_INDEX === 'string' && env.MONGO_AUTO_INDEX.trim() !== '';
+    const autoIndex = hasAutoIndexOverride
+      ? String(env.MONGO_AUTO_INDEX).toLowerCase() === 'true'
+      : (NODE_ENV !== 'production');
+
     const mongooseOpts = {
       ...(env.MONGO_DB_NAME ? { dbName: env.MONGO_DB_NAME } : {}),
-      autoIndex: NODE_ENV !== 'production'
+      autoIndex,
     };
 
     let mongoUri = MONGO_URI;
@@ -134,7 +139,7 @@ const startServer = async () => {
     mongoose.set('strictQuery', false);
 
     await mongoose.connect(mongoUri, mongooseOpts);
-    logger.info('✅ MongoDB connected');
+    logger.info(`✅ MongoDB connected (autoIndex=${mongooseOpts.autoIndex})`);
 
     logger.info('⚙️ Setting up middleware...');
     // 2) Middlewares
