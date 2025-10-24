@@ -5,6 +5,7 @@ import {
   formatRangeLabel,
   formatBucketDuration,
   fetchStatsOverview,
+  fetchAdminUsers,
 } from "@features/stats";
 import "./shared.css";
 import "./Users.css";
@@ -24,30 +25,38 @@ export default function Users() {
   const [statsError, setStatsError] = useState(null);
 
   useEffect(() => {
-    const loadUsers = () => {
-      const mockUsers = Array.from({ length: 50 }, (_, i) => ({
-        id: i + 1,
-        wallet: `User${i + 1}...`,
-        nickname: `User ${i + 1}`,
-        registeredAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000),
-        lastLogin: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000),
-        loginCount: Math.floor(Math.random() * 100) + 1,
-        messagesSent: Math.floor(Math.random() * 500) + 10,
-        bytesTransferred: Math.floor(Math.random() * 1_000_000) + 10_000,
-        relayTier: "basic",
-        relayUsedBytes: Math.floor(Math.random() * 8_000_000) + 1_000_000,
-        relayQuotaBytes: 8_000_000,
-        banned: Math.random() < 0.05,
-        role: Math.random() < 0.1 ? "admin" : "user",
-      }));
-      setUsers(mockUsers);
-      setLoading(false);
+    let cancelled = false;
+    const loadUsers = async () => {
+      try {
+        setLoading(true);
+        const res = await fetchAdminUsers({
+          page: 1,
+          limit: 50,
+          sortBy,
+          sortOrder,
+          search: searchTerm,
+        });
+        if (cancelled) return;
+        const data = Array.isArray(res?.data) ? res.data : [];
+        // Normalize IDs for React keys (fallback to wallet)
+        const normalized = data.map((u, idx) => ({ id: u.wallet || idx + 1, ...u }));
+        setUsers(normalized);
+      } catch (err) {
+        if (!cancelled) {
+          console.error('Failed to load admin users', err);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
 
     loadUsers();
     const interval = setInterval(loadUsers, 300_000);
-    return () => clearInterval(interval);
-  }, []);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [searchTerm, sortBy, sortOrder]);
 
   useEffect(() => {
     let cancelled = false;

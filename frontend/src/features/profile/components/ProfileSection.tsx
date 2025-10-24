@@ -15,10 +15,10 @@ import {
   X as CloseIcon,
 } from "lucide-react";
 import { UiButton, UiCard } from "@shared/ui";
+import { notify } from "@shared/services/notificationService.js";
 import { apiRequest } from "@shared/services/apiService.js";
 import { apiUrl } from "@shared/config/env.js";
 import { optimizeAvatar } from "@wallet-adapter/core/hooks/useAvatarUpload";
-import { notify } from "@shared/services/notificationService.js";
 import { useAuthManager } from "@features/auth/hooks/useAuthManager.js";
 
 import "./ProfileSection.css";
@@ -73,8 +73,8 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [hover, setHover] = useState(false);
-  const { ensureReady } = useAuthManager();
   const [imgError, setImgError] = useState(false);
+  const { ensureReady } = useAuthManager();
 
   const base58 = useMemo(() => publicKey ?? null, [publicKey]);
 
@@ -157,13 +157,14 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
   }, [editMode]);
 
   const processAvatarFile = useCallback(async (f: File) => {
+    const prev = avatarPreview;
+    let tempUrl: string | null = null;
     try {
-      const ok = await ensureReady();
-      if (!ok) {
-        notify.error("Sign in required to upload");
-        return;
-      }
+      tempUrl = URL.createObjectURL(f);
+      setAvatarPreview(tempUrl);
+      setImgError(false);
       setBusy(true);
+
       const optimized = await optimizeAvatar(f, 512);
       const dataUrl: string = await new Promise((ok, ko) => {
         const r = new FileReader();
@@ -171,20 +172,29 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
         r.onerror = ko;
         r.readAsDataURL(optimized);
       });
-      const res: any = await apiRequest("/api/v1/uploads/avatar", {
+
+      const doUpload = () => apiRequest("/api/v1/uploads/avatar", {
         method: "POST",
         body: JSON.stringify({ dataUrl }),
       });
+      let res: any = await doUpload();
+      if (res?.error && (res?.statusCode === 401 || res?.error === 'UNAUTHORIZED')) {
+        const ok = await ensureReady();
+        if (ok) res = await doUpload();
+      }
       if (res?.error || !res?.url) throw new Error(res?.message || res?.error || "Upload failed");
-      const absolute = apiUrl(res.url);
-      setAvatarPreview(absolute);
-    } catch (err: any) {
-      console.error("Avatar upload failed:", err?.message || err);
+      setAvatarPreview(apiUrl(res.url));
+      setImgError(false);
+    } catch (e: any) {
+      console.error("Avatar upload failed:", e?.message || e);
       notify.error("Failed to upload image");
+      setAvatarPreview(prev);
+      setImgError(false);
     } finally {
       setBusy(false);
+      if (tempUrl) { try { URL.revokeObjectURL(tempUrl); } catch {} }
     }
-  }, []);
+  }, [avatarPreview, ensureReady]);
 
   const handleAvatarFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     try {
@@ -300,7 +310,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
             ) : (
               <span className="profile-avatar__fallback" aria-label="Avatar placeholder">
                 {avatarPreview && imgError ? (
-                  <ImageOff size={24} />
+                  <ImageOff size={20} />
                 ) : (
                   (nickDraft || "U").slice(0, 1).toUpperCase()
                 )}
@@ -308,18 +318,8 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
             )}
 
             {editMode && (hover || dragOver) && (
-              <div
-                className="profile-avatar__overlay"
-                aria-hidden="true"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: 'rgba(0,0,0,0.35)',
-                  cursor: 'pointer',
-                }}
-              >
-                <Camera size={18} color="#fff" />
+              <div className="profile-avatar__overlay" aria-hidden="true">
+                <Camera size={16} color="#fff" />
               </div>
             )}
           </div>
@@ -351,7 +351,10 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
               <button
                 type="button"
                 className="profile-edit-trigger"
-                onClick={() => setEditMode(true)}
+                onClick={async () => {
+                  const ok = await ensureReady();
+                  if (ok) setEditMode(true);
+                }}
               >
                 <Pencil size={14} />
                 Edit profile
