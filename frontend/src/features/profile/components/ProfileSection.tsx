@@ -3,21 +3,22 @@ import React, {
   useEffect,
   useMemo,
   useState,
+  useRef,
 } from "react";
 import {
   Check,
   Copy,
   Eye,
-  Image as ImageIcon,
+  Camera,
   Pencil,
   X as CloseIcon,
-  XCircle,
 } from "lucide-react";
 import { UiButton, UiCard } from "@shared/ui";
 import { apiRequest } from "@shared/services/apiService.js";
 import { apiUrl } from "@shared/config/env.js";
 import { optimizeAvatar } from "@wallet-adapter/core/hooks/useAvatarUpload";
 import { notify } from "@shared/services/notificationService.js";
+import { useAuthManager } from "@features/auth/hooks/useAuthManager.js";
 
 import "./ProfileSection.css";
 
@@ -70,6 +71,8 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
   const [busy, setBusy] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [hover, setHover] = useState(false);
+  const { ensureReady } = useAuthManager();
 
   const base58 = useMemo(() => publicKey ?? null, [publicKey]);
 
@@ -145,18 +148,6 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
     }
   };
 
-  const handleAvatarChange = useCallback(() => {
-    if (!editMode) return;
-    const next = window.prompt("Image URL", avatarPreview || "");
-    if (next === null) return;
-    setAvatarPreview(next.trim());
-  }, [avatarPreview, editMode]);
-
-  const handleAvatarClear = useCallback(() => {
-    if (!editMode) return;
-    setAvatarPreview("");
-  }, [editMode]);
-
   const handleAvatarUploadClick = useCallback(() => {
     if (!editMode) return;
     fileInputRef.current?.click();
@@ -164,6 +155,11 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
 
   const processAvatarFile = useCallback(async (f: File) => {
     try {
+      const ok = await ensureReady();
+      if (!ok) {
+        notify.error("Sign in required to upload");
+        return;
+      }
       setBusy(true);
       const optimized = await optimizeAvatar(f, 512);
       const dataUrl: string = await new Promise((ok, ko) => {
@@ -273,9 +269,23 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
           <div
             className="profile-avatar"
             onDragOver={onAvatarDragOver}
-            onDragEnter={onAvatarDragOver}
-            onDragLeave={onAvatarDragLeave}
+            onDragEnter={(e) => { onAvatarDragOver(e); setHover(true); }}
+            onDragLeave={() => { onAvatarDragLeave(); setHover(false); }}
             onDrop={onAvatarDrop}
+            onMouseEnter={() => setHover(true)}
+            onMouseLeave={() => setHover(false)}
+            onClick={editMode ? handleAvatarUploadClick : undefined}
+            role={editMode ? "button" : undefined}
+            tabIndex={editMode ? 0 : -1}
+            onKeyDown={(e) => {
+              if (!editMode) return;
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleAvatarUploadClick();
+              }
+            }}
+            title={editMode ? "Upload image" : undefined}
+            aria-label={editMode ? "Upload image" : undefined}
           >
             {avatarPreview ? (
               <img
@@ -289,38 +299,19 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({
               </span>
             )}
 
-            {editMode && (
-              <div className="profile-avatar__overlay" aria-label="Avatar actions">
-                <button
-                  type="button"
-                  className="profile-avatar__action"
-                  onClick={handleAvatarChange}
-                >
-                  <ImageIcon size={14} />
-                  <span>Change</span>
-                </button>
-                <button
-                  type="button"
-                  className="profile-avatar__action"
-                  onClick={handleAvatarUploadClick}
-                  disabled={busy}
-                >
-                  <ImageIcon size={14} />
-                  <span>{busy ? "Uploading…" : "Upload"}</span>
-                </button>
-                {dragOver && (
-                  <span className="profile-avatar__hint" aria-live="polite">Drop image to upload</span>
-                )}
-                {avatarPreview && (
-                  <button
-                    type="button"
-                    className="profile-avatar__action profile-avatar__action--ghost"
-                    onClick={handleAvatarClear}
-                  >
-                    <XCircle size={14} />
-                    <span>Remove</span>
-                  </button>
-                )}
+            {editMode && (hover || dragOver) && (
+              <div
+                className="profile-avatar__overlay"
+                aria-hidden="true"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'rgba(0,0,0,0.35)',
+                  cursor: 'pointer',
+                }}
+              >
+                <Camera size={18} color="#fff" />
               </div>
             )}
           </div>

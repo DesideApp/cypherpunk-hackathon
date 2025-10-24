@@ -76,6 +76,28 @@ const mapHistory = (buckets, countsMap, rangeEnd) => {
   });
 };
 
+// Helpers for derived stats we used to compute in the frontend
+const findPeakValue = (historyArr) => {
+  if (!Array.isArray(historyArr) || historyArr.length === 0) return 0;
+  let peak = 0;
+  for (const item of historyArr) {
+    const v = Number(item?.value || 0);
+    if (v > peak) peak = v;
+  }
+  return peak;
+};
+
+const percentileValue = (historyArr, percentile) => {
+  if (!Array.isArray(historyArr) || historyArr.length === 0) return 0;
+  const values = historyArr.map(h => Number(h?.value || 0)).sort((a, b) => a - b);
+  const p = Math.min(100, Math.max(0, Number(percentile)));
+  if (values.length === 1) return values[0];
+  // Nearest-rank method
+  const rank = Math.ceil((p / 100) * values.length);
+  const idx = Math.min(values.length - 1, Math.max(0, rank - 1));
+  return values[idx];
+};
+
 const aggregateMessageHistory = async (startDate, endDate, bucketMinutes) => {
   const match = buildCreatedAtFilter(startDate, endDate);
   const bucketsRaw = await RelayMessage.aggregate([
@@ -416,6 +438,17 @@ export const computeStatsOverview = async (options = {}) => {
   const messageTotal = messageHistory.reduce((sum, entry) => sum + entry.value, 0);
   const connectionTotal = connectionHistory.reduce((sum, entry) => sum + entry.value, 0);
   const peakConnections = connectionHistory.reduce((max, entry) => Math.max(max, entry.value), 0);
+  const peakMessages = messageHistory.reduce((max, entry) => Math.max(max, entry.value), 0);
+
+  // Derivatives commonly consumed by the admin UI
+  const avgMessagesPerBucket = messageHistory.length === 0
+    ? 0
+    : Math.round(messageTotal / messageHistory.length);
+  const avgConnectionsPerBucket = connectionHistory.length === 0
+    ? 0
+    : Math.round(connectionHistory.reduce((sum, item) => sum + item.value, 0) / connectionHistory.length);
+  const p95Messages = percentileValue(messageHistory, 95);
+  const p95Connections = percentileValue(connectionHistory, 95);
 
   const activeThreshold = new Date(rangeEnd.getTime() - 5 * 60 * 1000);
   const hourAgo = new Date(rangeEnd.getTime() - 60 * 60 * 1000);
@@ -482,7 +515,11 @@ export const computeStatsOverview = async (options = {}) => {
       lastHour: messagesLastHour,
       today: messagesToday,
       total: messageTotal,
-      history: messageHistory
+      history: messageHistory,
+      // Derived values (moved from UI for consistency)
+      peak: peakMessages,
+      p95: p95Messages,
+      avgPerBucket: avgMessagesPerBucket
     },
     connections: {
       active: activeConnections,
@@ -491,6 +528,10 @@ export const computeStatsOverview = async (options = {}) => {
       disconnections,
       peak24h: peakConnections,
       avgActive: avgActiveConnections,
+      // Derived across the selected range
+      peak: peakConnections,
+      p95: p95Connections,
+      avgPerBucket: avgConnectionsPerBucket,
       uniqueParticipants: participantsInRange.size,
       totalInteractions: connectionTotal,
       dau,

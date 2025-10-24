@@ -50,10 +50,11 @@
   /* ===== COMPONENTES BÁSICOS COMPARTIDOS ===== */
   
   /* Card interna (para agrupar info) - COPIADO DE buy-selected-card */
+  /* Usa el color del token (--card-bg) que viene del metadata */
   --action-modal-card-background: linear-gradient(135deg,
-    color-mix(in srgb, var(--window-background) 96%, transparent) 0%,
-    color-mix(in srgb, var(--background-color) 72%, transparent) 100%);
-  --action-modal-card-border: 1px solid color-mix(in srgb, var(--card-accent, rgba(59,130,246,0.6)) 22%, rgba(255,255,255,0.06));
+    color-mix(in srgb, var(--card-bg, var(--window-background)) 96%, transparent) 0%,
+    color-mix(in srgb, var(--card-bg, var(--background-color)) 88%, transparent) 100%);
+  --action-modal-card-border: 1px solid color-mix(in srgb, var(--card-accent, rgba(59,130,246,0.6)) 32%, rgba(255,255,255,0.08));
   --action-modal-card-shadow: 0 16px 34px rgba(0, 0, 0, 0.24),
     0 1px 0 rgba(255, 255, 255, 0.05),
     inset 0 1px 0 rgba(255, 255, 255, 0.06);
