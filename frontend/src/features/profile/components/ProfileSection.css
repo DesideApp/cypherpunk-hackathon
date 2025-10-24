@@ -82,6 +82,7 @@
   background: var(--surface-color);
   display: grid;
   place-items: center;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
 .profile-avatar__image {
@@ -115,6 +116,13 @@
 .profile-modal--editing .profile-avatar__overlay:focus-within {
   opacity: 1;
   pointer-events: auto;
+}
+
+.profile-modal--editing .profile-avatar:hover {
+  border-color: var(--action-color);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--action-color) 55%, transparent),
+    0 0 0 6px color-mix(in srgb, var(--action-color) 20%, transparent);
 }
 
 .profile-avatar__action {
@@ -319,4 +327,3 @@
     align-items: stretch;
   }
 }
-

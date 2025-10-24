@@ -20,22 +20,27 @@ export function useActionModalStyles(meta) {
     };
   }
 
+  // Si meta existe pero no tiene tint, usar defaults
+  // Si tiene tint, usar sus valores sin fallbacks
   const tint = meta.tint || DEFAULTS.tint;
   const glow = meta.glow || DEFAULTS.glow;
   const background = meta.background || DEFAULTS.background;
   const iconScale =
     typeof meta.iconScale === "number" ? meta.iconScale : DEFAULTS.iconScale;
 
+  // Si meta tiene tint definido (string), usar SU glow sin defaults
+  const effectiveGlow = meta.tint && meta.glow ? meta.glow : glow;
+
   return {
     cardStyle: {
       "--card-accent": tint,
-      "--card-sheen": glow,
+      "--card-sheen": effectiveGlow,
       "--card-bg": background,
     },
     logoStyle: {
       "--icon-outline": tint,
       "--icon-bg": background,
-      "--icon-glow": glow,
+      "--icon-glow": effectiveGlow,
     },
     logoInnerStyle: {
       "--icon-scale": iconScale,
