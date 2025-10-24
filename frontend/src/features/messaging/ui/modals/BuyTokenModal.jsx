@@ -220,7 +220,7 @@ export default function BuyTokenModal({
     } catch {}
   }, [tokens]);
 
-  const amountOptions = [0.01, 0.1, 0.5, 1];
+  const amountOptions = [0.01, 0.1, 1];
   const inlineEnabled = FEATURES.PAYMENT_INLINE_EXEC;
   const inlineCapable = inlineEnabled && adapter && connection;
 

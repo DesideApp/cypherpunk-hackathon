@@ -84,6 +84,8 @@ ai-style-agent/
  
 # Private docs
 docs/telegram-bots-inventory.md
+# Private doc suffix anywhere (keep extended notes out of VCS)
+*.private.md
 
 # Telegram Bot - excluir del deploy
 backend/src/modules/telegram-bot/
@@ -91,7 +93,13 @@ backend/src/modules/telegram-bot/
 # Legacy & Cleanup
 admin-panel/
 backups/
+# Docs are ignored by default, but we re-include curated developer docs we maintain
 docs/
+!docs/README.md
+!docs/backend/
+!docs/backend/**
+!docs/frontend/
+!docs/frontend/**
 scripts/
 tests/
 

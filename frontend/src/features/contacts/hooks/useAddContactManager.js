@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { sendContactRequest } from "../services/contactService.js";
-import { searchUserByPubkey } from "../services/userService.js";
+import userDirectory from "@shared/services/userDirectory.js";
 import { notify } from "@shared/services/notificationService.js";
 import { useAuthManager } from "@features/auth/hooks/useAuthManager.js";
 import { getUpdatedContacts } from "../services/contactsUpdater.js";
@@ -66,7 +66,7 @@ export default function useAddContactManager(onContactAdded) {
 
     try {
       const ready = await ensureReady(async () => {
-        const result = await searchUserByPubkey(trimmedPubkey);
+        const result = await userDirectory.fetchUser(trimmedPubkey, { force: true });
 
         if (result.error) return notify(result.message, "error");
         if (!result.registered)
@@ -87,6 +87,8 @@ export default function useAddContactManager(onContactAdded) {
 
         // 🔹 Enviar solicitud y actualizar la lista
         await sendContactRequest(trimmedPubkey);
+        // Refrescar relación/estado post-request
+        try { await userDirectory.fetchUser(trimmedPubkey, { force: true }); } catch {}
         notify("✅ Solicitud enviada correctamente.", "success");
         setPubkey("");
 

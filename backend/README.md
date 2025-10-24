@@ -94,3 +94,34 @@ Además, en `scripts/` hay herramientas operativas (listar endpoints, sincroniza
 
 - Topología de desarrollo: [docs/dev-setup.md](../docs/dev-setup.md)
 - Modos y flags: [docs/modes.md](../docs/modes.md)
+
+## MongoDB: modelos y operativa
+
+- Colecciones gestionadas por este backend (Mongoose):
+  - `users` (User), `contacts` (Contact), `notifications` (Notification), `stats` (Stats), `activityevents` (ActivityEvent), `agreements` (Agreement), `relaymessages` (RelayMessage).
+  - Índices clave: `users.wallet` único; `contacts.owner+contact` único; TTL en `relaymessages.createdAt`.
+
+- Purga segura de colecciones no gestionadas:
+  - Dry‑run: `cd backend && npm run db:purge:dryrun`
+  - Aplicar: `PURGE_CONFIRM=I_UNDERSTAND npm run db:purge:apply`
+  - Mantiene las colecciones de arriba; elimina las no usadas por este backend.
+
+- Índices (prod: autoIndex desactivado por defecto):
+  - Crear/actualizar: `npm run indexes:sync`
+  - Verificar: `npm run indexes:verify`
+  - Nota: se eliminó un índice redundante en `Stats` para evitar conflictos (`user:1` ya es único).
+
+- TTL del relay:
+  - Variables: `RELAY_MESSAGE_TTL` o `RELAY_TTL_SECONDS` (segundos).
+  - Actualizar índice TTL: `npm run ttl:update`
+  - Estado actual (con .env del repo): 90 días (7776000s). Para 30 días: exporta `RELAY_TTL_SECONDS=2592000` y ejecuta `ttl:update`.
+
+- AutoIndex (opcional):
+  - `MONGO_AUTO_INDEX=true|false` anula el comportamiento por entorno (por defecto: dev=on, prod=off).
+  - Úsalo solo puntualmente en bases grandes; preferible `indexes:sync` en despliegues.
+
+- Checks rápidos:
+  - `indexes:verify` lista colecciones/índices y el TTL efectivo.
+  - Conteo básico (mongosh): `db.users.countDocuments()`, `db.contacts.countDocuments()`.
+
+Para una guía extendida (backups, migraciones y resolución de conflictos de índices), ver `docs/mongo-ops.private.md` (no versionado).

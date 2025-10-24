@@ -117,6 +117,17 @@ Typing intent (send/request/buy/swap) is available in both the client and the AP
 
 **Solana RPC:** Defaults to mainnet (`https://api.mainnet-beta.solana.com`). Override with `SOLANA_RPC_URL` (backend) and `VITE_SOLANA_RPC` (frontend) if you need a dedicated endpoint.
 
+### User Profiles Data Source
+
+- Single source of truth for user nickname/avatar/social across the app.
+- Directory service caches profiles with TTL, dedupes in-flight fetches, and supports batch enrichment to avoid N+1.
+- Hook `useUserProfile(pubkey)` provides `{ profile, loading, error, refetch }` and live updates.
+- After editing your profile, the directory is primed so all views refresh instantly.
+
+Docs:
+- Frontend directory + hook: `docs/frontend/user-directory.md`
+- Backend users API (GET, PUT, batch): `docs/backend/users-api.md`
+
 ### 🔐 E2EE Grade-1 Configuration
 
 The app requires a shared static key for the current encryption tier. Define it in your frontend env (or root `.env`) before running:
