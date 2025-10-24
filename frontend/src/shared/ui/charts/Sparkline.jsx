@@ -120,13 +120,6 @@ export function Sparkline({
   // Hero variant - detailed view with price and change
   return (
     <div className={classes}>
-      {/* Change indicator (floating top-right) */}
-      {change && (
-        <div className={`sparkline-change sparkline-change--${trend}`}>
-          {change}
-        </div>
-      )}
-
       {/* SVG Chart */}
       <svg
         width={finalWidth}
@@ -166,10 +159,17 @@ export function Sparkline({
         />
       </svg>
 
-      {/* Price caption below chart */}
+      {/* Price and change below chart */}
       {price && (
         <div className="sparkline-caption">
-          <div className="sparkline-price">{price}</div>
+          <div className="sparkline-price-row">
+            <div className="sparkline-price">{price}</div>
+            {change && (
+              <div className={`sparkline-change sparkline-change--${trend}`}>
+                {change}
+              </div>
+            )}
+          </div>
           {priceLabel && (
             <div className="sparkline-price-label">{priceLabel}</div>
           )}

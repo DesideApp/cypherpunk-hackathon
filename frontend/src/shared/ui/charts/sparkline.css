@@ -76,18 +76,36 @@
   }
 }
 
-/* ===== CHANGE INDICATOR (floating) ===== */
-.sparkline-change {
-  position: absolute;
-  top: 0;
-  right: 0;
-  font-size: 1.1rem;
+/* ===== PRICE CAPTION ===== */
+.sparkline-caption {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.sparkline-price-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sparkline-price {
+  font-size: 1.5rem;
   font-weight: 600;
   letter-spacing: 0.01em;
-  padding: 4px 8px;
+  color: var(--text-primary);
+}
+
+/* ===== CHANGE INDICATOR (next to price) ===== */
+.sparkline-change {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  padding: 4px 10px;
   border-radius: 6px;
   transition: all 0.3s ease;
-  z-index: 2;
 }
 
 .sparkline-change--positive {
@@ -103,22 +121,6 @@
 .sparkline-change--neutral {
   color: var(--text-secondary);
   background: color-mix(in srgb, var(--text-secondary) 8%, transparent);
-}
-
-/* ===== PRICE CAPTION ===== */
-.sparkline-caption {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  margin-top: 8px;
-}
-
-.sparkline-price {
-  font-size: 1.5rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  color: var(--text-primary);
 }
 
 .sparkline-price-label {
@@ -150,9 +152,5 @@
 .sparkline--hero:hover .sparkline-svg--hero {
   filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.2))
           drop-shadow(0 0 12px currentColor);
-}
-
-.sparkline--hero:hover .sparkline-change {
-  transform: scale(1.05);
 }
 

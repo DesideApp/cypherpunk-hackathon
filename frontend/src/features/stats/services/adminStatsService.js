@@ -58,6 +58,22 @@ export async function fetchRecentLogins({ limit = 20, search = '' } = {}) {
   return res; // { data: [...] }
 }
 
+export async function fetchRelayPending({ limit = 20 } = {}) {
+  const params = new URLSearchParams();
+  if (limit) params.set('limit', String(limit));
+  const url = `/api/v1/stats/admin/relay/pending?${params.toString()}`;
+  const res = await apiRequest(url, { method: 'GET' });
+  if (!res || res.error) throw new Error(res?.message || 'Failed to load relay pending');
+  return res; // { data: [...], totals: { count, bytes } }
+}
+
+export async function fetchRelayOverview() {
+  const url = `/api/v1/stats/admin/relay/overview`;
+  const res = await apiRequest(url, { method: 'GET' });
+  if (!res || res.error) throw new Error(res?.message || 'Failed to load relay overview');
+  return res;
+}
+
 export async function fetchInfraOverview({ period = '1d', from, to, bucketMinutes } = {}) {
   const params = new URLSearchParams();
   if (from) params.set('from', typeof from === 'string' ? from : new Date(from).toISOString());

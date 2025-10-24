@@ -6,6 +6,7 @@ import Users from "@pages/admin/stats/Users.jsx";
 import Actions from "@pages/admin/stats/Actions.jsx";
 import Adoption from "@pages/admin/stats/Adoption.jsx";
 import Infra from "@pages/admin/stats/Infra.jsx";
+import Relay from "@pages/admin/stats/Relay.jsx";
 import "./StatsDashboard.css";
 
 const TABS = [
@@ -15,6 +16,7 @@ const TABS = [
   { key: "actions", label: "Actions", path: "actions" },
   { key: "adoption", label: "Adoption", path: "adoption" },
   { key: "infra", label: "Infra", path: "infra" },
+  { key: "relay", label: "Relay", path: "relay" },
 ];
 
 export default function StatsDashboard() {
@@ -54,6 +56,7 @@ export default function StatsDashboard() {
           <Route path="actions" element={<Actions />} />
           <Route path="adoption" element={<Adoption />} />
           <Route path="infra" element={<Infra />} />
+          <Route path="relay" element={<Relay />} />
           <Route path="*" element={<Navigate to="dashboard" replace />} />
         </Routes>
       </div>
