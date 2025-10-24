@@ -64,7 +64,7 @@ export async function listUsers(req, res) {
     }
 
     // Count total matching users
-    const total = await User.countDocuments(filter).lean();
+    const total = await User.countDocuments(filter);
 
     // Sorting map
     const SORT_FIELDS = new Set(['lastLogin', 'registeredAt', 'loginCount', 'messagesSent', 'relayUsedBytes']);

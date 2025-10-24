@@ -124,6 +124,11 @@ const startServer = async () => {
     };
 
     let mongoUri = MONGO_URI;
+    // En producción: bloquear memoria salvo opt-in explícito
+    if (NODE_ENV === 'production' && String(DATA_MODE).toLowerCase() === 'memory' && String(process.env.ALLOW_MEMORY_IN_PROD || '').toLowerCase() !== 'true') {
+      logger.error('❌ DATA_MODE=memory in production is not allowed. Set MONGO_URI or ALLOW_MEMORY_IN_PROD=true if intentional.');
+      process.exit(1);
+    }
     if (!mongoUri) {
       if (DATA_MODE === 'memory') {
         const { MongoMemoryServer } = await import('mongodb-memory-server');
@@ -141,8 +146,13 @@ const startServer = async () => {
 
     await mongoose.connect(mongoUri, mongooseOpts);
     logger.info(`✅ MongoDB connected (autoIndex=${mongooseOpts.autoIndex})`);
-    // Seed de datos demo cuando procede (DATA_MODE=memory o SEED_DEMO=true)
-    try { await seedDemoData(); } catch (e) { logger.warn(`⚠️ Demo seed skipped: ${e?.message || e}`); }
+    // Seed de datos demo cuando procede y no estamos en producción (o con override explícito)
+    const allowSeedInProd = (process.env.ALLOW_DEMO_SEED_IN_PROD || '').toLowerCase() === 'true';
+    if (NODE_ENV !== 'production' || allowSeedInProd) {
+      try { await seedDemoData(); } catch (e) { logger.warn(`⚠️ Demo seed skipped: ${e?.message || e}`); }
+    } else {
+      logger.info('🌱 Demo seed disabled in production (set ALLOW_DEMO_SEED_IN_PROD=true to override).');
+    }
 
     logger.info('⚙️ Setting up middleware...');
     // 2) Middlewares

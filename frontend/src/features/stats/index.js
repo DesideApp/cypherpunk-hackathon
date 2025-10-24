@@ -5,6 +5,7 @@ export { default as OverviewChart } from "./components/OverviewChart.jsx";
 
 export { fetchStatsOverview } from "./services/statsService.js";
 export { fetchAdminUsers } from "./services/adminStatsService.js";
+export { fetchTopUsers, fetchRelayUsage, fetchRecentLogins } from "./services/adminStatsService.js";
 
 export {
   PERIOD_OPTIONS,

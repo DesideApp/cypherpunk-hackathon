@@ -6,6 +6,9 @@ import {
   formatBucketDuration,
   fetchStatsOverview,
   fetchAdminUsers,
+  fetchTopUsers,
+  fetchRelayUsage,
+  fetchRecentLogins,
 } from "@features/stats";
 import "./shared.css";
 import "./Users.css";
@@ -23,6 +26,12 @@ export default function Users() {
   const [statsPeriod, setStatsPeriod] = useState("1h");
   const [statsLoading, setStatsLoading] = useState(true);
   const [statsError, setStatsError] = useState(null);
+  // Extras
+  const [topSent, setTopSent] = useState([]);
+  const [topReceived, setTopReceived] = useState([]);
+  const [relayUsage, setRelayUsage] = useState([]);
+  const [recentLogins, setRecentLogins] = useState([]);
+  const [extrasLoading, setExtrasLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -93,6 +102,34 @@ export default function Users() {
       cancelled = true;
       clearInterval(interval);
     };
+  }, [statsPeriod]);
+
+  // Load admin extras: top users (sent/received for current statsPeriod), relay usage, recent logins
+  useEffect(() => {
+    let cancelled = false;
+    const loadExtras = async () => {
+      try {
+        setExtrasLoading(true);
+        const [topS, topR, relay, recents] = await Promise.all([
+          fetchTopUsers({ metric: 'sent', period: statsPeriod, limit: 10 }),
+          fetchTopUsers({ metric: 'received', period: statsPeriod, limit: 10 }),
+          fetchRelayUsage({ sortBy: 'ratio', sortOrder: 'desc', limit: 10 }),
+          fetchRecentLogins({ limit: 10 }),
+        ]);
+        if (cancelled) return;
+        setTopSent(Array.isArray(topS?.data) ? topS.data : []);
+        setTopReceived(Array.isArray(topR?.data) ? topR.data : []);
+        setRelayUsage(Array.isArray(relay?.data) ? relay.data : []);
+        setRecentLogins(Array.isArray(recents?.data) ? recents.data : []);
+      } catch (err) {
+        if (!cancelled) console.error('Failed to load admin extra stats', err);
+      } finally {
+        if (!cancelled) setExtrasLoading(false);
+      }
+    };
+    loadExtras();
+    const interval = setInterval(loadExtras, 180_000);
+    return () => { cancelled = true; clearInterval(interval); };
   }, [statsPeriod]);
 
   const filteredUsers = useMemo(
@@ -222,6 +259,97 @@ export default function Users() {
             />
           </div>
         )}
+      </section>
+
+      <section className="users-extras">
+        <div className="users-extras__grid">
+          <div className="panel-card">
+            <div className="panel-heading">
+              <h3 className="panel-title">Top users (messages in period)</h3>
+              <span className="panel-subtitle">{statsRangeLabel || statsBucketLabel}</span>
+            </div>
+            {extrasLoading && !topSent.length && !topReceived.length ? (
+              <div className="stats-panel__loading"><div className="stats-panel__spinner" /><p>Cargando…</p></div>
+            ) : (
+              <div className="top-users">
+                <div className="top-users__col">
+                  <h4>Sent</h4>
+                  <ol>
+                    {topSent.map((u) => (
+                      <li key={`sent-${u.wallet}`}>
+                        <span className="user">{u.nickname || u.wallet}</span>
+                        <span className="count">{u.count.toLocaleString('en-US')}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+                <div className="top-users__col">
+                  <h4>Received</h4>
+                  <ol>
+                    {topReceived.map((u) => (
+                      <li key={`recv-${u.wallet}`}>
+                        <span className="user">{u.nickname || u.wallet}</span>
+                        <span className="count">{u.count.toLocaleString('en-US')}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="panel-card">
+            <div className="panel-heading">
+              <h3 className="panel-title">Relay usage (top)</h3>
+              <span className="panel-subtitle">by usage ratio</span>
+            </div>
+            {extrasLoading && !relayUsage.length ? (
+              <div className="stats-panel__loading"><div className="stats-panel__spinner" /><p>Cargando…</p></div>
+            ) : (
+              <div className="users-table__wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>User</th>
+                      <th>Used</th>
+                      <th>Quota</th>
+                      <th>Ratio</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {relayUsage.map((u) => (
+                      <tr key={`relay-${u.wallet}`}>
+                        <td>{u.nickname || u.wallet}</td>
+                        <td>{formatBytes(u.relayUsedBytes)}</td>
+                        <td>{formatBytes(u.relayQuotaBytes)}</td>
+                        <td>{((u.ratio ?? 0) * 100).toFixed(1)}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          <div className="panel-card">
+            <div className="panel-heading">
+              <h3 className="panel-title">Recent logins</h3>
+              <span className="panel-subtitle">latest {recentLogins.length}</span>
+            </div>
+            {extrasLoading && !recentLogins.length ? (
+              <div className="stats-panel__loading"><div className="stats-panel__spinner" /><p>Cargando…</p></div>
+            ) : (
+              <ul className="recent-logins">
+                {recentLogins.map((u) => (
+                  <li key={`login-${u.wallet}`}>
+                    <span className="user">{u.nickname || u.wallet}</span>
+                    <span className="date">{formatDate(u.lastLogin)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
       </section>
 
       <section className="users-table">

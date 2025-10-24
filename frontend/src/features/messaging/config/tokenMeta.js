@@ -9,9 +9,11 @@ const colorCache = new Map();
 
 export async function getTokenMeta(code) {
   const key = String(code || '').toUpperCase();
+  console.log('[tokenMeta] getTokenMeta called for:', key);
   
   // 🎨 LAYER 1: Check premium tokens first (hardcoded partnerships/special effects)
   const premiumToken = getPremiumToken(key);
+  console.log('[tokenMeta] premiumToken found:', premiumToken);
   if (premiumToken) {
     return premiumToken;
   }
