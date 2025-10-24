@@ -9,6 +9,7 @@ import Contact from '#modules/contacts/models/contact.model.js';
 import { ContactStatus } from '#modules/contacts/contact.constants.js';
 import User from '#modules/users/models/user.model.js';
 import RelayMessage from '#modules/relay/models/relayMessage.model.js';
+import APMWs from '#modules/stats/models/apmWs.model.js';
 import { getPublicKey } from '#shared/services/keyManager.js';
 import { COOKIE_NAMES } from '#config/cookies.js';
 
@@ -285,6 +286,7 @@ export default function createWebSocketServer(app) {
     }
 
     console.log(`🟢 Cliente conectado: ${socket.id}`);
+    try { await APMWs.create({ event: 'connect', wallet: socket.data?.authWallet || null }); } catch {}
 
     // 2) Rate limiters por socket
     socket.data.rlSignal = makeLimiter({ windowMs: 10_000, max: 60 }); // 60 señales / 10s
@@ -345,6 +347,7 @@ export default function createWebSocketServer(app) {
         }
       } catch (e) {
         console.error(`[WS] register_wallet error ${socket.id}:`, e.message);
+        try { await APMWs.create({ event: 'register_wallet', wallet: socket.data?.authWallet || null, ok: false, detail: e?.message }); } catch {}
       }
     });
 
@@ -489,11 +492,13 @@ export default function createWebSocketServer(app) {
         // Emitir con clave estándar `sdp` únicamente (sin `offer`)
         io.to(to).emit('rtc:offer', { convId, from, sdp: desc, signalId });
         socket.emit('rtc:ack', { type: 'offer', signalId, convId });
+        try { await APMWs.create({ event: 'rtc:offer', wallet: from, peer: to, convId, ok: true }); } catch {}
         if (typeof ack === 'function') ack({ ok: true, type: 'offer', signalId, convId });
         markSignalProcessed(signalId);
 
       } catch (e) {
         logger.error(`[WS] rtc:offer error: ${e?.message || e}`);
+        try { await APMWs.create({ event: 'rtc:offer', wallet: socket.data?.authWallet || null, ok: false, detail: e?.message }); } catch {}
         if (typeof ack === 'function') ack({ ok: false, error: 'internal_error' });
         socket.emit('rtc:error', { error: 'internal_error', signalId });
       }
@@ -565,11 +570,13 @@ export default function createWebSocketServer(app) {
         // Emitir con clave estándar `sdp` únicamente (sin `answer`)
         io.to(to).emit('rtc:answer', { convId, from, sdp: desc, signalId });
         socket.emit('rtc:ack', { type: 'answer', signalId, convId });
+        try { await APMWs.create({ event: 'rtc:answer', wallet: from, peer: to, convId, ok: true }); } catch {}
         if (typeof ack === 'function') ack({ ok: true, type: 'answer', signalId, convId });
         markSignalProcessed(signalId);
 
       } catch (e) {
         logger.error(`[WS] rtc:answer error: ${e?.message || e}`);
+        try { await APMWs.create({ event: 'rtc:answer', wallet: socket.data?.authWallet || null, ok: false, detail: e?.message }); } catch {}
         if (typeof ack === 'function') ack({ ok: false, error: 'internal_error' });
         socket.emit('rtc:error', { error: 'internal_error', signalId });
       }
@@ -766,6 +773,7 @@ export default function createWebSocketServer(app) {
         }
         // Para candidates no validamos eligibility (pueden llegar después del offer/answer)
         logger.info('[rtc] forward', { type: 'candidate', from, to, convId });
+        try { await APMWs.create({ event: 'rtc:candidate', wallet: from, peer: to, convId, ok: true }); } catch {}
         io.to(to).emit('rtc:candidate', { convId, from, candidate: candObj, signalId });
         // Opcional: ACK solo para candidates importantes
         if (signalId) {
@@ -776,6 +784,7 @@ export default function createWebSocketServer(app) {
 
       } catch (e) {
         logger.error(`[WS] rtc:candidate error: ${e?.message || e}`);
+        try { await APMWs.create({ event: 'rtc:candidate', wallet: socket.data?.authWallet || null, ok: false, detail: e?.message }); } catch {}
         if (typeof ack === 'function') ack({ ok: false, error: 'internal_error' });
       }
     });
@@ -809,6 +818,7 @@ export default function createWebSocketServer(app) {
         io.to(target).emit('typing', { from: sender, to: target, convId, isTyping });
       } catch (e) {
         console.error(`[WS] typing error ${socket.id}:`, e.message);
+        try { await APMWs.create({ event: 'typing', wallet: socket.data?.authWallet || null, ok: false, detail: e?.message }); } catch {}
       }
     });
 
@@ -820,6 +830,7 @@ export default function createWebSocketServer(app) {
       if (!disconnectedUser) return;
 
       console.log(`❌ Wallet ${disconnectedUser} desconectada.`);
+      try { await APMWs.create({ event: 'disconnect', wallet: disconnectedUser }); } catch {}
 
       // ÚLTIMA conexión: emite presencia offline
       const lastHb = getLastHeartbeat(disconnectedUser) || Date.now();

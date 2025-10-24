@@ -202,6 +202,21 @@ export default function Dashboard() {
     ? overview.connections.avgPerBucket
     : averageConnectionsLocal;
 
+  // Messaging latency & ack metrics from backend
+  const deliveryP95 = typeof overview?.messages?.deliveryLatencyP95 === 'number'
+    ? overview.messages.deliveryLatencyP95
+    : null;
+  const deliveryP50 = typeof overview?.messages?.deliveryLatencyP50 === 'number'
+    ? overview.messages.deliveryLatencyP50
+    : null;
+  const ackP95 = typeof overview?.messages?.ackLatencyP95 === 'number'
+    ? overview.messages.ackLatencyP95
+    : null;
+  const ackP50 = typeof overview?.messages?.ackLatencyP50 === 'number'
+    ? overview.messages.ackLatencyP50
+    : null;
+  const ackRate = typeof overview?.messages?.ackRate === 'number' ? overview.messages.ackRate : null;
+
   if (loading && !overview) {
     return (
       <div className="stats-panel__loading">
@@ -325,6 +340,31 @@ export default function Dashboard() {
           icon="📨"
           color="#10b981"
           subtitle={`${product.messaging.dmAccepted24h.toLocaleString("en-US")} accepted • ${product.messaging.relayMessages24h.toLocaleString("en-US")} relay msgs`}
+        />
+      </div>
+
+      {/* Messaging quality metrics */}
+      <div className="stats-grid secondary">
+        <StatCard
+          title="Delivery p95"
+          value={deliveryP95 != null ? `${Math.round(deliveryP95)} ms` : '—'}
+          icon="📬"
+          color="#16a34a"
+          subtitle={deliveryP50 != null ? `p50: ${Math.round(deliveryP50)} ms` : ''}
+        />
+        <StatCard
+          title="ACK p95"
+          value={ackP95 != null ? `${Math.round(ackP95)} ms` : '—'}
+          icon="✅"
+          color="#059669"
+          subtitle={ackP50 != null ? `p50: ${Math.round(ackP50)} ms` : ''}
+        />
+        <StatCard
+          title="ACK rate"
+          value={ackRate != null ? `${ackRate.toFixed(2)}%` : '—'}
+          icon="📥"
+          color="#22c55e"
+          subtitle="% delivered → acked"
         />
       </div>
 

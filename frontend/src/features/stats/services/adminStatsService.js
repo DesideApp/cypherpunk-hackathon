@@ -57,3 +57,26 @@ export async function fetchRecentLogins({ limit = 20, search = '' } = {}) {
   if (!res || res.error) throw new Error(res?.message || 'Failed to load recent logins');
   return res; // { data: [...] }
 }
+
+export async function fetchInfraOverview({ period = '1d', from, to, bucketMinutes } = {}) {
+  const params = new URLSearchParams();
+  if (from) params.set('from', typeof from === 'string' ? from : new Date(from).toISOString());
+  if (to) params.set('to', typeof to === 'string' ? to : new Date(to).toISOString());
+  if (!from && !to && period) params.set('period', String(period));
+  if (bucketMinutes) params.set('bucketMinutes', String(bucketMinutes));
+  const url = `/api/v1/stats/admin/infra/overview?${params.toString()}`;
+  const res = await apiRequest(url, { method: 'GET' });
+  if (!res || res.error) throw new Error(res?.message || 'Failed to load infra overview');
+  return res;
+}
+
+export async function fetchAdoptionOverview(params = {}) {
+  const mapped = new URLSearchParams();
+  if (params.period) mapped.set('period', String(params.period));
+  if (params.rangeStart) mapped.set('from', params.rangeStart);
+  if (params.rangeEnd) mapped.set('to', params.rangeEnd);
+  const url = `/api/v1/stats/admin/adoption/overview?${mapped.toString()}`;
+  const res = await apiRequest(url, { method: 'GET' });
+  if (!res || res.error) throw new Error(res?.message || 'Failed to load adoption overview');
+  return res;
+}

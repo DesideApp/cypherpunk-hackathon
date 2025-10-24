@@ -314,6 +314,35 @@ const sumEventFieldInRange = async (type, field, startDate, endDate) => {
   return row?.total ?? 0;
 };
 
+// Approximate percentile of latency from Stats.events histogram (bucketAuto)
+async function computeLatencyPercentile(eventType, percentile, startDate, endDate) {
+  const match = { 'events.type': eventType };
+  if (startDate || endDate) {
+    match['events.timestamp'] = {};
+    if (startDate) match['events.timestamp'].$gte = startDate;
+    if (endDate) match['events.timestamp'].$lte = endDate;
+  }
+  match['events.data.latencyMs'] = { $gte: 0 };
+
+  const buckets = await Stats.aggregate([
+    { $unwind: '$events' },
+    { $match: match },
+    { $bucketAuto: { groupBy: '$events.data.latencyMs', buckets: 40 } },
+    { $project: { _id: 0, min: '$_id.min', max: '$_id.max', count: 1 } },
+    { $sort: { min: 1 } }
+  ]);
+  if (!buckets.length) return 0;
+  const total = buckets.reduce((s, b) => s + (b.count || 0), 0);
+  if (!total) return 0;
+  const target = Math.ceil((Math.min(100, Math.max(0, percentile)) / 100) * total);
+  let acc = 0;
+  for (const b of buckets) {
+    acc += b.count || 0;
+    if (acc >= target) return Math.round(b.max || 0);
+  }
+  return Math.round(buckets[buckets.length - 1].max || 0);
+}
+
 export const computeStatsOverview = async (options = {}) => {
   const now = new Date();
   const rangeEnd = normalizeDate(options.rangeEnd) || now;
@@ -396,7 +425,13 @@ export const computeStatsOverview = async (options = {}) => {
     naturalCommandsFailed24h,
     dmStarted24h,
     dmAccepted24h,
-    relayMessages24h
+    relayMessages24h,
+    deliveredCount,
+    ackedCount,
+    deliveryP50,
+    deliveryP95,
+    ackP50,
+    ackP95
   ] = await Promise.all([
     aggregateMessageHistory(rangeStart, rangeEnd, bucketMinutes),
     aggregateConnectionHistory(rangeStart, rangeEnd, bucketMinutes),
@@ -429,7 +464,13 @@ export const computeStatsOverview = async (options = {}) => {
     countEventsInRange('natural_command_failed', last24hStart, rangeEnd),
     countEventsInRange('dm_started', last24hStart, rangeEnd),
     countEventsInRange('dm_accepted', last24hStart, rangeEnd),
-    countEventsInRange('relay_message', last24hStart, rangeEnd)
+    countEventsInRange('relay_message', last24hStart, rangeEnd),
+    countEventsInRange('relay_delivered', rangeStart, rangeEnd),
+    countEventsInRange('relay_acked', rangeStart, rangeEnd),
+    computeLatencyPercentile('relay_delivered', 50, rangeStart, rangeEnd),
+    computeLatencyPercentile('relay_delivered', 95, rangeStart, rangeEnd),
+    computeLatencyPercentile('relay_acked', 50, rangeStart, rangeEnd),
+    computeLatencyPercentile('relay_acked', 95, rangeStart, rangeEnd)
   ]);
 
   const messageHistory = mapHistory(buckets, messageHistoryMap, rangeEnd);
@@ -516,6 +557,11 @@ export const computeStatsOverview = async (options = {}) => {
       today: messagesToday,
       total: messageTotal,
       history: messageHistory,
+      deliveryLatencyP50: deliveryP50,
+      deliveryLatencyP95: deliveryP95,
+      ackLatencyP50: ackP50,
+      ackLatencyP95: ackP95,
+      ackRate: deliveredCount > 0 ? Number(((ackedCount / deliveredCount) * 100).toFixed(2)) : null,
       // Derived values (moved from UI for consistency)
       peak: peakMessages,
       p95: p95Messages,

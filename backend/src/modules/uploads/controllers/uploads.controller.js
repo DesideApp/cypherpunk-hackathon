@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 const ALLOWED_MIME = new Set(['image/webp', 'image/png', 'image/jpeg']);
 
@@ -36,10 +37,10 @@ export async function uploadAvatar(req, res) {
 
     const buf = Buffer.from(parsed.b64, 'base64');
 
-    const __dirname = path.dirname(new URL(import.meta.url).pathname);
-    // server.js serves backend/public as static
-    // Resolve to backend/public/uploads/avatars
-    const publicRoot = path.resolve(process.cwd(), 'backend', 'public');
+    // Resolve to backend/public/uploads/avatars independent of CWD
+    const here = path.dirname(fileURLToPath(import.meta.url));
+    // controllers/ -> uploads/ -> modules/ -> src/ -> backend/
+    const publicRoot = path.resolve(here, '../../../..', 'public');
     const uploadsDir = path.join(publicRoot, 'uploads', 'avatars');
 
     fs.mkdirSync(uploadsDir, { recursive: true });

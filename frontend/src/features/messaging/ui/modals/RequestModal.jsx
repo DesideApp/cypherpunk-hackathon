@@ -89,7 +89,11 @@ export default function RequestModal({
     let alive = true;
     getTokenMeta(selected.code)
       .then((meta) => {
-        if (alive) setSelectedMeta(meta);
+        console.log('[RequestModal] getTokenMeta resolved with:', meta);
+        if (alive) {
+          console.log('[RequestModal] Setting selectedMeta to:', meta);
+          setSelectedMeta(meta);
+        }
       })
       .catch((err) => {
         console.warn('Failed to load token meta:', err);
@@ -200,6 +204,8 @@ export default function RequestModal({
 
   const conversionPrimary = usdValue ? `≈ ${usdValue} USD` : null;
   const conversionSecondary = `Requesting ${amount || "—"} ${token}`;
+
+  console.log('[RequestModal] About to render with selectedMeta:', selectedMeta);
 
   return (
     <ModalShell

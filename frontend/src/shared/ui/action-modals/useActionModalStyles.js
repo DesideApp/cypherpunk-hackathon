@@ -11,10 +11,18 @@ const DEFAULTS = {
  * The styles are consumed by action modal components to keep parity with Buy.
  */
 export function useActionModalStyles(meta) {
-  console.log('[useActionModalStyles] meta:', meta);
+  // Si meta es una Promise, no hacer nada (React debería esperar a que se resuelva)
+  if (meta && typeof meta.then === 'function') {
+    console.warn('[useActionModalStyles] Received Promise instead of resolved value!');
+    return {
+      cardStyle: undefined,
+      logoStyle: undefined,
+      logoInnerStyle: undefined,
+      icon: DEFAULTS.icon,
+    };
+  }
   
   if (!meta) {
-    console.log('[useActionModalStyles] No meta, using defaults');
     return {
       cardStyle: undefined,
       logoStyle: undefined,
@@ -32,13 +40,6 @@ export function useActionModalStyles(meta) {
   const background = hasTokenTint && meta.background ? meta.background : DEFAULTS.background;
   const iconScale =
     typeof meta.iconScale === "number" ? meta.iconScale : DEFAULTS.iconScale;
-
-  console.log('[useActionModalStyles] Generated styles:', {
-    tint,
-    glow,
-    background,
-    iconScale
-  });
 
   return {
     cardStyle: {

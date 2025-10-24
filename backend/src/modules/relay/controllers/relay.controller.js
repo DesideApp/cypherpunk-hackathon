@@ -232,6 +232,18 @@ export const fetchMessages = async (req, res) => {
       );
     }
     
+    // Instrumentación: latencia de entrega (enqueuedAt -> deliveredAt)
+    try {
+      const now = Date.now();
+      for (const msg of messages) {
+        const enq = msg?.timestamps?.enqueuedAt ? new Date(msg.timestamps.enqueuedAt).getTime() : new Date(msg.createdAt).getTime();
+        const latencyMs = Math.max(0, now - enq);
+        await safeLog(wallet, 'relay_delivered', { messageId: String(msg._id), latencyMs });
+      }
+    } catch (e) {
+      // No bloquear por telemetría
+    }
+    
     const formatted = messages.map((msg) => ({
       // IDs y referencias
       id: String(msg._id),
@@ -301,7 +313,10 @@ export const ackMessages = async (req, res) => {
       return res.status(400).json({ error: "INVALID_MESSAGE_ID", nextStep: "CHECK_INPUT" });
     }
 
-    const docs = await RelayMessage.find({ _id: { $in: idsToAck }, to: String(wallet) }, { boxSize: 1 }).lean();
+    const docs = await RelayMessage.find(
+      { _id: { $in: idsToAck }, to: String(wallet) }, 
+      { boxSize: 1, createdAt: 1, 'timestamps.enqueuedAt': 1, 'timestamps.deliveredAt': 1 }
+    ).lean();
     const totalBytes = docs.reduce((sum, d) => sum + (d.boxSize || 0), 0);
 
     // Marcar como acknowledged antes de eliminar (para auditoría)
@@ -314,6 +329,20 @@ export const ackMessages = async (req, res) => {
         }
       }
     );
+
+    // Instrumentación: latencia de ACK (deliveredAt -> acknowledgedAt)
+    try {
+      const now = Date.now();
+      for (const d of docs) {
+        const deliveredAt = d?.timestamps?.deliveredAt ? new Date(d.timestamps.deliveredAt).getTime() : null;
+        if (deliveredAt) {
+          const latencyMs = Math.max(0, now - deliveredAt);
+          await safeLog(wallet, 'relay_acked', { messageId: String(d._id), latencyMs });
+        }
+      }
+    } catch (e) {
+      // No bloquear por telemetría
+    }
 
     // Eliminar los mensajes después de marcar como acknowledged
     const result = await RelayMessage.deleteMany({ _id: { $in: idsToAck }, to: String(wallet) });

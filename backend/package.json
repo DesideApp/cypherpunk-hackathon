@@ -24,6 +24,7 @@
     "indexes:sync": "node scripts/ops/ensure-indexes.mjs",
     "indexes:verify": "node scripts/ops/verify-indexes.mjs",
     "ttl:update": "node scripts/ops/update-ttl.mjs",
+    "apm:ttl:update": "node scripts/ops/update-apm-ttl.mjs",
     "db:purge:dryrun": "node scripts/ops/purge-unmanaged-collections.mjs",
     "db:purge:apply": "node scripts/ops/purge-unmanaged-collections.mjs --apply"
   },
