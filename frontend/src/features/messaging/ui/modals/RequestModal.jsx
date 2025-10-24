@@ -64,7 +64,6 @@ export default function RequestModal({
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [prices, setPrices] = useState({});
-  const [selectedMeta, setSelectedMeta] = useState(null);
 
   // EXACTO como BuyToken: usar listBuyTokens con outputMint
   const supportedTokens = useMemo(() => listBuyTokens(SOLANA.CHAIN), []);
@@ -79,29 +78,8 @@ export default function RequestModal({
     };
   }, [token, supportedTokens]);
 
-  // Cargar metadata del token (ASYNC)
-  useEffect(() => {
-    if (!selected) {
-      setSelectedMeta(null);
-      return;
-    }
-    
-    let alive = true;
-    getTokenMeta(selected.code)
-      .then((meta) => {
-        console.log('[RequestModal] getTokenMeta resolved with:', meta);
-        if (alive) {
-          console.log('[RequestModal] Setting selectedMeta to:', meta);
-          setSelectedMeta(meta);
-        }
-      })
-      .catch((err) => {
-        console.warn('Failed to load token meta:', err);
-        if (alive) setSelectedMeta(null);
-      });
-    
-    return () => { alive = false; };
-  }, [selected]);
+  // Cargar metadata del token (ASYNC) - IGUAL que BuyTokenModal
+  const selectedMeta = useMemo(() => (selected ? getTokenMeta(selected.code) : null), [selected]);
 
   // Fetch prices EXACTO como BuyToken
   useEffect(() => {

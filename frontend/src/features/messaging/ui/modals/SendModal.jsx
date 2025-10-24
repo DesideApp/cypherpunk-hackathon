@@ -36,23 +36,11 @@ export default function SendModal({
   const [amount, setAmount] = useState("");
   const [token, setToken] = useState(defaultToken);
   const [busy, setBusy] = useState(false);
-  const [selectedMeta, setSelectedMeta] = useState(null);
 
   const supportedTokens = listSupportedTokens();
-
-  useEffect(() => {
-    let alive = true;
-    getTokenMeta(token)
-      .then((meta) => {
-        if (alive) setSelectedMeta(meta);
-      })
-      .catch(() => {
-        if (alive) setSelectedMeta(null);
-      });
-    return () => {
-      alive = false;
-    };
-  }, [token]);
+  
+  // Cargar metadata del token (ASYNC) - IGUAL que BuyTokenModal
+  const selectedMeta = useMemo(() => getTokenMeta(token), [token]);
 
   const handleSubmit = async () => {
     if (!amount || !token) return;

@@ -134,6 +134,13 @@ export default function Traffic() {
       ? (peakMessages / averageMessagesPerBucket).toFixed(1)
       : null;
 
+  // Messaging quality (from backend overview)
+  const deliveryP95 = typeof overview?.messages?.deliveryLatencyP95 === 'number' ? overview.messages.deliveryLatencyP95 : null;
+  const deliveryP50 = typeof overview?.messages?.deliveryLatencyP50 === 'number' ? overview.messages.deliveryLatencyP50 : null;
+  const ackP95 = typeof overview?.messages?.ackLatencyP95 === 'number' ? overview.messages.ackLatencyP95 : null;
+  const ackP50 = typeof overview?.messages?.ackLatencyP50 === 'number' ? overview.messages.ackLatencyP50 : null;
+  const ackRate = typeof overview?.messages?.ackRate === 'number' ? overview.messages.ackRate : null;
+
   return (
     <div className="traffic-panel">
       <div className="traffic-panel__header">
@@ -206,6 +213,10 @@ export default function Traffic() {
                   meta={formatBucketDuration(bucketMinutes)}
                 />
                 {loadRatio && <Highlight label="Peak vs avg ratio" value={loadRatio} meta="x" />}
+                {/* Messaging quality */}
+                <Highlight label="Delivery p95" value={deliveryP95 != null ? Math.round(deliveryP95) : null} meta="ms" />
+                <Highlight label="ACK p95" value={ackP95 != null ? Math.round(ackP95) : null} meta="ms" />
+                <Highlight label="ACK rate" value={ackRate != null ? Number(ackRate.toFixed(2)) : null} meta="%" />
                 </ul>
               </div>
           </section>
