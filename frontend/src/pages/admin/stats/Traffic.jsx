@@ -140,6 +140,7 @@ export default function Traffic() {
   const ackP95 = typeof overview?.messages?.ackLatencyP95 === 'number' ? overview.messages.ackLatencyP95 : null;
   const ackP50 = typeof overview?.messages?.ackLatencyP50 === 'number' ? overview.messages.ackLatencyP50 : null;
   const ackRate = typeof overview?.messages?.ackRate === 'number' ? overview.messages.ackRate : null;
+  const rtc = overview?.rtc || {};
 
   return (
     <div className="traffic-panel">
@@ -195,9 +196,9 @@ export default function Traffic() {
               <OverviewChart data={chartData} meta={{ ...periodMeta, bucketMinutes }} />
             </div>
 
-              <div className="panel-card">
-                <h3 className="panel-title">Load highlights</h3>
-                <ul className="traffic-highlights">
+            <div className="panel-card">
+              <h3 className="panel-title">Load highlights</h3>
+              <ul className="traffic-highlights">
                 <Highlight label="Peak messages" value={peakMessages} meta={peakMessageBucket?.label} />
                 <Highlight label="Peak connections" value={peakConnections} meta={peakConnectionBucket?.label} />
                 <Highlight label="P95 messages" value={p95Messages} meta={p95MessageBucket?.label} />
@@ -217,8 +218,11 @@ export default function Traffic() {
                 <Highlight label="Delivery p95" value={deliveryP95 != null ? Math.round(deliveryP95) : null} meta="ms" />
                 <Highlight label="ACK p95" value={ackP95 != null ? Math.round(ackP95) : null} meta="ms" />
                 <Highlight label="ACK rate" value={ackRate != null ? Number(ackRate.toFixed(2)) : null} meta="%" />
-                </ul>
-              </div>
+                <Highlight label="RTC success" value={typeof rtc.successRate === 'number' ? Number(rtc.successRate.toFixed(2)) : null} meta="%" />
+                <Highlight label="RTC TTC p95" value={typeof rtc.ttcP95 === 'number' ? Math.round(rtc.ttcP95) : null} meta="ms" />
+                <Highlight label="RTC fallback" value={typeof rtc?.fallback?.ratioPct === 'number' ? Number(rtc.fallback.ratioPct.toFixed(2)) : null} meta="%" />
+              </ul>
+            </div>
           </section>
 
           <section className="panel-card panel-table">

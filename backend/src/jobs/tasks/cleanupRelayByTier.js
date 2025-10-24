@@ -1,6 +1,7 @@
 // src/jobs/tasks/cleanupRelayByTier.js
 import RelayMessage from "#modules/relay/models/relayMessage.model.js";
 import User from "#modules/users/models/user.model.js";
+import logEvent from "#modules/stats/services/eventLogger.service.js";
 
 let running = false;
 
@@ -51,6 +52,7 @@ export async function cleanupRelayByTier(opts = {}) {
       // 2) Borrar vencidos (si los hay)
       if (!dryRun && expiredN > 0) {
         await RelayMessage.deleteMany({ to: wallet, createdAt: { $lt: threshold } });
+        try { await logEvent(wallet, 'relay_purged_ttl', { count: expiredN, freedBytes: expiredBytes }); } catch {}
       }
 
       // 3) Recalcular uso actual (suma de todo lo restante)

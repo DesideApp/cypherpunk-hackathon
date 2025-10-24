@@ -10,6 +10,7 @@ import { ContactStatus } from '#modules/contacts/contact.constants.js';
 import User from '#modules/users/models/user.model.js';
 import RelayMessage from '#modules/relay/models/relayMessage.model.js';
 import APMWs from '#modules/stats/models/apmWs.model.js';
+import logEvent from '#modules/stats/services/eventLogger.service.js';
 import { getPublicKey } from '#shared/services/keyManager.js';
 import { COOKIE_NAMES } from '#config/cookies.js';
 
@@ -36,6 +37,7 @@ const presenceTimestamps = new Map(); // wallet -> lastSeen timestamp
 // Señales procesadas (idempotencia por signalId) con TTL simple
 const SIGNAL_TTL_MS = 5 * 60 * 1000; // 5 minutos
 const processedSignals = new Map(); // signalId -> timestamp
+const activeRtcOffers = new Map(); // convId -> timestamp (ms)
 
 function _cleanupProcessedSignals(now = Date.now()) {
   // LRU pobre: purga por TTL y recorta tamaño máximo
@@ -493,6 +495,7 @@ export default function createWebSocketServer(app) {
         io.to(to).emit('rtc:offer', { convId, from, sdp: desc, signalId });
         socket.emit('rtc:ack', { type: 'offer', signalId, convId });
         try { await APMWs.create({ event: 'rtc:offer', wallet: from, peer: to, convId, ok: true }); } catch {}
+        try { activeRtcOffers.set(convId, Date.now()); await logEvent(from, 'rtc_offer', { convId, to }); } catch {}
         if (typeof ack === 'function') ack({ ok: true, type: 'offer', signalId, convId });
         markSignalProcessed(signalId);
 
@@ -785,6 +788,76 @@ export default function createWebSocketServer(app) {
       } catch (e) {
         logger.error(`[WS] rtc:candidate error: ${e?.message || e}`);
         try { await APMWs.create({ event: 'rtc:candidate', wallet: socket.data?.authWallet || null, ok: false, detail: e?.message }); } catch {}
+        if (typeof ack === 'function') ack({ ok: false, error: 'internal_error' });
+      }
+    });
+
+    /**
+     * ✅ RTC established (datachannel open): reportado por el cliente
+     * body: { convId, from, to }
+     */
+    socket.on('rtc:established', async (body = {}, ack) => {
+      try {
+        const { convId: rawConvId, from: rawFrom, to } = body || {};
+        const from = rawFrom || socket.data.authWallet;
+        if (!from || socket.data.authWallet !== from || !to) {
+          if (typeof ack === 'function') ack({ ok: false, error: 'invalid_payload' });
+          return;
+        }
+        const convIdCanon = [from, to].sort().join(':');
+        const convId = rawConvId && typeof rawConvId === 'string' ? rawConvId : convIdCanon;
+        const startedAt = activeRtcOffers.get(convId) || null;
+        const ttcMs = startedAt ? Math.max(0, Date.now() - startedAt) : null;
+        try { await APMWs.create({ event: 'rtc:established', wallet: from, peer: to, convId, ok: true, durationMs: ttcMs }); } catch {}
+        try { await logEvent(from, 'rtc_established', { convId, to, ttcMs }); } catch {}
+        if (startedAt) activeRtcOffers.delete(convId);
+        if (typeof ack === 'function') ack({ ok: true, convId, ttcMs });
+      } catch (e) {
+        if (typeof ack === 'function') ack({ ok: false, error: 'internal_error' });
+      }
+    });
+
+    /**
+     * ❌ RTC failed (reason): reportado por el cliente
+     * body: { convId, from, to, reason }
+     */
+    socket.on('rtc:failed', async (body = {}, ack) => {
+      try {
+        const { convId: rawConvId, from: rawFrom, to, reason } = body || {};
+        const from = rawFrom || socket.data.authWallet;
+        if (!from || socket.data.authWallet !== from || !to) {
+          if (typeof ack === 'function') ack({ ok: false, error: 'invalid_payload' });
+          return;
+        }
+        const convIdCanon = [from, to].sort().join(':');
+        const convId = rawConvId && typeof rawConvId === 'string' ? rawConvId : convIdCanon;
+        try { await APMWs.create({ event: 'rtc:failed', wallet: from, peer: to, convId, ok: false, detail: reason || null }); } catch {}
+        try { await logEvent(from, 'rtc_failed', { convId, to, reason: reason || null }); } catch {}
+        activeRtcOffers.delete(convId);
+        if (typeof ack === 'function') ack({ ok: true, convId });
+      } catch (e) {
+        if (typeof ack === 'function') ack({ ok: false, error: 'internal_error' });
+      }
+    });
+
+    /**
+     * ↩️ Fallback a relay tras fallo RTC
+     * body: { convId, from, to }
+     */
+    socket.on('rtc:fallback', async (body = {}, ack) => {
+      try {
+        const { convId: rawConvId, from: rawFrom, to } = body || {};
+        const from = rawFrom || socket.data.authWallet;
+        if (!from || socket.data.authWallet !== from || !to) {
+          if (typeof ack === 'function') ack({ ok: false, error: 'invalid_payload' });
+          return;
+        }
+        const convIdCanon = [from, to].sort().join(':');
+        const convId = rawConvId && typeof rawConvId === 'string' ? rawConvId : convIdCanon;
+        try { await APMWs.create({ event: 'rtc:fallback', wallet: from, peer: to, convId, ok: true }); } catch {}
+        try { await logEvent(from, 'rtc_fallback_to_relay', { convId, to }); } catch {}
+        if (typeof ack === 'function') ack({ ok: true, convId });
+      } catch (e) {
         if (typeof ack === 'function') ack({ ok: false, error: 'internal_error' });
       }
     });

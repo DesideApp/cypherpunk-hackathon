@@ -1,0 +1,158 @@
+/* =========================================================================
+   SPARKLINE - Mini price trend chart
+   ========================================================================= */
+
+.sparkline {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ===== MINI VARIANT (for lists) ===== */
+.sparkline--mini {
+  width: 60px;
+  height: 20px;
+}
+
+.sparkline--mini .sparkline-svg {
+  opacity: 0.7;
+}
+
+/* ===== HERO VARIANT (detailed view) ===== */
+.sparkline--hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  min-height: 120px;
+  padding: 20px 0;
+}
+
+/* SVG styling */
+.sparkline-svg {
+  display: block;
+  overflow: visible;
+}
+
+.sparkline-svg--hero {
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15))
+          drop-shadow(0 0 8px currentColor);
+  opacity: 0.9;
+}
+
+/* Path stroke */
+.sparkline-path {
+  transition: stroke 0.3s ease;
+}
+
+/* Gradient fill */
+.sparkline-fill {
+  transition: fill 0.3s ease;
+}
+
+/* ===== ANIMATION ===== */
+.sparkline--animate .sparkline-path {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: sparkline-draw 0.8s ease-out forwards;
+}
+
+@keyframes sparkline-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.sparkline--animate .sparkline-fill {
+  opacity: 0;
+  animation: sparkline-fade-in 0.6s ease-out 0.4s forwards;
+}
+
+@keyframes sparkline-fade-in {
+  to {
+    opacity: 1;
+  }
+}
+
+/* ===== CHANGE INDICATOR (floating) ===== */
+.sparkline-change {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  z-index: 2;
+}
+
+.sparkline-change--positive {
+  color: var(--success-color, #10b981);
+  background: color-mix(in srgb, var(--success-color, #10b981) 12%, transparent);
+}
+
+.sparkline-change--negative {
+  color: var(--danger-color, #ef4444);
+  background: color-mix(in srgb, var(--danger-color, #ef4444) 12%, transparent);
+}
+
+.sparkline-change--neutral {
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--text-secondary) 8%, transparent);
+}
+
+/* ===== PRICE CAPTION ===== */
+.sparkline-caption {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.sparkline-price {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--text-primary);
+}
+
+.sparkline-price-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  opacity: 0.7;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 480px) {
+  .sparkline--hero {
+    min-height: 100px;
+    padding: 16px 0;
+  }
+
+  .sparkline-price {
+    font-size: 1.3rem;
+  }
+
+  .sparkline-change {
+    font-size: 1rem;
+    padding: 3px 6px;
+  }
+}
+
+/* ===== HOVER EFFECTS (hero only) ===== */
+.sparkline--hero:hover .sparkline-svg--hero {
+  filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.2))
+          drop-shadow(0 0 12px currentColor);
+}
+
+.sparkline--hero:hover .sparkline-change {
+  transform: scale(1.05);
+}
+

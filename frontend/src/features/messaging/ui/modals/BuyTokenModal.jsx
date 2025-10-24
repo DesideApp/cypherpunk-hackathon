@@ -24,6 +24,7 @@ import {
   ActionModalHint,
   ActionModalPresetAmounts,
   ActionModalCustomInput,
+  Sparkline,
 } from "@shared/ui";
 import { useLayout } from "@features/layout/contexts/LayoutContext";
 import TokenSearch from "../TokenSearch.jsx";
@@ -110,6 +111,22 @@ function formatRelativeTime(timestamp) {
   if (diffHours < 48) return `${diffHours}h`;
   const diffDays = Math.round(diffHours / 24);
   return `${diffDays}d`;
+}
+
+// TODO: Replace with real price history from Jupiter API
+function generateMockPriceData() {
+  const points = 48; // 48 hours
+  const data = [];
+  let price = 100;
+  
+  for (let i = 0; i < points; i++) {
+    // Random walk with slight upward trend
+    const change = (Math.random() - 0.48) * 5;
+    price = Math.max(80, Math.min(120, price + change));
+    data.push(price);
+  }
+  
+  return data;
 }
 
 export default function BuyTokenModal({
@@ -545,19 +562,17 @@ export default function BuyTokenModal({
                 conversionSecondary={quoteSubLabel}
               />
 
-              {/* Stats específicos de Buy - mantener como están */}
-              <div className="buy-selected-card__stats">
-                <div className="buy-selected-card__stat">
-                  <span className="buy-selected-card__stat-label">Precio</span>
-                  <span className="buy-selected-card__stat-value">{priceLabel || "—"}</span>
-                </div>
-                <div className={`buy-selected-card__stat${changeTone ? ` buy-selected-card__stat--${changeTone}` : ""}`}>
-                  <span className="buy-selected-card__stat-label">24h</span>
-                  <span className={`buy-selected-card__stat-value${changeTone ? ` buy-selected-card__stat-value--${changeTone}` : ""}`}>
-                    {changeLabel || "—"}
-                  </span>
-                </div>
-              </div>
+              {/* Sparkline hero - Gráfico de precio 24h */}
+              <Sparkline
+                variant="hero"
+                data={generateMockPriceData()} // TODO: Replace with real price history
+                price={priceLabel || "—"}
+                priceLabel="Precio"
+                change={changeLabel || "—"}
+                trend={changeTone || 'neutral'}
+                animate={true}
+                showGradient={true}
+              />
 
               <div className="buy-selected-card__meta">
                 <span>{priceSourceLabel}</span>

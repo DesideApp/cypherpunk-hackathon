@@ -216,6 +216,8 @@ export default function Dashboard() {
     ? overview.messages.ackLatencyP50
     : null;
   const ackRate = typeof overview?.messages?.ackRate === 'number' ? overview.messages.ackRate : null;
+  // RTC overview
+  const rtc = overview?.rtc || {};
 
   if (loading && !overview) {
     return (
@@ -343,6 +345,30 @@ export default function Dashboard() {
         />
       </div>
 
+      {/* RTC quality metrics */}
+      <div className="stats-grid secondary">
+        <StatCard
+          title="RTC success rate"
+          value={typeof rtc.successRate === 'number' ? `${rtc.successRate.toFixed(2)}%` : '—'}
+          icon="📶"
+          color="#3b82f6"
+          subtitle={`offers: ${rtc.offers ?? 0} • established: ${rtc.established ?? 0}`}
+        />
+        <StatCard
+          title="RTC TTC p95"
+          value={typeof rtc.ttcP95 === 'number' ? `${Math.round(rtc.ttcP95)} ms` : '—'}
+          icon="⏱️"
+          color="#2563eb"
+          subtitle={typeof rtc.ttcP50 === 'number' ? `p50: ${Math.round(rtc.ttcP50)} ms` : ''}
+        />
+        <StatCard
+          title="RTC fallback"
+          value={typeof rtc?.fallback?.ratioPct === 'number' ? `${rtc.fallback.ratioPct.toFixed(2)}%` : '—'}
+          icon="↩️"
+          color="#0ea5e9"
+          subtitle={`count: ${rtc?.fallback?.count ?? 0}`}
+        />
+      </div>
       {/* Messaging quality metrics */}
       <div className="stats-grid secondary">
         <StatCard

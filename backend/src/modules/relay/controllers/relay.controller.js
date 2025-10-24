@@ -83,6 +83,7 @@ export const enqueueMessage = async (req, res) => {
     // Validaciones de forma
     const dest = String(to || "").trim();
     if (!dest || dest === sender || !SOLANA_PUBKEY.test(dest)) {
+      try { await safeLog(sender, 'relay_error', { code: 'invalid_pubkey', to: dest || null }); } catch {}
       return res.status(400).json({ error: "INVALID_PUBKEY", nextStep: "CHECK_INPUT" });
     }
     if (!msgId || typeof msgId !== "string") {
@@ -98,6 +99,7 @@ export const enqueueMessage = async (req, res) => {
     // Cap por mensaje (bytes de base64)
     const boxSize = bLen(box);
     if (typeof MAX_BOX_BYTES === "number" && boxSize > MAX_BOX_BYTES) {
+      try { await safeLog(sender, 'relay_error', { code: 'payload_too_large', to: dest, max: MAX_BOX_BYTES, got: boxSize }); } catch {}
       return res.status(413).json({ error: "payload-too-large", max: MAX_BOX_BYTES, got: boxSize });
     }
 
@@ -109,13 +111,17 @@ export const enqueueMessage = async (req, res) => {
 
     // Mutualidad de contactos
     const mutual = await areMutualContacts(sender, dest);
-    if (!mutual) return res.status(403).json({ error: "forbidden" });
+    if (!mutual) {
+      try { await safeLog(sender, 'relay_error', { code: 'forbidden_not_contact', to: dest }); } catch {}
+      return res.status(403).json({ error: "forbidden" });
+    }
 
     // Política online/offline (ahora con TTL mejorado)
     const ioInstance = req.app?.get?.("io") || ioExport;
     const recipientOnline = isWalletOnlineWithTTL(dest); // Usar TTL de 45s
     const isForced = (recipientOnline && OFFLINE_ONLY && force === true);
     if (recipientOnline && OFFLINE_ONLY && !isForced) {
+      try { await safeLog(sender, 'relay_skipped_online', { to: dest, presenceTTL: parseInt(process.env.PRESENCE_TTL_MS || '45000', 10) || 45000 }); } catch {}
       return res.status(409).json({ error: "recipient-online", presenceTTL: parseInt(process.env.PRESENCE_TTL_MS || '45000') });
     }
 
@@ -148,6 +154,7 @@ export const enqueueMessage = async (req, res) => {
     }
 
     if (willUse > allowedWithGrace) {
+      try { await safeLog(sender, 'relay_error', { code: 'quota_exceeded', to: dest, quotaBytes: quota, usedBytes: used, incomingBytes: boxSize, allowedMaxBytes: allowedWithGrace, gracePct }); } catch {}
       return res.status(409).json({
         error: "relay-quota-exceeded",
         nextStep: "MANAGE_RELAY",
@@ -189,7 +196,10 @@ export const enqueueMessage = async (req, res) => {
       ioInstance?.to?.(dest)?.emit?.("relay:flush", [targetId]);
     }
 
-    await safeLog(sender, 'relay_message', { to: dest, bytes: boxSize });
+    try {
+      if (isForced) await safeLog(sender, 'relay_forced_offline', { to: dest });
+      await safeLog(sender, 'relay_message', { to: dest, bytes: boxSize, recipientOnline: !!recipientOnline, forced: !!isForced });
+    } catch {}
 
     const nowUsed = willUse;
     const isOverflow = nowUsed > quota && nowUsed <= allowedWithGrace;
@@ -469,7 +479,7 @@ export const purgeRelayMailbox = async (req, res) => {
     if (bytesFreed > 0) {
       await User.updateOne({ wallet }, { $inc: { relayUsedBytes: -bytesFreed } });
     }
-
+    try { await safeLog(wallet, 'relay_purged_manual', { count: docs.length, freedBytes: bytesFreed }); } catch {}
     return res.status(200).json({ data: { ok: true, messagesDeleted: docs.length, bytesFreed } });
   } catch (error) {
     return res.status(500).json({ error: "FAILED_TO_PURGE", details: error.message });

@@ -314,20 +314,20 @@ const sumEventFieldInRange = async (type, field, startDate, endDate) => {
   return row?.total ?? 0;
 };
 
-// Approximate percentile of latency from Stats.events histogram (bucketAuto)
-async function computeLatencyPercentile(eventType, percentile, startDate, endDate) {
+// Approximate percentile of a numeric events.data field via histogram (bucketAuto)
+async function computeLatencyPercentile(eventType, percentile, startDate, endDate, field = 'latencyMs') {
   const match = { 'events.type': eventType };
   if (startDate || endDate) {
     match['events.timestamp'] = {};
     if (startDate) match['events.timestamp'].$gte = startDate;
     if (endDate) match['events.timestamp'].$lte = endDate;
   }
-  match['events.data.latencyMs'] = { $gte: 0 };
+  match[`events.data.${field}`] = { $gte: 0 };
 
   const buckets = await Stats.aggregate([
     { $unwind: '$events' },
     { $match: match },
-    { $bucketAuto: { groupBy: '$events.data.latencyMs', buckets: 40 } },
+    { $bucketAuto: { groupBy: `$events.data.${field}`, buckets: 40 } },
     { $project: { _id: 0, min: '$_id.min', max: '$_id.max', count: 1 } },
     { $sort: { min: 1 } }
   ]);
@@ -467,10 +467,10 @@ export const computeStatsOverview = async (options = {}) => {
     countEventsInRange('relay_message', last24hStart, rangeEnd),
     countEventsInRange('relay_delivered', rangeStart, rangeEnd),
     countEventsInRange('relay_acked', rangeStart, rangeEnd),
-    computeLatencyPercentile('relay_delivered', 50, rangeStart, rangeEnd),
-    computeLatencyPercentile('relay_delivered', 95, rangeStart, rangeEnd),
-    computeLatencyPercentile('relay_acked', 50, rangeStart, rangeEnd),
-    computeLatencyPercentile('relay_acked', 95, rangeStart, rangeEnd)
+    computeLatencyPercentile('relay_delivered', 50, rangeStart, rangeEnd, 'latencyMs'),
+    computeLatencyPercentile('relay_delivered', 95, rangeStart, rangeEnd, 'latencyMs'),
+    computeLatencyPercentile('relay_acked', 50, rangeStart, rangeEnd, 'latencyMs'),
+    computeLatencyPercentile('relay_acked', 95, rangeStart, rangeEnd, 'latencyMs')
   ]);
 
   const messageHistory = mapHistory(buckets, messageHistoryMap, rangeEnd);
@@ -537,6 +537,23 @@ export const computeStatsOverview = async (options = {}) => {
     ? Number(((blinkExecutes24h / blinkMetadataHits24h) * 100).toFixed(2))
     : null;
   const blinkVolume24hValue = Number(blinkVolume24h) || 0;
+
+  // RTC metrics (success rate, time-to-connect, fallback)
+  const [
+    rtcOffers,
+    rtcEstablished,
+    rtcTtcP50,
+    rtcTtcP95,
+    rtcFallbacks
+  ] = await Promise.all([
+    countEventsInRange('rtc_offer', rangeStart, rangeEnd),
+    countEventsInRange('rtc_established', rangeStart, rangeEnd),
+    computeLatencyPercentile('rtc_established', 50, rangeStart, rangeEnd, 'ttcMs'),
+    computeLatencyPercentile('rtc_established', 95, rangeStart, rangeEnd, 'ttcMs'),
+    countEventsInRange('rtc_fallback_to_relay', rangeStart, rangeEnd)
+  ]);
+  const rtcSuccessRate = rtcOffers > 0 ? Number(((rtcEstablished / rtcOffers) * 100).toFixed(2)) : null;
+  const rtcFallbackRatio = rtcOffers > 0 ? Number(((rtcFallbacks / rtcOffers) * 100).toFixed(2)) : null;
 
   return {
     generatedAt: rangeEnd.toISOString(),
@@ -615,6 +632,15 @@ export const computeStatsOverview = async (options = {}) => {
         dmAccepted24h,
         relayMessages24h
       }
+    }
+    ,
+    rtc: {
+      offers: rtcOffers,
+      established: rtcEstablished,
+      successRate: rtcSuccessRate,
+      ttcP50: rtcTtcP50,
+      ttcP95: rtcTtcP95,
+      fallback: { count: rtcFallbacks, ratioPct: rtcFallbackRatio }
     }
   };
 };
