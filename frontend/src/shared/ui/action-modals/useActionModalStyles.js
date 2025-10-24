@@ -11,7 +11,10 @@ const DEFAULTS = {
  * The styles are consumed by action modal components to keep parity with Buy.
  */
 export function useActionModalStyles(meta) {
+  console.log('[useActionModalStyles] meta:', meta);
+  
   if (!meta) {
+    console.log('[useActionModalStyles] No meta, using defaults');
     return {
       cardStyle: undefined,
       logoStyle: undefined,
@@ -29,6 +32,13 @@ export function useActionModalStyles(meta) {
   const background = hasTokenTint && meta.background ? meta.background : DEFAULTS.background;
   const iconScale =
     typeof meta.iconScale === "number" ? meta.iconScale : DEFAULTS.iconScale;
+
+  console.log('[useActionModalStyles] Generated styles:', {
+    tint,
+    glow,
+    background,
+    iconScale
+  });
 
   return {
     cardStyle: {

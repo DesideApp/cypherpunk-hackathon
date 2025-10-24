@@ -131,37 +131,56 @@ function findSecondaryColor(colors, primary) {
 export async function generateTokenColors(_code, _imageUrl) {
   try {
     const { primary } = await extractTokenColors(_imageUrl);
+    console.log('[ColorFlow] 1. Primary color extracted:', primary);
   
   // Generate tint (primary color)
   const tint = primary;
+  console.log('[ColorFlow] 2. Tint:', tint);
   
-  // Generate background (darkened primary)
+  // Generate background (darkened primary) - usando 30% para mejor visibilidad
   const primaryRgb = hexToRgb(primary);
+  console.log('[ColorFlow] 3. Primary RGB:', primaryRgb);
+  
   const backgroundRgb = {
-    r: Math.floor(primaryRgb.r * 0.15),
-    g: Math.floor(primaryRgb.g * 0.15),
-    b: Math.floor(primaryRgb.b * 0.15)
+    r: Math.floor(primaryRgb.r * 0.3),
+    g: Math.floor(primaryRgb.g * 0.3),
+    b: Math.floor(primaryRgb.b * 0.3)
   };
+  console.log('[ColorFlow] 4. Background RGB:', backgroundRgb);
+  
   const background = rgbToHex(backgroundRgb.r, backgroundRgb.g, backgroundRgb.b);
+  console.log('[ColorFlow] 5. Background hex:', background);
   
   // Generate glow (semi-transparent primary)
   const glowRgb = hexToRgb(primary);
   const glow = `rgba(${glowRgb.r},${glowRgb.g},${glowRgb.b},0.3)`;
+  console.log('[ColorFlow] 6. Glow:', glow);
   
   return { tint, background, glow };
-  } catch (_error) {
-    // Fallback colors
+  } catch (error) {
+    console.error('[ColorFlow] ERROR in generateTokenColors:', error);
     return { tint: '#8B5CF6', background: '#1E1B4B', glow: 'rgba(139,92,246,0.3)' };
   }
 }
 
 // Utility functions
 function rgbToHex(r, g, b) {
+  // Validar y clamp valores
+  r = Math.max(0, Math.min(255, Math.floor(r)));
+  g = Math.max(0, Math.min(255, Math.floor(g)));
+  b = Math.max(0, Math.min(255, Math.floor(b)));
+  
   return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
 }
 
 function hexToRgb(hex) {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  // Manejar formato #abc → #aabbcc
+  hex = hex.replace(/^#/, '');
+  if (hex.length === 3) {
+    hex = hex.split('').map(char => char + char).join('');
+  }
+  
+  const result = /^([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return result ? {
     r: parseInt(result[1], 16),
     g: parseInt(result[2], 16),
