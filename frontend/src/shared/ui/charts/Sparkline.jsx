@@ -170,9 +170,6 @@ export function Sparkline({
               </div>
             )}
           </div>
-          {priceLabel && (
-            <div className="sparkline-price-label">{priceLabel}</div>
-          )}
         </div>
       )}
     </div>

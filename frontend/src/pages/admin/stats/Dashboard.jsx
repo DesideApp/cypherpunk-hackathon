@@ -10,6 +10,8 @@ import {
   formatRangeLabel,
   formatBucketDuration,
   fetchStatsOverview,
+  fetchRelayPending,
+  fetchRelayOverview,
 } from "@features/stats";
 import "./shared.css";
 import "./Dashboard.css";
@@ -66,6 +68,7 @@ export default function Dashboard() {
     connectionsNew: "0%",
   });
   const [selectedPeriod, setSelectedPeriod] = useState("1d");
+  const [relaySnapshot, setRelaySnapshot] = useState({ pendingCount: 0, pendingBytes: 0, purgedCount: 0, purgedBytes: 0 });
 
   const prevMetricsRef = useRef(null);
 
@@ -99,6 +102,23 @@ export default function Dashboard() {
           rangeLabel: formatRangeLabel(data?.period?.start, data?.period?.end) || prevMeta.rangeLabel,
           bucketMinutes: data?.bucket?.minutes ?? prevMeta.bucketMinutes,
         }));
+        // Load relay snapshot in parallel
+        try {
+          const [pendingRes, overviewRes] = await Promise.all([
+            fetchRelayPending({ limit: 1 }),
+            fetchRelayOverview(),
+          ]);
+          if (!cancelled) {
+            const purgedCount = (overviewRes?.purges || []).reduce((s, p) => s + (p.count || 0), 0);
+            const purgedBytes = (overviewRes?.purges || []).reduce((s, p) => s + (p.bytes || 0), 0);
+            setRelaySnapshot({
+              pendingCount: pendingRes?.totals?.count || 0,
+              pendingBytes: pendingRes?.totals?.bytes || 0,
+              purgedCount,
+              purgedBytes,
+            });
+          }
+        } catch {}
         setLoading(false);
       } catch (err) {
         if (cancelled) return;
@@ -218,6 +238,17 @@ export default function Dashboard() {
   const ackRate = typeof overview?.messages?.ackRate === 'number' ? overview.messages.ackRate : null;
   // RTC overview
   const rtc = overview?.rtc || {};
+  // Relay snapshot helpers
+  const relayPendingCount = relaySnapshot.pendingCount || 0;
+  const relayPendingBytes = relaySnapshot.pendingBytes || 0;
+  const relayPurgedCount = relaySnapshot.purgedCount || 0;
+  const relayPurgedBytes = relaySnapshot.purgedBytes || 0;
+  const formatBytes = (bytes) => {
+    if (!bytes) return '0 Bytes';
+    const k = 1024; const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+  };
 
   if (loading && !overview) {
     return (
@@ -256,6 +287,24 @@ export default function Dashboard() {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Relay snapshot */}
+      <div className="stats-grid secondary">
+        <StatCard
+          title="Relay pending"
+          value={relayPendingCount.toLocaleString('en-US')}
+          icon="📦"
+          color="#8b5cf6"
+          subtitle={formatBytes(relayPendingBytes)}
+        />
+        <StatCard
+          title="Purged (24h)"
+          value={relayPurgedCount.toLocaleString('en-US')}
+          icon="🧹"
+          color="#7c3aed"
+          subtitle={formatBytes(relayPurgedBytes)}
+        />
       </div>
 
       <div className="dashboard-meta">

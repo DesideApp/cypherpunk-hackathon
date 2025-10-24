@@ -566,14 +566,14 @@ export default function BuyTokenModal({
               <Sparkline
                 variant="hero"
                 data={generateMockPriceData()} // TODO: Replace with real price history
-                price={priceLabel || "—"}
-                priceLabel="Precio"
+                price={priceLabel ? priceLabel.replace('US$', 'USD') : "—"}
                 change={changeLabel || "—"}
                 trend={changeTone || 'neutral'}
                 animate={true}
                 showGradient={true}
               />
 
+              {/* Info técnica debajo - gris y compacta */}
               <div className="buy-selected-card__meta">
                 <span>{priceSourceLabel}</span>
                 {shortMint && (
@@ -596,11 +596,12 @@ export default function BuyTokenModal({
               selected={amount}
               onSelect={setAmount}
               disabled={busy}
+              formatAmount={(val) => `${val} SOL`}
             />
 
             <div className="buy-custom-amount">
               <ActionModalCustomInput
-                placeholder="Custom amount"
+                placeholder="Custom amount (SOL)"
                 min="0.001"
                 step="0.001"
                 value={amountOptions.includes(amount) ? "" : amount}
