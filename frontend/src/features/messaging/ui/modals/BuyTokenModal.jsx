@@ -258,6 +258,22 @@ export default function BuyTokenModal({
     } catch {}
   }, [tokens]);
 
+  // Wallet address (needed for token activation and history)
+  const walletPublicKey = walletCtx?.publicKey;
+  const walletAddress = useMemo(() => {
+    if (walletPublicKey?.toBase58) {
+      try {
+        return walletPublicKey.toBase58();
+      } catch (_) {
+        return myWallet || null;
+      }
+    }
+    if (typeof walletPublicKey === "string" && walletPublicKey) {
+      return walletPublicKey;
+    }
+    return myWallet || null;
+  }, [walletPublicKey, myWallet]);
+
   // Fetch historical price data for selected token (with lazy activation)
   useEffect(() => {
     if (!selected?.outputMint || !open) {
@@ -316,21 +332,6 @@ export default function BuyTokenModal({
   const amountOptions = [0.01, 0.1, 1];
   const inlineEnabled = FEATURES.PAYMENT_INLINE_EXEC;
   const inlineCapable = inlineEnabled && adapter && connection;
-
-  const walletPublicKey = walletCtx?.publicKey;
-  const walletAddress = useMemo(() => {
-    if (walletPublicKey?.toBase58) {
-      try {
-        return walletPublicKey.toBase58();
-      } catch (_) {
-        return myWallet || null;
-      }
-    }
-    if (typeof walletPublicKey === "string" && walletPublicKey) {
-      return walletPublicKey;
-    }
-    return myWallet || null;
-  }, [walletPublicKey, myWallet]);
 
   const proceedEnabled = selected && selected.outputMint && amount > 0 && walletAddress;
 
