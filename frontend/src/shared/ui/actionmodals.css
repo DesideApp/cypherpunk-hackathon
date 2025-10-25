@@ -752,6 +752,11 @@
   padding: 7px 10.5px;
 }
 
+.action-modal-search-input--focused:hover {
+  border: 2px solid var(--accent-color);
+  padding: 7px 10.5px;
+}
+
 .action-modal-search-input--disabled {
   opacity: 0.6;
   cursor: not-allowed;
