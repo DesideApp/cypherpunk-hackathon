@@ -2,6 +2,7 @@ import cron from 'node-cron';
 import { cleanupRelayByTier } from '#jobs/tasks/cleanupRelayByTier.js';
 import { pullActivityEvents } from '#jobs/tasks/pullActivityEvents.js';
 import { snapshotOverviewHourly } from '#jobs/tasks/snapshotOverview.js';
+import { snapshotOverviewDaily } from '#jobs/tasks/snapshotOverviewDaily.js';
 import config from '#config/appConfig.js';
 
 const RELAY_CLEANUP_CRON = (process.env.RELAY_CLEANUP_CRON || config?.relayCleanupCron || '5 3 * * *').trim();
@@ -48,6 +49,21 @@ try {
   console.log('✅ Job programado: Snapshot overview (5 * * * *)');
 } catch (e) {
   console.error('❌ No se pudo programar snapshot overview:', e?.message || e);
+}
+
+// Snapshot diario (día anterior) a las 00:10
+try {
+  cron.schedule('10 0 * * *', async () => {
+    try {
+      const res = await snapshotOverviewDaily();
+      console.log('📝 Snapshot daily overview OK:', res.file);
+    } catch (err) {
+      console.error('❌ Snapshot daily overview error:', err?.message || err);
+    }
+  });
+  console.log('✅ Job programado: Snapshot overview daily (10 0 * * *)');
+} catch (e) {
+  console.error('❌ No se pudo programar snapshot daily overview:', e?.message || e);
 }
 
 if (ACTIVITY_PULL_CRON) {
