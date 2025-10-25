@@ -440,10 +440,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background:
-    linear-gradient(160deg,
-      color-mix(in srgb, var(--icon-bg, color-mix(in srgb, var(--background-color) 82%, transparent)) 100%, transparent) 0%,
-      color-mix(in srgb, var(--icon-bg, color-mix(in srgb, var(--background-color) 82%, transparent)) 70%, transparent) 100%);
+  background: transparent;
   box-shadow: 
     0 6px 14px rgba(0, 0, 0, 0.22),
     0 0 20px var(--icon-glow, transparent),
@@ -456,7 +453,7 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--background-color) 92%, transparent);
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
