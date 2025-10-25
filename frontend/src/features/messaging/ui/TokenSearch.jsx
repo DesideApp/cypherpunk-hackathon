@@ -1,6 +1,7 @@
 // frontend/src/features/messaging/ui/TokenSearch.jsx
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { apiRequest } from '@shared/services/apiService.js';
+import { formatSmartPrice } from '@shared/utils/priceFormatter.js';
 import './TokenSearch.css';
 
 const REMOTE_RESULTS_LIMIT = 5;
@@ -316,7 +317,7 @@ export default function TokenSearch({
                           </span>
                         )}
                         {token.mint ? ` • CA: ${token.mint.slice(0, 8)}...${token.mint.slice(-4)}` : ''}
-                        {token.price && ` • $${token.price.toFixed(4)}`}
+                        {token.price && ` • $${formatSmartPrice(token.price)}`}
                       </div>
                     )}
                   </div>

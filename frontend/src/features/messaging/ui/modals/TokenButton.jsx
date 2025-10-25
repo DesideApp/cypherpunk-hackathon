@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { getTokenMeta } from "../../config/tokenMeta.js";
+import { formatPriceUSD } from "@shared/utils/priceFormatter.js";
 
 /**
  * Token button with automatic color generation
@@ -92,7 +93,7 @@ export default function TokenButton({ token, price, onClick, disabled }) {
       <div className="buy-token-info">
         <div className="buy-token-name">{meta.label || token.code}</div>
         <div className="buy-token-price">
-          {price ? `$${price.toFixed(4)}` : "No price"}
+          {formatPriceUSD(price)}
         </div>
       </div>
     </button>

@@ -114,7 +114,7 @@ Además, en `scripts/` hay herramientas operativas (listar endpoints, sincroniza
 - TTL del relay:
   - Variables: `RELAY_MESSAGE_TTL` o `RELAY_TTL_SECONDS` (segundos).
   - Actualizar índice TTL: `npm run ttl:update`
-  - Estado actual (con .env del repo): 90 días (7776000s). Para 30 días: exporta `RELAY_TTL_SECONDS=2592000` y ejecuta `ttl:update`.
+  - Estado recomendado: 7 días (604800s) para mantener Mongo “hot” ligero. Para 30/90d, ajusta la variable y vuelve a ejecutar `ttl:update`.
 
 - AutoIndex (opcional):
   - `MONGO_AUTO_INDEX=true|false` anula el comportamiento por entorno (por defecto: dev=on, prod=off).
@@ -125,3 +125,25 @@ Además, en `scripts/` hay herramientas operativas (listar endpoints, sincroniza
   - Conteo básico (mongosh): `db.users.countDocuments()`, `db.contacts.countDocuments()`.
 
 Para una guía extendida (backups, migraciones y resolución de conflictos de índices), ver `docs/mongo-ops.private.md` (no versionado).
+
+## Retención "Hot" + Snapshots (resumen público)
+
+- Hot (Mongo): 7 días de datos operativos (relay, APM, stats) con TTL.
+- Snapshots: el backend guarda métricas agregadas por hora y por día en `SNAPSHOT_DIR` (ej. `/var/data/metrics`).
+- Fallback automático: si el rango pedido supera `HOT_RETENTION_DAYS` (7), la API lee snapshots y devuelve las mismas series (sin cambiar el panel).
+- Cron por defecto:
+  - Horario (a :05): snapshot de la hora anterior.
+  - Diario (00:10): agrega el día anterior.
+
+### Variables mínimas (Render)
+
+- `RELAY_TTL_SECONDS=604800` y `RELAY_MESSAGE_TTL=604800`
+- `APM_HTTP_TTL_DAYS=7` y `APM_WS_TTL_DAYS=7`
+- `HOT_RETENTION_DAYS=7`
+- `SNAPSHOT_DIR=/var/data/metrics` (Disk adjunto)
+
+### Operativa rápida
+
+- Tras cambiar TTLs:
+  - `npm run ttl:update` (relay)
+  - `npm run apm:ttl:update` (APM)
