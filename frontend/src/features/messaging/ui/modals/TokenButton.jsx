@@ -1,29 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { getTokenMeta } from "../../config/tokenMeta.js";
 import { formatPriceUSD } from "@shared/utils/priceFormatter.js";
 import { ActionModalTokenLogo } from "@shared/ui/action-modals/index.js";
 import { Sparkline } from "@shared/ui/charts/index.js";
-
-/**
- * Generate simple mock sparkline data based on price change
- * @param {number} changePercent - Price change percentage (e.g., 5.2 for +5.2%)
- * @returns {number[]} Array of 12 data points
- */
-function generateMockSparkline(changePercent) {
-  const points = 12;
-  const data = [];
-  const start = 100;
-  const end = start * (1 + changePercent / 100);
-  
-  for (let i = 0; i < points; i++) {
-    const progress = i / (points - 1);
-    const trendValue = start + (end - start) * progress;
-    const noise = (Math.random() - 0.5) * Math.abs(end - start) * 0.15;
-    data.push(trendValue + noise);
-  }
-  
-  return data;
-}
+import { generatePriceHistory } from "./BuyTokenModal.jsx";
 
 /**
  * Token button with automatic color generation
@@ -31,6 +11,12 @@ function generateMockSparkline(changePercent) {
 export default function TokenButton({ token, price, priceChange, onClick, disabled }) {
   const [meta, setMeta] = useState(null);
   const [loading, setLoading] = useState(true);
+  
+  // Memoize price history to prevent regeneration on every render
+  const priceData = useMemo(() => {
+    if (priceChange == null) return [];
+    return generatePriceHistory(priceChange);
+  }, [priceChange]);
   
   useEffect(() => {
     let mounted = true;
@@ -115,20 +101,22 @@ export default function TokenButton({ token, price, priceChange, onClick, disabl
         }}
       />
       <div className="buy-token-info">
-        <div className="buy-token-name">{meta.label || token.code}</div>
-        {priceChange != null && (
+        <div className="buy-token-main">
+          <div className="buy-token-name">{meta.label || token.code}</div>
+          <div className="buy-token-price">
+            {formatPriceUSD(price)}
+          </div>
+        </div>
+        {priceChange != null && priceData.length > 0 && (
           <Sparkline
-            data={generateMockSparkline(priceChange)}
+            data={priceData}
             variant="mini"
-            width={48}
-            height={16}
+            width={56}
+            height={20}
             trend={priceChange >= 0 ? 'positive' : 'negative'}
             animate={false}
           />
         )}
-        <div className="buy-token-price">
-          {formatPriceUSD(price)}
-        </div>
       </div>
     </button>
   );

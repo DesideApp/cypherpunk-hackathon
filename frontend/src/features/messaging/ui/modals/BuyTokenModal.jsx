@@ -140,7 +140,7 @@ function applyEMA(data, period = 6) {
  * @param {number} priceChange24h - Actual 24h price change percentage (e.g., 2.5 for +2.5%)
  * @returns {number[]} Array of EMA-smoothed price points for the last 24h
  */
-function generatePriceHistory(priceChange24h = 0) {
+export function generatePriceHistory(priceChange24h = 0) {
   const points = 48; // 48 data points for 24 hours (one per 30 min)
   const rawData = [];
   

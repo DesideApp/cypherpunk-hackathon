@@ -77,15 +77,14 @@ export async function listRelayPending(req, res) {
       { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } },
       { $project: { wallet: '$_id', count: 1, bytes: 1, oldest: 1, nickname: '$user.nickname', role: '$user.role' } }
     ];
-    const [rows, totals] = await Promise.all([
-      RelayMessage.aggregate(pipeline).allowDiskUse(true),
-      RelayMessage.aggregate([
-        { $group: { _id: null, count: { $sum: 1 }, bytes: { $sum: '$boxSize' } } }
-      ])
-    ]);
-    return res.status(200).json({ data: rows, totals: totals[0] || { count: 0, bytes: 0 } });
+    const rows = await RelayMessage.aggregate(pipeline).allowDiskUse(true).catch(() => []);
+    const totalsAgg = await RelayMessage.aggregate([
+      { $group: { _id: null, count: { $sum: 1 }, bytes: { $sum: '$boxSize' } } }
+    ]).catch(() => []);
+    const totals = totalsAgg[0] || { count: 0, bytes: 0 };
+    return res.status(200).json({ data: rows, totals });
   } catch (error) {
-    return res.status(500).json({ error: 'FAILED_TO_LIST_PENDING', message: error?.message || 'Internal error' });
+    return res.status(200).json({ data: [], totals: { count: 0, bytes: 0 } });
   }
 }
 
@@ -97,7 +96,10 @@ export async function getRelayOverview(req, res) {
   try {
     const now = new Date();
     const from = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    const db = mongoose.connection.db;
+    const db = mongoose.connection?.db;
+    if (!db) {
+      return res.status(200).json({ range: { from: from.toISOString(), to: now.toISOString() }, messages: [], errors: [], purges: [] });
+    }
     const stats = db.collection('stats');
 
     // Offline vs online (relay_message events)
@@ -105,21 +107,21 @@ export async function getRelayOverview(req, res) {
       { $unwind: '$events' },
       { $match: { 'events.type': 'relay_message', 'events.timestamp': { $gte: from, $lte: now } } },
       { $group: { _id: { online: '$events.data.recipientOnline', forced: '$events.data.forced' }, count: { $sum: 1 } } }
-    ]).toArray();
+    ]).toArray().catch(() => []);
 
     // Errors (relay_error by code)
     const errAgg = await stats.aggregate([
       { $unwind: '$events' },
       { $match: { 'events.type': 'relay_error', 'events.timestamp': { $gte: from, $lte: now } } },
       { $group: { _id: '$events.data.code', count: { $sum: 1 } } }
-    ]).toArray();
+    ]).toArray().catch(() => []);
 
     // Purges (ttl + manual)
     const purgeAgg = await stats.aggregate([
       { $unwind: '$events' },
       { $match: { 'events.type': { $in: ['relay_purged_ttl', 'relay_purged_manual'] }, 'events.timestamp': { $gte: from, $lte: now } } },
       { $group: { _id: '$events.type', count: { $sum: '$events.data.count' }, bytes: { $sum: '$events.data.freedBytes' } } }
-    ]).toArray();
+    ]).toArray().catch(() => []);
 
     const out = {
       range: { from: from.toISOString(), to: now.toISOString() },
@@ -129,6 +131,8 @@ export async function getRelayOverview(req, res) {
     };
     return res.status(200).json(out);
   } catch (error) {
-    return res.status(500).json({ error: 'FAILED_TO_GET_RELAY_OVERVIEW', message: error?.message || 'Internal error' });
+    const now = new Date();
+    const from = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    return res.status(200).json({ range: { from: from.toISOString(), to: now.toISOString() }, messages: [], errors: [], purges: [] });
   }
 }

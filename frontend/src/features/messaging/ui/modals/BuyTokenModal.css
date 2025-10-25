@@ -734,25 +734,32 @@
 .buy-token-info {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.buy-token-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   flex: 1;
   min-width: 0;
 }
 
 .buy-token-name {
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   font-weight: 600;
   letter-spacing: 0.01em;
   color: var(--text-primary);
-  flex-shrink: 0;
+  line-height: 1.2;
 }
 
 .buy-token-price {
-  font-size: 0.85rem;
-  font-family: var(--font-data-family, "JetBrains Mono", monospace);
-  letter-spacing: 0.02em;
-  color: var(--text-primary);
+  font-size: 0.8rem;
   font-weight: 500;
-  margin-left: auto;
-  flex-shrink: 0;
+  color: var(--text-secondary);
+  line-height: 1.2;
+  opacity: 0.85;
 }
