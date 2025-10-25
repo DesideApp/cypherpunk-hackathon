@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { apiRequest } from '@shared/services/apiService.js';
 import { formatSmartPrice } from '@shared/utils/priceFormatter.js';
-import { UiSearchInput } from '@shared/ui/UiSearchInput.jsx';
+import { ActionModalSearchInput } from '@shared/ui/action-modals/index.js';
 import './TokenSearch.css';
 
 const REMOTE_RESULTS_LIMIT = 5;
@@ -264,12 +264,11 @@ export default function TokenSearch({
   return (
     <div className={`token-search ${className}`}>
       <div className="token-search__input-container">
-        <UiSearchInput
+        <ActionModalSearchInput
           placeholder="Buscar token..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           disabled={isAdding}
-          className="token-search__input-wrapper"
         />
         {isSearching && (
           <div className="token-search__spinner">

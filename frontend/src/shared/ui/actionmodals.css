@@ -728,6 +728,61 @@
    RESPONSIVE
    ========================================================================= */
 
+/* ===== ACTION MODAL SEARCH INPUT ===== */
+.action-modal-search-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background-color: var(--window-background);
+  border-radius: 18px;
+  padding: 7.5px 11px;
+  border: 1.5px solid var(--border-color);
+  transition: var(--transition-all);
+}
+
+.action-modal-search-input:hover:not(.action-modal-search-input--disabled) {
+  border: 2px solid var(--border-color-active);
+  padding: 7px 10.5px;
+}
+
+.action-modal-search-input--focused {
+  border: 2px solid var(--accent-color);
+  padding: 7px 10.5px;
+}
+
+.action-modal-search-input--disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.action-modal-search-input__field {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  font-family: var(--font-ui-family);
+  font-size: var(--font-ui-size);
+  font-weight: var(--font-ui-weight);
+  line-height: 1.4;
+  border: none;
+  background: transparent;
+  color: var(--text-on-window);
+  outline: none;
+}
+
+.action-modal-search-input__field::placeholder {
+  color: var(--text-muted);
+  transition: var(--transition-all);
+}
+
+.action-modal-search-input__field:focus::placeholder {
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+.action-modal-search-input__field:disabled {
+  cursor: not-allowed;
+}
+
 @media (max-width: 640px) {
   :root {
     --action-modal-padding: 16px;

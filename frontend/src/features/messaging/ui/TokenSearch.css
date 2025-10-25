@@ -11,32 +11,7 @@
   align-items: center;
 }
 
-.token-search__input-wrapper {
-  width: 100%;
-}
-
-/* Override UiSearchInput styles to match design system */
-.token-search__input-wrapper.ui-search-input {
-  background-color: var(--window-background);
-  border: 1.5px solid var(--border-color);
-  border-radius: 18px;
-  padding: 7.5px 11px;
-}
-
-.token-search__input-wrapper.ui-search-input:hover:not(.ui-search-input--disabled) {
-  border: 2px solid var(--border-color-active);
-  padding: 7px 10.5px;
-}
-
-.token-search__input-wrapper.ui-search-input--focused {
-  border: 2px solid var(--accent-color);
-  padding: 7px 10.5px;
-}
-
-/* Hide icon */
-.token-search__input-wrapper .ui-search-input__icon {
-  display: none;
-}
+/* ActionModalSearchInput styles are in shared/ui/actionmodals.css */
 
 .token-search__spinner {
   position: absolute;
