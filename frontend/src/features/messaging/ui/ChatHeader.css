@@ -35,8 +35,8 @@
 
 /* Avatar unificado (igual UnifiedList) */
 .chat-avatar-circle {
-  width: 44px;
-  height: 44px;
+  width: 38px;  /* ligeramente más pequeño que Unified (40px) */
+  height: 38px;
   background: var(--background-color);
   border-radius: 50%;
   display: flex;
@@ -224,7 +224,7 @@
   }
   .chat-header-left { gap: 12px; }
   .chat-header-mobile-actions { gap: 6px; }
-  .chat-avatar-circle { width: 40px; height: 40px; }
+  .chat-avatar-circle { width: 38px; height: 38px; }
   .chat-contact-name { font-size: 1rem; }
   .connection-status { font-size: 0.8rem; }
   .chat-header-actions { gap: 8px; }
