@@ -101,11 +101,9 @@ export default function TokenButton({ token, price, priceChange, onClick, disabl
         }}
       />
       <div className="buy-token-info">
-        <div className="buy-token-main">
-          <div className="buy-token-name">{meta.label || token.code}</div>
-          <div className="buy-token-price">
-            {formatPriceUSD(price)}
-          </div>
+        <div className="buy-token-name">{meta.label || token.code}</div>
+        <div className="buy-token-price">
+          {formatPriceUSD(price)}
         </div>
         {priceChange != null && priceData.length > 0 && (
           <Sparkline

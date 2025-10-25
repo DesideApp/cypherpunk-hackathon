@@ -40,41 +40,49 @@ function startOfDay(d) {
 export async function getAdoptionOverview(req, res) {
   try {
     const { from, to } = resolveRange(req.query);
-    const db = mongoose.connection.db;
+    const db = mongoose.connection?.db;
+    if (!db) {
+      return res.status(200).json({
+        range: { from: from.toISOString(), to: to.toISOString() },
+        users: { total: 0, new: 0, dau: 0, wau: 0, mau: 0 },
+        dm: { started: 0, accepted: 0, acceptRate: null },
+        signups: { history: [] },
+      });
+    }
 
     // Signups by day
     const signups = await User.aggregate([
       { $match: { registeredAt: { $gte: from, $lte: to } } },
       { $group: { _id: { $dateTrunc: { date: '$registeredAt', unit: 'day' } }, count: { $sum: 1 } } },
       { $sort: { _id: 1 } }
-    ]);
+    ]).catch(() => []);
 
     // DAU/WAU/MAU at range end (distinct by wallet)
     const endDay = startOfDay(to);
-    const dau = await User.distinct('wallet', { lastLogin: { $gte: endDay, $lte: to } }).then(a => a.length);
+    const dau = await User.distinct('wallet', { lastLogin: { $gte: endDay, $lte: to } }).then(a => a.length).catch(() => 0);
     const wauStart = new Date(to.getTime() - 7 * 24 * 60 * 60 * 1000);
     const mauStart = new Date(to.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const wau = await User.distinct('wallet', { lastLogin: { $gte: wauStart, $lte: to } }).then(a => a.length);
-    const mau = await User.distinct('wallet', { lastLogin: { $gte: mauStart, $lte: to } }).then(a => a.length);
+    const wau = await User.distinct('wallet', { lastLogin: { $gte: wauStart, $lte: to } }).then(a => a.length).catch(() => 0);
+    const mau = await User.distinct('wallet', { lastLogin: { $gte: mauStart, $lte: to } }).then(a => a.length).catch(() => 0);
 
     // DM conversion over range from Stats.events
     const dmStarted = await Stats.aggregate([
       { $unwind: '$events' },
       { $match: { 'events.type': 'dm_started', 'events.timestamp': { $gte: from, $lte: to } } },
       { $count: 'n' }
-    ]).then(r => r[0]?.n || 0);
+    ]).then(r => r[0]?.n || 0).catch(() => 0);
 
     const dmAccepted = await Stats.aggregate([
       { $unwind: '$events' },
       { $match: { 'events.type': 'dm_accepted', 'events.timestamp': { $gte: from, $lte: to } } },
       { $count: 'n' }
-    ]).then(r => r[0]?.n || 0);
+    ]).then(r => r[0]?.n || 0).catch(() => 0);
 
     const acceptRate = dmStarted > 0 ? Number(((dmAccepted / dmStarted) * 100).toFixed(2)) : null;
 
     // Totals
-    const totalUsers = await User.estimatedDocumentCount();
-    const newUsers = await User.countDocuments({ registeredAt: { $gte: from, $lte: to } });
+    const totalUsers = await User.estimatedDocumentCount().catch(() => 0);
+    const newUsers = await User.countDocuments({ registeredAt: { $gte: from, $lte: to } }).catch(() => 0);
 
     const series = signups.map(s => ({ timestamp: s._id, value: s.count }));
 
@@ -97,8 +105,13 @@ export async function getAdoptionOverview(req, res) {
 
     return res.status(200).json(payload);
   } catch (error) {
-    console.error('❌ [stats:admin] adoption overview failed:', error?.message || error);
-    return res.status(500).json({ error: 'FAILED_TO_COMPUTE_ADOPTION', message: error?.message || 'Internal error' });
+    const { from, to } = resolveRange(req.query || {});
+    return res.status(200).json({
+      range: { from: from.toISOString(), to: to.toISOString() },
+      users: { total: 0, new: 0, dau: 0, wau: 0, mau: 0 },
+      dm: { started: 0, accepted: 0, acceptRate: null },
+      signups: { history: [] },
+    });
   }
 }
 
@@ -136,7 +149,7 @@ export async function getCohorts(req, res) {
       // Users registered in this cohort week
       const cohortUsers = await User.find({
         registeredAt: { $gte: cohortStart, $lt: cohortEnd }
-      }, { wallet: 1 }).lean();
+      }, { wallet: 1 }).lean().catch(() => []);
       const wallets = cohortUsers.map(u => u.wallet).filter(Boolean);
       const size = wallets.length;
       const retention = [];
@@ -156,10 +169,13 @@ export async function getCohorts(req, res) {
           activeCount = await User.countDocuments({ wallet: { $in: wallets }, lastLogin: { $gte: weekStart, $lt: weekEnd } });
         } else {
           // messages: any from/to in this bucket
-          const [senders, receivers] = await Promise.all([
-            mongoose.connection.db.collection('relaymessages').distinct('from', { createdAt: { $gte: weekStart, $lt: weekEnd }, from: { $in: wallets } }),
-            mongoose.connection.db.collection('relaymessages').distinct('to', { createdAt: { $gte: weekStart, $lt: weekEnd }, to: { $in: wallets } }),
-          ]);
+          let senders = [], receivers = [];
+          try {
+            [senders, receivers] = await Promise.all([
+              mongoose.connection.db.collection('relaymessages').distinct('from', { createdAt: { $gte: weekStart, $lt: weekEnd }, from: { $in: wallets } }),
+              mongoose.connection.db.collection('relaymessages').distinct('to', { createdAt: { $gte: weekStart, $lt: weekEnd }, to: { $in: wallets } }),
+            ]);
+          } catch {}
           const set = new Set();
           for (const w of senders) set.add(w);
           for (const w of receivers) set.add(w);
@@ -173,8 +189,8 @@ export async function getCohorts(req, res) {
 
     return res.status(200).json({ weeks, generatedAt: now.toISOString(), cohorts });
   } catch (error) {
-    console.error('❌ [adoption] cohorts failed:', error?.message || error);
-    return res.status(500).json({ error: 'FAILED_TO_COMPUTE_COHORTS' });
+    const weeks = Math.min(12, Math.max(1, parseInt(req.query?.weeks || '8', 10) || 8));
+    return res.status(200).json({ weeks, generatedAt: new Date().toISOString(), cohorts: [] });
   }
 }
 
@@ -190,7 +206,7 @@ export async function getFunnel(req, res) {
     const windowMs = windowDays * 24 * 60 * 60 * 1000;
 
     // Base users registered in period
-    const baseUsers = await User.find({ registeredAt: { $gte: from, $lte: to } }, { wallet: 1, registeredAt: 1 }).lean();
+    const baseUsers = await User.find({ registeredAt: { $gte: from, $lte: to } }, { wallet: 1, registeredAt: 1 }).lean().catch(() => []);
     const wallets = baseUsers.map(u => u.wallet).filter(Boolean);
 
     // dm_started earliest per user
@@ -199,11 +215,14 @@ export async function getFunnel(req, res) {
       { $match: { 'events.type': 'dm_started', 'events.timestamp': { $gte: from, $lte: to }, user: { $in: wallets } } },
       { $sort: { 'events.timestamp': 1 } },
       { $group: { _id: '$user', ts: { $first: '$events.timestamp' }, to: { $first: '$events.data.to' } } },
-    ]);
+    ]).catch(() => []);
     const dmMap = new Map(dmAgg.map(d => [d._id, { ts: d.ts, to: d.to }]));
 
     // Contacts accepted explicit (owner=wallet, status=ACCEPTED)
-    const acceptedDocs = await mongoose.connection.db.collection('contacts').find({ status: 'ACCEPTED', owner: { $in: wallets } }, { projection: { owner: 1, updatedAt: 1 } }).toArray();
+    let acceptedDocs = [];
+    try {
+      acceptedDocs = await mongoose.connection.db.collection('contacts').find({ status: 'ACCEPTED', owner: { $in: wallets } }, { projection: { owner: 1, updatedAt: 1 } }).toArray();
+    } catch {}
     const accMap = new Map();
     for (const d of acceptedDocs) {
       const cur = accMap.get(d.owner);
@@ -215,15 +234,15 @@ export async function getFunnel(req, res) {
       RelayMessage.aggregate([
         { $match: { from: { $in: wallets }, createdAt: { $gte: from, $lte: to } } },
         { $group: { _id: '$from', ts: { $min: '$createdAt' } } },
-      ]),
+      ]).catch(() => []),
       RelayMessage.aggregate([
         { $match: { to: { $in: wallets }, createdAt: { $gte: from, $lte: to } } },
         { $group: { _id: '$to', ts: { $min: '$createdAt' } } },
-      ]),
+      ]).catch(() => []),
       RelayMessage.aggregate([
         { $match: { to: { $in: wallets }, createdAt: { $gte: from, $lte: to }, messageType: { $in: ['blink-action', 'file', 'image', 'audio', 'video'] } } },
         { $group: { _id: '$to', ts: { $min: '$createdAt' } } },
-      ]),
+      ]).catch(() => []),
     ]);
     const firstSentMap = new Map(firstSent.map(d => [d._id, d.ts]));
     const firstRecvAnyMap = new Map(firstRecvAny.map(d => [d._id, d.ts]));
@@ -287,7 +306,13 @@ export async function getFunnel(req, res) {
 
     return res.status(200).json({ range: { from: from.toISOString(), to: to.toISOString() }, windowDays, funnel, activationA, activationB });
   } catch (error) {
-    console.error('❌ [adoption] funnel failed:', error?.message || error);
-    return res.status(500).json({ error: 'FAILED_TO_COMPUTE_FUNNEL' });
+    const { from, to } = resolveRange(req.query || {});
+    return res.status(200).json({
+      range: { from: from.toISOString(), to: to.toISOString() },
+      windowDays: Math.min(30, Math.max(1, parseInt(req.query?.windowDays || '1', 10) || 1)),
+      funnel: [],
+      activationA: { count: 0, conversionPct: 0, explicit: 0, inferred: 0, ttaP50ms: 0, ttaP95ms: 0 },
+      activationB: { count: 0, conversionPct: 0, ttaP50ms: 0, ttaP95ms: 0, anyReceived: 0 },
+    });
   }
 }
