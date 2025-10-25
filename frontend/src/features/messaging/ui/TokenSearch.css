@@ -33,6 +33,11 @@
   padding: 7px 10.5px;
 }
 
+/* Hide icon */
+.token-search__input-wrapper .ui-search-input__icon {
+  display: none;
+}
+
 .token-search__spinner {
   position: absolute;
   right: 12px;

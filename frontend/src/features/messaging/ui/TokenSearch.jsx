@@ -269,7 +269,6 @@ export default function TokenSearch({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           disabled={isAdding}
-          icon={null}
           className="token-search__input-wrapper"
         />
         {isSearching && (
