@@ -114,39 +114,60 @@ function formatRelativeTime(timestamp) {
 }
 
 /**
+ * Apply Exponential Moving Average to smooth price data
+ * @param {number[]} data - Raw price data
+ * @param {number} period - EMA period (higher = smoother)
+ * @returns {number[]} Smoothed data
+ */
+function applyEMA(data, period = 6) {
+  if (data.length === 0) return data;
+  
+  const k = 2 / (period + 1); // Smoothing factor
+  const ema = [data[0]]; // First value = first data point
+  
+  for (let i = 1; i < data.length; i++) {
+    const value = data[i] * k + ema[i - 1] * (1 - k);
+    ema.push(value);
+  }
+  
+  return ema;
+}
+
+/**
  * Generate synthetic price history based on actual 24h change
- * Creates a smooth, natural-looking trend line (not candles/spikes)
+ * Creates an EMA-smoothed trend line (not point-to-point prices)
  * @param {number} priceChange24h - Actual 24h price change percentage (e.g., 2.5 for +2.5%)
- * @returns {number[]} Array of normalized price points for the last 24h
+ * @returns {number[]} Array of EMA-smoothed price points for the last 24h
  */
 function generatePriceHistory(priceChange24h = 0) {
   const points = 48; // 48 data points for 24 hours (one per 30 min)
-  const data = [];
+  const rawData = [];
   
   // Start at 100, end at 100 + priceChange24h
   const startPrice = 100;
   const endPrice = startPrice * (1 + priceChange24h / 100);
   const totalChange = endPrice - startPrice;
   
-  // Generate SMOOTH curve with minimal noise
+  // Generate base trend with subtle variations
   for (let i = 0; i < points; i++) {
     const progress = i / (points - 1); // 0 to 1
     
-    // Base trend line (linear interpolation)
+    // Base trend (linear)
     const trendPrice = startPrice + (totalChange * progress);
     
-    // Add subtle volatility (±0.5% random noise - MUCH less)
-    const noise = (Math.random() - 0.5) * 1;
-    const volatility = trendPrice * (noise / 100);
+    // Add gentle wave for natural flow
+    const wave = Math.sin(progress * Math.PI * 2) * (Math.abs(totalChange) * 0.12);
     
-    // Add gentle sine wave for natural flow (reduced frequency)
-    const wave = Math.sin(progress * Math.PI * 1.5) * (totalChange * 0.08);
+    // Tiny random noise for realism
+    const noise = (Math.random() - 0.5) * 0.3;
     
-    const price = trendPrice + volatility + wave;
-    data.push(Math.max(startPrice * 0.92, Math.min(startPrice * 1.08, price)));
+    rawData.push(trendPrice + wave + noise);
   }
   
-  return data;
+  // Apply EMA smoothing (period=6 for smooth but responsive line)
+  const smoothed = applyEMA(rawData, 6);
+  
+  return smoothed;
 }
 
 export default function BuyTokenModal({
