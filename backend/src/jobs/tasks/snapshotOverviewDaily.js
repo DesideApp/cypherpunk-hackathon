@@ -1,6 +1,8 @@
 // Aggregate previous day's hourly overview snapshots into a daily snapshot
 import fs from 'fs/promises';
 import path from 'path';
+import { gzip as _gzip } from 'zlib';
+import { promisify } from 'util';
 
 function alignToDay(d) { const x = new Date(d); x.setHours(0,0,0,0); return x; }
 
@@ -54,8 +56,9 @@ export async function snapshotOverviewDaily() {
 
   const outDir = path.join(baseDir, 'overview-daily', yyyy, mm);
   await ensureDir(outDir);
-  const outFile = path.join(outDir, `${dd}.json`);
-  await fs.writeFile(outFile, JSON.stringify(payload));
+  const outFile = path.join(outDir, `${dd}.json.gz`);
+  const gzip = promisify(_gzip);
+  const buf = await gzip(Buffer.from(JSON.stringify(payload)));
+  await fs.writeFile(outFile, buf);
   return { file: outFile };
 }
-

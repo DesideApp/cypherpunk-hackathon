@@ -1,5 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
+import { gunzip as _gunzip } from 'zlib';
+import { promisify } from 'util';
 
 function alignToHour(d) { const x = new Date(d); x.setMinutes(0,0,0); return x; }
 function alignToDay(d) { const x = new Date(d); x.setHours(0,0,0,0); return x; }
@@ -22,10 +24,19 @@ async function readOverviewArchiveHourly(rangeStart, rangeEnd) {
     const mm = String(d.getMonth()+1).padStart(2, '0');
     const dd = String(d.getDate()).padStart(2, '0');
     const hh = String(d.getHours()).padStart(2, '0');
-    const file = path.join(baseDir, 'overview', yyyy, mm, dd, `${hh}.json`);
+    const fileGz = path.join(baseDir, 'overview', yyyy, mm, dd, `${hh}.json.gz`);
+    const fileJson = path.join(baseDir, 'overview', yyyy, mm, dd, `${hh}.json`);
     try {
-      const raw = await fs.readFile(file, 'utf8');
-      const snap = JSON.parse(raw);
+      let snap;
+      try {
+        const gunzip = promisify(_gunzip);
+        const gz = await fs.readFile(fileGz);
+        const raw = await gunzip(gz);
+        snap = JSON.parse(raw.toString('utf8'));
+      } catch {
+        const raw = await fs.readFile(fileJson, 'utf8');
+        snap = JSON.parse(raw);
+      }
       const label = d.toISOString();
       const msgCount = Number(snap?.messages?.count || 0);
       const connCount = Number(snap?.connections?.count || 0);
@@ -56,10 +67,19 @@ async function readOverviewArchiveDaily(rangeStart, rangeEnd) {
     const yyyy = String(d.getFullYear());
     const mm = String(d.getMonth()+1).padStart(2, '0');
     const dd = String(d.getDate()).padStart(2, '0');
-    const file = path.join(baseDir, 'overview-daily', yyyy, mm, `${dd}.json`);
+    const fileGz = path.join(baseDir, 'overview-daily', yyyy, mm, `${dd}.json.gz`);
+    const fileJson = path.join(baseDir, 'overview-daily', yyyy, mm, `${dd}.json`);
     try {
-      const raw = await fs.readFile(file, 'utf8');
-      const snap = JSON.parse(raw);
+      let snap;
+      try {
+        const gunzip = promisify(_gunzip);
+        const gz = await fs.readFile(fileGz);
+        const raw = await gunzip(gz);
+        snap = JSON.parse(raw.toString('utf8'));
+      } catch {
+        const raw = await fs.readFile(fileJson, 'utf8');
+        snap = JSON.parse(raw);
+      }
       const label = d.toISOString();
       const msgCount = Number(snap?.messages?.count || 0);
       const connCount = Number(snap?.connections?.count || 0);
@@ -79,4 +99,3 @@ export async function readOverviewArchive(rangeStart, rangeEnd) {
   if (diffMs > sixtyDaysMs) return readOverviewArchiveDaily(rangeStart, rangeEnd);
   return readOverviewArchiveHourly(rangeStart, rangeEnd);
 }
-

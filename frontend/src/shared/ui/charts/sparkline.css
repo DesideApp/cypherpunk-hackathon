@@ -46,6 +46,10 @@
   transition: stroke 0.3s ease;
 }
 
+.sparkline-path--hero {
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.2));
+}
+
 /* Gradient fill */
 .sparkline-fill {
   transition: fill 0.3s ease;

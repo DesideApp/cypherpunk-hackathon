@@ -136,11 +136,11 @@ export function Sparkline({
           d={path.path || path}
           fill="none"
           stroke={strokeColor}
-          strokeWidth="2.5"
+          strokeWidth="3"
           strokeLinecap="round"
           strokeLinejoin="round"
           vectorEffect="non-scaling-stroke"
-          className="sparkline-path"
+          className="sparkline-path sparkline-path--hero"
         />
       </svg>
 
