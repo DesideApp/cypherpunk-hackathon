@@ -16,6 +16,7 @@ export function Sparkline({
   trend = 'neutral',
   price,
   priceLabel,
+  footer,
   className,
   animate = true,
   showGradient = true,
@@ -170,6 +171,8 @@ export function Sparkline({
               </div>
             )}
           </div>
+          {/* Optional footer (e.g., CA info, source) */}
+          {footer && <div className="sparkline-footer">{footer}</div>}
         </div>
       )}
     </div>
@@ -186,6 +189,7 @@ Sparkline.propTypes = {
   trend: PropTypes.oneOf(['positive', 'negative', 'neutral']),
   price: PropTypes.string,
   priceLabel: PropTypes.string,
+  footer: PropTypes.node,
   className: PropTypes.string,
   animate: PropTypes.bool,
   showGradient: PropTypes.bool,

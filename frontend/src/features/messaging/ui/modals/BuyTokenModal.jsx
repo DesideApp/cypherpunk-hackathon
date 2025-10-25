@@ -571,20 +571,18 @@ export default function BuyTokenModal({
                 trend={changeTone || 'neutral'}
                 animate={true}
                 showGradient={true}
+                footer={
+                  <div className="buy-selected-card__meta buy-selected-card__meta--inline">
+                    {shortMint && (
+                      <span title={selected.outputMint || ""}>
+                        CA {shortMint}
+                      </span>
+                    )}
+                    {shortMint && priceSourceLabel && " · "}
+                    {priceSourceLabel}
+                  </div>
+                }
               />
-
-              {/* Info técnica debajo - todo inline y gris */}
-              <div className="buy-selected-card__meta buy-selected-card__meta--inline">
-                {priceSourceLabel}
-                {shortMint && (
-                  <>
-                    {" · "}
-                    <span title={selected.outputMint || ""}>
-                      CA {shortMint}
-                    </span>
-                  </>
-                )}
-              </div>
 
               <ActionModalHint>
                 Blinks are executed from your connected wallet. Choose how much SOL to spend.
