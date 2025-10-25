@@ -434,30 +434,24 @@
 }
 
 .action-modal-token-logo {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
+  width: 52px;
+  height: 52px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: transparent;
-  box-shadow: 
-    0 6px 14px rgba(0, 0, 0, 0.22),
-    0 0 20px var(--icon-glow, transparent),
-    0 0 40px color-mix(in srgb, var(--icon-glow, transparent) 50%, transparent),
-    0 0 60px color-mix(in srgb, var(--icon-glow, transparent) 25%, transparent);
   flex-shrink: 0;
+  filter: 
+    drop-shadow(0 6px 14px rgba(0, 0, 0, 0.22))
+    drop-shadow(0 0 20px var(--icon-glow, transparent))
+    drop-shadow(0 0 40px color-mix(in srgb, var(--icon-glow, transparent) 50%, transparent));
 }
 
 .action-modal-token-logo-inner {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: transparent;
+  width: 48px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
 }
 
 .action-modal-token-logo-inner img {
@@ -465,9 +459,7 @@
   height: 100%;
   object-fit: contain;
   display: block;
-  clip-path: circle(50%);
-  transform: scale(var(--icon-scale, 0.95));
-  transform-origin: center;
+  border-radius: 50%;
 }
 
 .action-modal-token-info {
