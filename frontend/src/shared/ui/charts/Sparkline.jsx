@@ -129,23 +129,7 @@ export function Sparkline({
         preserveAspectRatio="none"
         className="sparkline-svg sparkline-svg--hero"
       >
-        <defs>
-          {showGradient && (
-            <linearGradient id={gradientId} x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor={strokeColor} stopOpacity="0.2" />
-              <stop offset="100%" stopColor={strokeColor} stopOpacity="0" />
-            </linearGradient>
-          )}
-        </defs>
-        
-        {/* Gradient fill */}
-        {showGradient && path.fillPath && (
-          <path
-            d={path.fillPath}
-            fill={`url(#${gradientId})`}
-            className="sparkline-fill"
-          />
-        )}
+        {/* No gradient fill - cleaner look */}
         
         {/* Line stroke */}
         <path
