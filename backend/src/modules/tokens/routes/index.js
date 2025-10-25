@@ -2,6 +2,11 @@
 import { Router } from 'express';
 import { getAllowedTokens, getTokenByCode } from '../services/tokenService.js';
 import { fetchPositionHistory, extractTokenPriceHistory } from '#shared/services/dialectMarketsService.js';
+import { 
+  activateToken, 
+  isTokenActivated, 
+  getActivationStats 
+} from '../services/tokenActivationService.js';
 import addTokenRoutes from './addToken.js';
 import logger from '#config/logger.js';
 
@@ -63,6 +68,108 @@ router.get('/allowed', async (req, res) => {
 });
 
 /**
+ * POST /api/v1/tokens/activate
+ * Activa un token para tracking lazy (solo cuando el usuario lo selecciona)
+ * Body: { mint, code, userPubkey }
+ */
+router.post('/activate', async (req, res) => {
+  try {
+    const { mint, code, userPubkey } = req.body;
+
+    if (!mint) {
+      return res.status(400).json({
+        success: false,
+        error: 'Mint address required'
+      });
+    }
+
+    logger.debug('[tokens/activate] Activating token', {
+      mint,
+      code,
+      userPubkey
+    });
+
+    const result = activateToken(mint, code, userPubkey || 'anonymous');
+
+    res.status(200).json({
+      success: true,
+      mint,
+      code,
+      isActive: true,
+      wasAlreadyActive: result.wasAlreadyActive,
+      activatedAt: result.activatedAt
+    });
+  } catch (error) {
+    logger.error('[tokens/activate] Failed to activate token', {
+      error: error.message,
+      mint: req.body?.mint
+    });
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to activate token',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/v1/tokens/:mint/status
+ * Verifica si un token está activo para tracking
+ */
+router.get('/:mint/status', async (req, res) => {
+  try {
+    const { mint } = req.params;
+    const isActive = isTokenActivated(mint);
+
+    res.status(200).json({
+      success: true,
+      mint,
+      isActive,
+      message: isActive 
+        ? 'Token is actively tracked' 
+        : 'Token is not activated yet'
+    });
+  } catch (error) {
+    logger.error('[tokens/status] Failed to check token status', {
+      error: error.message,
+      mint: req.params.mint
+    });
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to check token status',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/v1/tokens/stats/activations
+ * Obtiene estadísticas de activaciones (admin/monitoring)
+ */
+router.get('/stats/activations', async (req, res) => {
+  try {
+    const stats = getActivationStats();
+
+    res.status(200).json({
+      success: true,
+      stats
+    });
+  } catch (error) {
+    logger.error('[tokens/stats] Failed to get activation stats', {
+      error: error.message
+    });
+
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get activation stats',
+      message: error.message
+    });
+  }
+});
+
+/**
  * GET /api/v1/tokens/:mint/history
  * Obtiene histórico de precios para un token (últimas 24h)
  * Query params:
@@ -87,16 +194,20 @@ router.get('/:mint/history', async (req, res) => {
     const end = endTime || new Date().toISOString();
     const start = startTime || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
+    // Check if token is activated (lazy loading)
+    const isActive = isTokenActivated(mint);
+    
     logger.debug('[tokens/history] Fetching price history', {
       mint,
       walletAddress,
       startTime: start,
       endTime: end,
-      resolution
+      resolution,
+      isTokenActive: isActive
     });
 
-    // If walletAddress provided, fetch position history from Dialect Markets
-    if (walletAddress) {
+    // Only fetch from Dialect Markets if token is activated AND wallet provided
+    if (walletAddress && isActive) {
       const positionData = await fetchPositionHistory({
         walletAddress,
         startTime: start,
@@ -121,10 +232,16 @@ router.get('/:mint/history', async (req, res) => {
       });
     }
 
-    // Fallback: No wallet address provided
-    // Return empty array (client will use synthetic data)
-    logger.warn('[tokens/history] No wallet address provided, returning empty', {
-      mint
+    // Fallback: Token not activated or no wallet address
+    const reason = !isActive 
+      ? 'Token not activated yet. Call POST /tokens/activate first.'
+      : 'Historical data requires walletAddress parameter';
+    
+    logger.warn('[tokens/history] Cannot fetch data', {
+      mint,
+      isActive,
+      hasWallet: !!walletAddress,
+      reason
     });
 
     res.status(200).json({
@@ -135,7 +252,8 @@ router.get('/:mint/history', async (req, res) => {
       resolution,
       points: 0,
       data: [],
-      message: 'Historical data requires walletAddress parameter'
+      isTokenActive: isActive,
+      message: reason
     });
   } catch (error) {
     logger.error('[tokens/history] Failed to fetch price history', {

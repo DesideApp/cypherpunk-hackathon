@@ -18,13 +18,109 @@ export async function fetchPrices(ids = []) {
 }
 
 /**
+ * Activate a token for tracking (lazy loading)
+ * Should be called when user selects/interacts with a token
+ * @param {string} mint - Token mint address
+ * @param {string} code - Token code (e.g., 'BONK', 'SOL')
+ * @param {string} userPubkey - User's public key
+ * @returns {Promise<{success: boolean, isActive: boolean, wasAlreadyActive: boolean}>}
+ */
+export async function activateToken(mint, code, userPubkey = null) {
+  try {
+    if (!mint) {
+      return { success: false, isActive: false, wasAlreadyActive: false };
+    }
+
+    const url = apiUrl('/v1/tokens/activate');
+    
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'  
+      },
+      credentials: 'include',
+      body: JSON.stringify({ mint, code, userPubkey })
+    });
+
+    if (!res.ok) {
+      console.warn('[priceService] Failed to activate token', {
+        mint,
+        status: res.status
+      });
+      return { success: false, isActive: false, wasAlreadyActive: false };
+    }
+
+    const result = await res.json();
+    
+    console.log('[priceService] Token activated', {
+      mint,
+      code,
+      wasAlreadyActive: result.wasAlreadyActive
+    });
+
+    return {
+      success: result.success || false,
+      isActive: result.isActive || false,
+      wasAlreadyActive: result.wasAlreadyActive || false,
+      activatedAt: result.activatedAt
+    };
+  } catch (error) {
+    console.error('[priceService] Error activating token', {
+      mint,
+      error: error.message
+    });
+    return { success: false, isActive: false, wasAlreadyActive: false };
+  }
+}
+
+/**
+ * Check if a token is activated for tracking
+ * @param {string} mint - Token mint address
+ * @returns {Promise<{success: boolean, isActive: boolean}>}
+ */
+export async function checkTokenStatus(mint) {
+  try {
+    if (!mint) {
+      return { success: false, isActive: false };
+    }
+
+    const url = apiUrl(`/v1/tokens/${encodeURIComponent(mint)}/status`);
+    
+    const res = await fetch(url, {
+      headers: { Accept: 'application/json' },
+      credentials: 'include'
+    });
+
+    if (!res.ok) {
+      return { success: false, isActive: false };
+    }
+
+    const result = await res.json();
+    
+    return {
+      success: result.success || false,
+      isActive: result.isActive || false,
+      message: result.message
+    };
+  } catch (error) {
+    console.error('[priceService] Error checking token status', {
+      mint,
+      error: error.message
+    });
+    return { success: false, isActive: false };
+  }
+}
+
+/**
  * Fetch historical price data for a token via backend
  * Uses Dialect Markets API (protected by backend)
+ * Note: Token must be activated first via activateToken()
  * @param {string} mint - Token mint address
  * @param {string} walletAddress - Optional wallet address for position-based history
  * @param {number} points - Number of data points (default: 48 for 24h)
  * @param {string} resolution - Time interval: '1m', '5m', '1h', '1d' (default: '1h')
- * @returns {Promise<{success: boolean, data: number[], points: number}>}
+ * @returns {Promise<{success: boolean, data: number[], points: number, isTokenActive: boolean}>}
  */
 export async function fetchTokenHistory(mint, walletAddress = null, points = 48, resolution = '1h') {
   try {
@@ -62,6 +158,7 @@ export async function fetchTokenHistory(mint, walletAddress = null, points = 48,
       success: result.success || false,
       data: result.data || [],
       points: result.points || 0,
+      isTokenActive: result.isTokenActive !== undefined ? result.isTokenActive : false,
       message: result.message
     };
   } catch (error) {

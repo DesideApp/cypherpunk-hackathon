@@ -11,7 +11,7 @@ import { VersionedTransaction, Transaction } from "@solana/web3.js";
 import { Buffer } from "buffer";
 import { getAllowedTokens, clearAllowedTokensCache } from "@features/messaging/services/allowedTokensService.js";
 import { executeBuyBlink } from "@features/messaging/services/buyBlinkService.js";
-import { fetchPrices, fetchTokenHistory } from "@shared/services/priceService.js";
+import { fetchPrices, fetchTokenHistory, activateToken } from "@shared/services/priceService.js";
 import { 
   ModalShell, 
   UiChip, 
@@ -258,7 +258,7 @@ export default function BuyTokenModal({
     } catch {}
   }, [tokens]);
 
-  // Fetch historical price data for selected token
+  // Fetch historical price data for selected token (with lazy activation)
   useEffect(() => {
     if (!selected?.outputMint || !open) {
       setPriceHistory([]);
@@ -267,9 +267,21 @@ export default function BuyTokenModal({
 
     let alive = true;
 
-    // Try to fetch from backend (Dialect Markets API)
-    // Fallback to synthetic data if not available
-    fetchTokenHistory(selected.outputMint, walletAddress, 48, '1h')
+    // Step 1: Activate token for tracking (lazy loading)
+    // This tells backend to start tracking this token if not already active
+    activateToken(selected.outputMint, selected.code, walletAddress)
+      .then((activationResult) => {
+        if (!alive) return;
+
+        console.log('[BuyTokenModal] Token activation', {
+          token: selected.code,
+          isActive: activationResult.isActive,
+          wasAlreadyActive: activationResult.wasAlreadyActive
+        });
+
+        // Step 2: Try to fetch historical data from backend (Dialect Markets API)
+        return fetchTokenHistory(selected.outputMint, walletAddress, 48, '1h');
+      })
       .then((result) => {
         if (!alive) return;
         
@@ -281,15 +293,20 @@ export default function BuyTokenModal({
           setPriceHistory(result.data);
         } else {
           // Fallback: Use synthetic data based on priceChange24h
-          console.log('[BuyTokenModal] Using synthetic price history (no backend data)', {
+          console.log('[BuyTokenModal] Using synthetic price history', {
             token: selected.code,
+            isTokenActive: result.isTokenActive,
             message: result.message
           });
           setPriceHistory(null); // null signals to use generatePriceHistory
         }
       })
-      .catch(() => {
+      .catch((error) => {
         if (!alive) return;
+        console.warn('[BuyTokenModal] Error loading price history, using synthetic', {
+          token: selected.code,
+          error: error.message
+        });
         setPriceHistory(null); // Fallback to synthetic
       });
 
