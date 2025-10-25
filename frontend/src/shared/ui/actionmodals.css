@@ -434,10 +434,9 @@
 }
 
 .action-modal-token-logo {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  border: 1px solid color-mix(in srgb, var(--icon-outline, rgba(255,255,255,0.18)) 85%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -445,13 +444,17 @@
     linear-gradient(160deg,
       color-mix(in srgb, var(--icon-bg, color-mix(in srgb, var(--background-color) 82%, transparent)) 100%, transparent) 0%,
       color-mix(in srgb, var(--icon-bg, color-mix(in srgb, var(--background-color) 82%, transparent)) 70%, transparent) 100%);
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.22), 0 0 16px var(--icon-glow, transparent);
+  box-shadow: 
+    0 6px 14px rgba(0, 0, 0, 0.22),
+    0 0 20px var(--icon-glow, transparent),
+    0 0 40px color-mix(in srgb, var(--icon-glow, transparent) 50%, transparent),
+    0 0 60px color-mix(in srgb, var(--icon-glow, transparent) 25%, transparent);
   flex-shrink: 0;
 }
 
 .action-modal-token-logo-inner {
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: color-mix(in srgb, var(--background-color) 92%, transparent);
   display: flex;
@@ -466,7 +469,7 @@
   object-fit: contain;
   display: block;
   clip-path: circle(50%);
-  transform: scale(var(--icon-scale, 0.9));
+  transform: scale(var(--icon-scale, 0.95));
   transform-origin: center;
 }
 
