@@ -115,7 +115,7 @@ function formatRelativeTime(timestamp) {
 
 /**
  * Generate synthetic price history based on actual 24h change
- * Uses the real priceChange24h to create a realistic-looking chart
+ * Creates a smooth, natural-looking trend line (not candles/spikes)
  * @param {number} priceChange24h - Actual 24h price change percentage (e.g., 2.5 for +2.5%)
  * @returns {number[]} Array of normalized price points for the last 24h
  */
@@ -128,22 +128,22 @@ function generatePriceHistory(priceChange24h = 0) {
   const endPrice = startPrice * (1 + priceChange24h / 100);
   const totalChange = endPrice - startPrice;
   
-  // Generate smooth curve with some volatility
+  // Generate SMOOTH curve with minimal noise
   for (let i = 0; i < points; i++) {
     const progress = i / (points - 1); // 0 to 1
     
     // Base trend line (linear interpolation)
     const trendPrice = startPrice + (totalChange * progress);
     
-    // Add some realistic volatility (±2% random noise)
-    const noise = (Math.random() - 0.5) * 4;
+    // Add subtle volatility (±0.5% random noise - MUCH less)
+    const noise = (Math.random() - 0.5) * 1;
     const volatility = trendPrice * (noise / 100);
     
-    // Add sine wave for more natural movement
-    const wave = Math.sin(progress * Math.PI * 3) * (totalChange * 0.15);
+    // Add gentle sine wave for natural flow (reduced frequency)
+    const wave = Math.sin(progress * Math.PI * 1.5) * (totalChange * 0.08);
     
     const price = trendPrice + volatility + wave;
-    data.push(Math.max(startPrice * 0.85, Math.min(startPrice * 1.15, price)));
+    data.push(Math.max(startPrice * 0.92, Math.min(startPrice * 1.08, price)));
   }
   
   return data;

@@ -23,7 +23,7 @@ export function Sparkline({
 }) {
   // Auto size based on variant
   const finalWidth = width || (variant === 'hero' ? 200 : 60);
-  const finalHeight = height || (variant === 'hero' ? 55 : 20); // Reducido: 60 -> 55 (-5px)
+  const finalHeight = height || (variant === 'hero' ? 60 : 20);
   
   // Generate SVG path from data points
   const { path, gradientId } = useMemo(() => {

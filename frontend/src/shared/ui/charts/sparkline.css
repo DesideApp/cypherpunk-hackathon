@@ -26,7 +26,7 @@
   align-items: center;
   gap: 12px;
   width: 100%;
-  min-height: 110px; /* Reducido sutilmente: 120px -> 110px */
+  min-height: 120px;
   padding: 12px 0;
 }
 
