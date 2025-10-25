@@ -498,14 +498,7 @@ export default function BuyTokenModal({
     >
       <div className="buy-modal-body">
         <header className="buy-modal-header">
-          <div className="buy-modal-heading-group">
-            <h2 id="buy-modal-heading" className="buy-modal-heading">Quick buy</h2>
-            <p className="buy-modal-subheading">
-              {step === "pick-amount"
-                ? "Choose how much SOL you want to spend."
-                : "Select a token to buy."}
-            </p>
-          </div>
+          <h2 id="buy-modal-heading" className="buy-modal-heading">Quick buy</h2>
         </header>
 
         {step === "pick-token" && (
@@ -584,8 +577,8 @@ export default function BuyTokenModal({
                 }
               />
 
-              <ActionModalHint>
-                Blinks are executed from your connected wallet. Choose how much SOL to spend.
+              <ActionModalHint className="buy-selected-card__action-hint">
+                Choose how much SOL to spend.
               </ActionModalHint>
             </ActionModalCard>
 
