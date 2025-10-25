@@ -40,6 +40,53 @@
   min-height: 0;
 }
 
+/* ===================== First Conversation Hero ===================== */
+.first-conv-hero {
+  max-width: 560px;
+  margin: 40px auto 24px;
+  padding: 16px 12px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.first-conv-hero__avatar {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  background: var(--surface-color);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+.first-conv-hero__avatar img { width: 100%; height: 100%; object-fit: cover; }
+.first-conv-hero__avatar span { font-weight: 700; color: var(--text-primary); font-size: 1.2rem; }
+
+.first-conv-hero__name {
+  margin: 0 0 8px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.first-conv-hero__hint {
+  margin: 0 auto 16px;
+  max-width: 520px;
+  line-height: 1.6;
+}
+
+.first-conv-hero__today {
+  margin-top: 6px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+@media (max-width: 640px) {
+  .first-conv-hero { margin: 24px auto 12px; padding: 8px 8px; }
+  .first-conv-hero__avatar { width: 64px; height: 64px; }
+}
+
 .chat-composer-zone {
   position: relative;
   display: flex;

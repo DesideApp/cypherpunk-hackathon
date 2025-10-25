@@ -31,6 +31,7 @@ import FundWalletModal from "./modals/FundWalletModal.jsx";
 import SendModal from "./modals/SendModal.jsx";
 import RequestModal from "./modals/RequestModal.jsx";
 import { toUiMessage } from "@features/messaging/utils/toUiMessage.js";
+import useUserProfile from "@shared/hooks/useUserProfile.js";
 
 /* -------------------- helpers -------------------- */
 function normalizeSelected(sel) {
@@ -274,6 +275,21 @@ export default function ChatWindow({ selectedContact, activePanel, setActivePane
     if (selected?.nickname) return selected.nickname;
     return `${pk.slice(0, 4)}...${pk.slice(-4)}`;
   }, [selected]);
+
+  // Perfil para hero de primera conversación
+  const { profile: heroProfile } = useUserProfile(peerWallet, { ensure: !!peerWallet });
+  const [hasDraft, setHasDraft] = useState(false);
+  const onTypingLocal = useCallback((flag) => {
+    try { setTyping(!!flag); } catch {}
+    setHasDraft(!!flag);
+  }, [setTyping]);
+
+  const trunc = useCallback((s) => {
+    if (!s) return "";
+    const str = String(s);
+    if (str.length <= 10) return str;
+    return `${str.slice(0,4)}...${str.slice(-4)}`;
+  }, []);
 
   const selfLabel = useMemo(() => {
     if (!myWallet) return "";
@@ -780,28 +796,50 @@ export default function ChatWindow({ selectedContact, activePanel, setActivePane
     };
   }, [isMobileLayout]);
 
+  const heroActive = !!peerWallet && messages.length === 0 && !hasDraft;
+
   return (
     <div
       ref={viewportRef}
       className={`chat-window ${isMobileLayout ? "chat-window--mobile" : ""}`}
     >
       <div className="chat-window-inner">
-        <ChatHeader
-          selectedContact={selected}
-          peerOnline={peerOnline}
-          isTyping={isTypingRemote}
-          messages={messages}
-          onSearchSelect={(msg) => {
-            // TODO: scroll al mensaje seleccionado
-            console.log("Selected message:", msg);
-          }}
-          isCompactLayout={isMobileLayout}
-          onOpenContacts={isMobileLayout ? openContactsPanel : undefined}
-          onOpenLeftbar={isMobileLayout && allowMobileMenu ? openLeftbarDrawer : undefined}
-        />
+        {!heroActive && (
+          <ChatHeader
+            selectedContact={selected}
+            peerOnline={peerOnline}
+            isTyping={isTypingRemote}
+            messages={messages}
+            onSearchSelect={(msg) => {
+              // TODO: scroll al mensaje seleccionado
+              console.log("Selected message:", msg);
+            }}
+            isCompactLayout={isMobileLayout}
+            onOpenContacts={isMobileLayout ? openContactsPanel : undefined}
+            onOpenLeftbar={isMobileLayout && allowMobileMenu ? openLeftbarDrawer : undefined}
+          />
+        )}
 
         <div className="chat-window-body">
           <div className="chat-window-messages">
+            {/* Hero de primera conversación */}
+            {peerWallet && messages.length === 0 && (
+              <div className="first-conv-hero" role="region" aria-label="First conversation">
+                <div className="first-conv-hero__avatar">
+                  {heroProfile?.avatar ? (
+                    <img src={heroProfile.avatar} alt="" />
+                  ) : (
+                    <span>{(heroProfile?.nickname || peerLabel || "?").slice(0,1)}</span>
+                  )}
+                </div>
+                <h3 className="first-conv-hero__name">{heroProfile?.nickname || peerLabel}</h3>
+                <p className="first-conv-hero__hint">
+                  Messaging wallet‑to‑wallet off chain. Encrypted on your device. Only you and {heroProfile?.nickname || peerLabel} ({trunc(peerWallet)}) can read this chat.
+                </p>
+                <div className="first-conv-hero__today">Today</div>
+              </div>
+            )}
+
             <ChatMessages
               key={peerWallet || "none"}
               messages={messages}
@@ -832,7 +870,7 @@ export default function ChatWindow({ selectedContact, activePanel, setActivePane
             <WritingPanel
               key={peerWallet || "none"}
               onSendText={onSendText}
-              onTyping={setTyping}
+              onTyping={onTypingLocal}
               hasContact={hasContact}
               activePeer={peerWallet}
               isContactConfirmed={true}
