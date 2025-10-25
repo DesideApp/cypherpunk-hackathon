@@ -735,7 +735,7 @@
   align-items: center;
   background-color: var(--window-background);
   border-radius: 18px;
-  padding: 9px 13px;
+  padding: 7.5px 11px;
   border: 1.5px solid var(--border-color);
   transition: border-color 0.15s ease, padding 0.15s ease;
   min-height: 42px;
@@ -744,12 +744,12 @@
 
 .action-modal-search-input:hover:not(.action-modal-search-input--disabled) {
   border: 2px solid var(--border-color-active);
-  padding: 8px 12px;
+  padding: 7px 10.5px;
 }
 
 .action-modal-search-input--focused {
   border: 2px solid var(--accent-color);
-  padding: 8px 12px;
+  padding: 7px 10.5px;
 }
 
 .action-modal-search-input--disabled {

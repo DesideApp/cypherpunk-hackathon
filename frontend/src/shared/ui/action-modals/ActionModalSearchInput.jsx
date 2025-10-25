@@ -22,13 +22,11 @@ export const ActionModalSearchInput = forwardRef(function ActionModalSearchInput
   const [isFocused, setIsFocused] = React.useState(false);
 
   const handleFocus = (e) => {
-    console.log('[ActionModalSearchInput] Focus event');
     setIsFocused(true);
     if (onFocus) onFocus(e);
   };
 
   const handleBlur = (e) => {
-    console.log('[ActionModalSearchInput] Blur event');
     setIsFocused(false);
     if (onBlur) onBlur(e);
   };
@@ -39,8 +37,6 @@ export const ActionModalSearchInput = forwardRef(function ActionModalSearchInput
     disabled && "action-modal-search-input--disabled",
     className
   ].filter(Boolean).join(" ");
-
-  console.log('[ActionModalSearchInput] Classes:', wrapperClasses, 'isFocused:', isFocused);
 
   return (
     <div className={wrapperClasses}>
