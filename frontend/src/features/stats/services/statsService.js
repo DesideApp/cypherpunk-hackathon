@@ -1,26 +1,25 @@
 import { apiRequest } from "@shared/services/apiService.js";
 
-/**
- * Fetch stats overview from backend, honoring optional period/range/bucket params.
- * UI builds params via buildPeriodRequest(periodKey) → { period, bucketMinutes, rangeStart, rangeEnd }.
- * Backend expects: period, bucketMinutes, bucketCount, from, to.
- */
+function normalizeQuery(params = {}) {
+  const out = {};
+  if (params.period) out.period = params.period;
+  if (params.bucketMinutes) out.bucketMinutes = params.bucketMinutes;
+  if (params.bucketCount) out.bucketCount = params.bucketCount;
+  const from = params.from ?? params.rangeStart;
+  const to = params.to ?? params.rangeEnd;
+  if (from) out.from = typeof from === 'string' ? from : new Date(from).toISOString();
+  if (to) out.to = typeof to === 'string' ? to : new Date(to).toISOString();
+  return out;
+}
+
 export async function fetchStatsOverview(params = {}) {
-  // Map UI params to backend querystring
-  const mapped = {};
-  if (params.period) mapped.period = params.period;
-  if (params.bucketMinutes) mapped.bucketMinutes = params.bucketMinutes;
-  if (params.bucketCount) mapped.bucketCount = params.bucketCount;
+  const queryString = (() => {
+    const q = normalizeQuery(params);
+    const qs = new URLSearchParams(q).toString();
+    return qs ? `?${qs}` : '';
+  })();
 
-  const from = params.rangeStart ?? params.from;
-  const to = params.rangeEnd ?? params.to;
-  if (from) mapped.from = typeof from === 'string' ? from : new Date(from).toISOString();
-  if (to) mapped.to = typeof to === 'string' ? to : new Date(to).toISOString();
-
-  const qs = new URLSearchParams(mapped).toString();
-  const url = `/api/v1/stats/overview${qs ? `?${qs}` : ''}`;
-
-  const data = await apiRequest(url, { method: "GET" });
+  const data = await apiRequest(`/api/v1/stats/overview${queryString}`, { method: "GET" });
   if (!data || data.error) {
     const error = data?.message || "Unable to load stats overview.";
     throw new Error(error);

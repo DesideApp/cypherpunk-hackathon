@@ -3,7 +3,10 @@ import { readOverviewArchive } from '../services/archive.service.js';
 
 export const getStatsOverview = async (req, res) => {
   try {
-    const { bucketMinutes, bucketCount, period, from, to } = req.query;
+    const { bucketMinutes, bucketCount, period } = req.query;
+    // Soportar ambos nombres de parámetros: from/to y rangeStart/rangeEnd
+    const from = req.query.from || req.query.rangeStart || undefined;
+    const to = req.query.to || req.query.rangeEnd || undefined;
 
     // If requested range exceeds HOT_RETENTION_DAYS (default 7), use archive snapshots
     const hotDays = Math.max(1, parseInt(process.env.HOT_RETENTION_DAYS || '7', 10));

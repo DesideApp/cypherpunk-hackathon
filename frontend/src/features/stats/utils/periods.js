@@ -177,14 +177,14 @@ export const buildPeriodRequest = (periodKey) => {
   };
 
   if (rangeStart && rangeEnd) {
-    params.rangeStart = rangeStart.toISOString();
-    params.rangeEnd = rangeEnd.toISOString();
+    params.from = rangeStart.toISOString();
+    params.to = rangeEnd.toISOString();
   }
 
   return {
     params,
     meta: {
-      rangeLabel: rangeStart && rangeEnd ? formatRange(params.rangeStart, params.rangeEnd) : '',
+      rangeLabel: rangeStart && rangeEnd ? formatRange(params.from, params.to) : '',
       bucketMinutes: config.bucketMinutes,
       bucketMode: config.bucketMode
     }
