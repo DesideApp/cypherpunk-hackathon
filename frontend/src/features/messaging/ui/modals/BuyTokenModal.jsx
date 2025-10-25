@@ -5,7 +5,7 @@ import { useRpc } from "@wallet-adapter/core/contexts/RpcProvider";
 import { useAuthManager } from "@features/auth/hooks/useAuthManager.js";
 import { notify } from "@shared/services/notificationService.js";
 import { FEATURES, SOLANA } from "@shared/config/env.js";
-import { listBuyTokens, INPUT_MINT } from "@features/messaging/config/buyTokens.js";
+import { enrichTokenWithMetadata, INPUT_MINT } from "@features/messaging/config/buyTokens.js";
 import { getTokenMeta } from "@features/messaging/config/tokenMeta.js";
 import { VersionedTransaction, Transaction } from "@solana/web3.js";
 import { Buffer } from "buffer";
@@ -29,6 +29,7 @@ import {
 import { useLayout } from "@features/layout/contexts/LayoutContext";
 import TokenSearch from "../TokenSearch.jsx";
 import TokenButton from "./TokenButton.jsx";
+import TokenLoadError from "./TokenLoadError.jsx";
 import "./BuyTokenModal.css";
 
 function deserializeTransaction(base64) {
@@ -186,68 +187,60 @@ export default function BuyTokenModal({
 
   const [backendTokens, setBackendTokens] = useState(null);
   const [tokensLoading, setTokensLoading] = useState(false);
+  const [tokensError, setTokensError] = useState(null);
 
-  // Cargar tokens desde el backend (limpia cache para evitar residuos como WIF)
+  // Cargar tokens desde el backend (sin fallback hardcodeado)
+  const loadTokens = useCallback(async () => {
+    setTokensLoading(true);
+    setTokensError(null);
+    
+    try {
+      // Limpiar cache para obtener datos frescos
+      try { clearAllowedTokensCache(); } catch {}
+      
+      const data = await getAllowedTokens();
+      
+      if (!data || !data.tokens || data.tokens.length === 0) {
+        throw new Error("No hay tokens disponibles en este momento");
+      }
+      
+      setBackendTokens(data);
+      console.debug("[BuyTokenModal] tokens loaded successfully", {
+        count: data.tokens.length,
+        tokens: data.tokens.map((t) => ({ code: t.code, label: t.label })),
+      });
+    } catch (error) {
+      console.error("[BuyTokenModal] failed to load tokens", error);
+      setTokensError(error.message || "Error al cargar tokens");
+      setBackendTokens(null);
+    } finally {
+      setTokensLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!open) return;
-    
-    const loadTokens = async () => {
-      setTokensLoading(true);
-      try {
-        try { clearAllowedTokensCache(); } catch {}
-        const data = await getAllowedTokens();
-        setBackendTokens(data);
-      } catch (error) {
-        console.warn("[BuyTokenModal] failed to load backend tokens, using fallback", error);
-        setBackendTokens(null);
-      } finally {
-        setTokensLoading(false);
-      }
-    };
-
     loadTokens();
-  }, [open]);
+  }, [open, loadTokens]);
 
-  const fallbackTokens = useMemo(() => listBuyTokens(SOLANA.CHAIN), []);
-
-  const fallbackLookup = useMemo(
-    () => new Map(fallbackTokens.map((t) => [t.code, t])),
-    [fallbackTokens]
-  );
-
+  // Enriquecer tokens del backend con metadata UI (dialPath, etc.)
   const tokens = useMemo(() => {
-    // Leer tokens dinámicamente desde backend (sin filtro hardcodeado)
-    if (backendTokens?.tokens) {
-      const backendTokensList = backendTokens.tokens
-        .map((token) => {
-        const fallback = fallbackLookup.get(token.code) || {};
-        return {
-          code: token.code,
-          label: token.label || fallback.label || token.code,
-          outputMint: token.mint || fallback.outputMint || null,
-          decimals: token.decimals ?? fallback.decimals,
-          dialToUrl: fallback.dialToUrl || null,
-          maxAmount: token.maxAmount ?? fallback.maxAmount,
-          minAmount: token.minAmount ?? fallback.minAmount,
-        };
-      });
-
-      console.debug("[BuyTokenModal] using backend tokens", {
-        count: backendTokensList.length,
-        tokens: backendTokensList.map((t) => ({ code: t.code, label: t.label, hasMint: !!t.outputMint })),
-      });
-
-      return backendTokensList;
-    }
-
-    console.debug("[BuyTokenModal] using fallback tokens", {
-      count: fallbackTokens.length,
-      tokens: fallbackTokens.map((t) => ({ code: t.code, label: t.label, hasMint: !!t.outputMint })),
+    if (!backendTokens?.tokens) return [];
+    
+    const enrichedTokens = backendTokens.tokens.map(enrichTokenWithMetadata);
+    
+    console.debug("[BuyTokenModal] tokens enriched with metadata", {
+      count: enrichedTokens.length,
+      tokens: enrichedTokens.map((t) => ({ 
+        code: t.code, 
+        label: t.label, 
+        hasMint: !!t.outputMint,
+        hasDialPath: !!t.dialToUrl,
+      })),
     });
-
-    // Fallback local (todos los tokens disponibles)
-    return fallbackTokens;
-  }, [backendTokens, fallbackLookup, fallbackTokens]);
+    
+    return enrichedTokens;
+  }, [backendTokens]);
 
   const [step, setStep] = useState("pick-token");
   const [selected, setSelected] = useState(null); // { code, outputMint }
@@ -629,6 +622,16 @@ export default function BuyTokenModal({
               <div className="buy-loading">
                 <p>Loading available tokens...</p>
               </div>
+            ) : tokensError ? (
+              <TokenLoadError 
+                onRetry={loadTokens}
+                error={tokensError}
+              />
+            ) : tokens.length === 0 ? (
+              <TokenLoadError 
+                onRetry={loadTokens}
+                error="No hay tokens disponibles. Contacta con el administrador."
+              />
             ) : (
               <div className="buy-grid">
                 {tokens.map((t) => {

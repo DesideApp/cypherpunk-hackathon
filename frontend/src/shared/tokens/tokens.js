@@ -1,3 +1,12 @@
+/**
+ * Token validation config
+ * 
+ * ⚠️ IMPORTANT: This file is ONLY for validation and UI formatting.
+ * It does NOT define which tokens are available for purchase.
+ * Token availability is determined by backend/config/tokens.json
+ * 
+ * Add tokens here as they are added to production (tokens.json)
+ */
 const TOKENS = {
   SOL: {
     symbol: "SOL",
@@ -6,6 +15,11 @@ const TOKENS = {
   },
   USDC: {
     symbol: "USDC",
+    decimals: 6,
+    ui: { min: 2, max: 2 },
+  },
+  USDT: {
+    symbol: "USDT",
     decimals: 6,
     ui: { min: 2, max: 2 },
   },
@@ -19,13 +33,18 @@ const TOKENS = {
     decimals: 6,
     ui: { min: 0, max: 2 },
   },
-  PENGU: {
-    symbol: "PENGU",
-    decimals: 6,
+  JitoSOL: {
+    symbol: "JitoSOL",
+    decimals: 9,
+    ui: { min: 2, max: 6 },
+  },
+  POPCAT: {
+    symbol: "POPCAT",
+    decimals: 9,
     ui: { min: 0, max: 2 },
   },
-  WIF: {
-    symbol: "WIF",
+  ORCA: {
+    symbol: "ORCA",
     decimals: 6,
     ui: { min: 0, max: 2 },
   },

@@ -15,7 +15,7 @@ import {
   ActionModalNoteInput,
 } from "@shared/ui";
 import { SOLANA } from "@shared/config/env.js";
-import { listBuyTokens, INPUT_MINT } from "@features/messaging/config/buyTokens.js";
+import { getTokenMetadata, INPUT_MINT } from "@features/messaging/config/buyTokens.js";
 import { getTokenMeta } from "@features/messaging/config/tokenMeta.js";
 import { fetchPrices } from "@shared/services/priceService.js";
 
@@ -65,35 +65,25 @@ export default function RequestModal({
   const [busy, setBusy] = useState(false);
   const [prices, setPrices] = useState({});
 
-  // EXACTO como BuyToken: usar listBuyTokens con outputMint
-  const supportedTokens = useMemo(() => listBuyTokens(SOLANA.CHAIN), []);
-  
-  // EXACTO como BuyToken: selected con code + outputMint
+  // Get token metadata (dialPath, decimals, mint)
   const selected = useMemo(() => {
-    const tokenObj = supportedTokens.find((t) => t.code === token);
-    if (!tokenObj) return null;
+    const metadata = getTokenMetadata(token);
+    if (!metadata) return null;
     return {
-      code: tokenObj.code,
-      outputMint: tokenObj.outputMint || INPUT_MINT,
+      code: token,
+      outputMint: metadata.mintMainnet || INPUT_MINT,
     };
-  }, [token, supportedTokens]);
+  }, [token]);
 
-  // Cargar metadata del token (ASYNC) - IGUAL que BuyTokenModal
+  // Load token meta for UI (colors, icon)
   const selectedMeta = useMemo(() => (selected ? getTokenMeta(selected.code) : null), [selected]);
 
-  // Fetch prices EXACTO como BuyToken
+  // Fetch prices for the selected token
   useEffect(() => {
-    if (!open) return;
+    if (!open || !selected?.outputMint) return;
     try {
-      const ids = new Set(
-        supportedTokens
-          .map((t) => t.outputMint)
-          .filter(Boolean)
-          .concat(INPUT_MINT)
-      );
-      if (!ids.size) return;
       let alive = true;
-      fetchPrices(Array.from(ids))
+      fetchPrices([selected.outputMint, INPUT_MINT])
         .then((data) => {
           if (!alive) return;
           setPrices(data || {});
@@ -101,9 +91,9 @@ export default function RequestModal({
         .catch(() => {});
       return () => { alive = false; };
     } catch {}
-  }, [open, supportedTokens]);
+  }, [open, selected]);
 
-  // EXACTO como BuyToken: selectedPriceEntry
+  // Get price entry for the selected token
   const selectedPriceEntry = useMemo(() => {
     if (!selected?.outputMint) return null;
     return prices?.[selected.outputMint] || null;

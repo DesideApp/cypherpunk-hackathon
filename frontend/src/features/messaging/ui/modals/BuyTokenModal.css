@@ -706,6 +706,77 @@
   }
 }
 
+/* ===== ERROR STATE STYLES ===== */
+.buy-error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  gap: 16px;
+  min-height: 300px;
+}
+
+.buy-error-icon {
+  font-size: 48px;
+  margin-bottom: 8px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.05); }
+}
+
+.buy-error-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.buy-error-message {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  max-width: 400px;
+  margin: 0;
+}
+
+.buy-error-retry {
+  margin-top: 8px;
+  padding: 12px 24px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.buy-error-retry:hover {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.buy-error-retry:active {
+  transform: translateY(0);
+}
+
+.buy-error-hint {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+  margin: 8px 0 0;
+  opacity: 0.7;
+}
+
 /* ===== TOKEN BUTTON INFO STYLES ===== */
 /* Logo styles are now in shared/ui/action-modals (ActionModalTokenLogo primitive) */
 
