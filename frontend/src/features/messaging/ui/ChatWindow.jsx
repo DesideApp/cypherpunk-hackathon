@@ -31,6 +31,7 @@ import FundWalletModal from "./modals/FundWalletModal.jsx";
 import SendModal from "./modals/SendModal.jsx";
 import RequestModal from "./modals/RequestModal.jsx";
 import { toUiMessage } from "@features/messaging/utils/toUiMessage.js";
+import EmptyWelcome from "./EmptyWelcome.jsx";
 import useUserProfile from "@shared/hooks/useUserProfile.js";
 
 /* -------------------- helpers -------------------- */
@@ -797,6 +798,19 @@ export default function ChatWindow({ selectedContact, activePanel, setActivePane
   }, [isMobileLayout]);
 
   const heroActive = !!peerWallet && messages.length === 0 && !hasDraft;
+
+  // Mostrar welcome cuando no hay contacto seleccionado (desktop only)
+  if (!peerWallet && !isMobileLayout) {
+    return (
+      <div ref={viewportRef} className={`chat-window ${isMobileLayout ? "chat-window--mobile" : ""}`}>
+        <div className="chat-window-inner">
+          <div className="chat-window-body">
+            <EmptyWelcome onOpenContacts={openContactsPanel} />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
