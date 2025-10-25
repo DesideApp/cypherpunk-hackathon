@@ -314,7 +314,7 @@
       color-mix(in srgb, var(--window-background) 96%, transparent) 0%,
       color-mix(in srgb, var(--background-color) 72%, transparent) 100%);
   box-shadow:
-    0 16px 34px rgba(0, 0, 0, 0.24),
+    0 4px 12px rgba(0, 0, 0, 0.08),
     0 1px 0 rgba(255, 255, 255, 0.05),
     inset 0 1px 0 rgba(255, 255, 255, 0.06);
   overflow: hidden;
