@@ -11,7 +11,7 @@ import { VersionedTransaction, Transaction } from "@solana/web3.js";
 import { Buffer } from "buffer";
 import { getAllowedTokens, clearAllowedTokensCache } from "@features/messaging/services/allowedTokensService.js";
 import { executeBuyBlink } from "@features/messaging/services/buyBlinkService.js";
-import { fetchPrices } from "@shared/services/priceService.js";
+import { fetchPrices, fetchTokenHistory } from "@shared/services/priceService.js";
 import { 
   ModalShell, 
   UiChip, 
@@ -234,6 +234,7 @@ export default function BuyTokenModal({
   const [busy, setBusy] = useState(false);
   const [prices, setPrices] = useState({});
   const [pricesUpdatedAt, setPricesUpdatedAt] = useState(null);
+  const [priceHistory, setPriceHistory] = useState([]); // Historical price data for sparkline
 
   // Fetch USD prices for visible tokens (Jupiter Price API v3)
   useEffect(() => {
@@ -256,6 +257,44 @@ export default function BuyTokenModal({
       return () => { alive = false; };
     } catch {}
   }, [tokens]);
+
+  // Fetch historical price data for selected token
+  useEffect(() => {
+    if (!selected?.outputMint || !open) {
+      setPriceHistory([]);
+      return;
+    }
+
+    let alive = true;
+
+    // Try to fetch from backend (Dialect Markets API)
+    // Fallback to synthetic data if not available
+    fetchTokenHistory(selected.outputMint, walletAddress, 48, '1h')
+      .then((result) => {
+        if (!alive) return;
+        
+        if (result.success && result.data && result.data.length > 0) {
+          console.log('[BuyTokenModal] Using real historical data from backend', {
+            token: selected.code,
+            points: result.data.length
+          });
+          setPriceHistory(result.data);
+        } else {
+          // Fallback: Use synthetic data based on priceChange24h
+          console.log('[BuyTokenModal] Using synthetic price history (no backend data)', {
+            token: selected.code,
+            message: result.message
+          });
+          setPriceHistory(null); // null signals to use generatePriceHistory
+        }
+      })
+      .catch(() => {
+        if (!alive) return;
+        setPriceHistory(null); // Fallback to synthetic
+      });
+
+    return () => { alive = false; };
+  }, [selected, open, walletAddress]);
 
   const amountOptions = [0.01, 0.1, 1];
   const inlineEnabled = FEATURES.PAYMENT_INLINE_EXEC;
@@ -575,10 +614,15 @@ export default function BuyTokenModal({
                 conversionSecondary={quoteSubLabel}
               />
 
-              {/* Sparkline hero - Gráfico de precio 24h basado en datos reales */}
+              {/* Sparkline hero - Gráfico de precio 24h */}
+              {/* Prioridad: datos reales de backend > sintéticos basados en changeRaw */}
               <Sparkline
                 variant="hero"
-                data={generatePriceHistory(changeRaw || 0)}
+                data={
+                  priceHistory && priceHistory.length > 0
+                    ? priceHistory
+                    : generatePriceHistory(changeRaw || 0)
+                }
                 price={priceLabel ? priceLabel.replace('US$', 'USD') : "—"}
                 change={changeLabel || "—"}
                 trend={changeTone || 'neutral'}
