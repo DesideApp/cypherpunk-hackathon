@@ -486,8 +486,6 @@
   flex-direction: column;
   gap: 6px;
   margin: 0;
-  padding-top: 8px;
-  border-top: 1px solid color-mix(in srgb, var(--card-accent, rgba(255,255,255,0.1)) 22%, transparent);
 }
 
 .buy-selected-card__hints .action-modal-hint {
