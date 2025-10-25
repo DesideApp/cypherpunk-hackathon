@@ -126,11 +126,6 @@ export default function TokenButton({ token, price, priceChange, onClick, disabl
             animate={false}
           />
         )}
-        {priceChange == null && (
-          <span style={{ fontSize: '0.7rem', color: 'orange' }}>
-            [no change]
-          </span>
-        )}
         <div className="buy-token-price">
           {formatPriceUSD(price)}
         </div>

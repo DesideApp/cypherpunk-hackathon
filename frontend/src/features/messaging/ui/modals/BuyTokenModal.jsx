@@ -637,7 +637,7 @@ export default function BuyTokenModal({
                 {tokens.map((t) => {
                   const priceEntry = t.outputMint ? prices?.[t.outputMint] : null;
                   const price = priceEntry?.usdPrice || null;
-                  const priceChange = priceEntry?.change24h || null;
+                  const priceChange = priceEntry?.priceChange24h || null;
                   return (
                     <TokenButton
                       key={t.code}
