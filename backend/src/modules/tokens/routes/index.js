@@ -152,9 +152,17 @@ router.get('/stats/activations', async (req, res) => {
   try {
     const stats = getActivationStats();
 
+    // Include poller status if available
+    let pollerStatus = null;
+    try {
+      const { getPollerStatus } = await import('#jobs/tokenActivationPoller.js');
+      pollerStatus = getPollerStatus();
+    } catch {}
+
     res.status(200).json({
       success: true,
-      stats
+      stats,
+      poller: pollerStatus
     });
   } catch (error) {
     logger.error('[tokens/stats] Failed to get activation stats', {

@@ -2,6 +2,7 @@
 // Only activate tokens when users actually interact with them
 
 import logger from '#config/logger.js';
+import { env } from '#config/env.js';
 
 // In-memory cache of activated tokens (mint -> timestamp)
 // In production, this should be a Redis cache or DB collection
@@ -9,6 +10,17 @@ const activatedTokens = new Map();
 
 // How long to keep activation status cached (24 hours)
 const ACTIVATION_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+// How often to refresh/poll active tokens (5 minutes)
+const POLLING_INTERVAL_MS = 5 * 60 * 1000;
+
+// Always-active tokens (core tokens that should always be tracked)
+const ALWAYS_ACTIVE_TOKENS = [
+  { code: 'SOL', mint: 'So11111111111111111111111111111111111111112' },
+  { code: 'BONK', mint: env.MINT_BONK || 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263' },
+  { code: 'JUP', mint: env.MINT_JUP || 'JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN' },
+  { code: 'PENGU', mint: env.MINT_PENGU || '2zMMhcVQEXDtdE6vsFS7S7D5oUodfJHE8vd1gnBouauv' },
+];
 
 /**
  * Check if a token is activated for tracking
@@ -138,5 +150,42 @@ export function clearAllActivations() {
   activatedTokens.clear();
   logger.warn('[tokenActivation] All activations cleared', { count });
   return { success: true, clearedCount: count };
+}
+
+/**
+ * Initialize always-active tokens on server startup
+ * Pre-activates core tokens like SOL, BONK, etc.
+ */
+export function initializeAlwaysActiveTokens() {
+  logger.info('[tokenActivation] Initializing always-active tokens', {
+    count: ALWAYS_ACTIVE_TOKENS.length,
+    tokens: ALWAYS_ACTIVE_TOKENS.map(t => t.code)
+  });
+
+  for (const token of ALWAYS_ACTIVE_TOKENS) {
+    if (!token.mint) {
+      logger.warn('[tokenActivation] Skipping token without mint', { code: token.code });
+      continue;
+    }
+    activateToken(token.mint, token.code, 'system:startup');
+  }
+
+  logger.info('[tokenActivation] Always-active tokens initialized', {
+    activeCount: activatedTokens.size
+  });
+}
+
+/**
+ * Get configuration for polling and cache
+ * @returns {Object} Configuration object
+ */
+export function getActivationConfig() {
+  return {
+    cacheTTLMs: ACTIVATION_CACHE_TTL_MS,
+    cacheTTLHours: ACTIVATION_CACHE_TTL_MS / (60 * 60 * 1000),
+    pollingIntervalMs: POLLING_INTERVAL_MS,
+    pollingIntervalMinutes: POLLING_INTERVAL_MS / (60 * 1000),
+    alwaysActiveTokens: ALWAYS_ACTIVE_TOKENS.map(t => t.code)
+  };
 }
 

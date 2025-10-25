@@ -234,6 +234,21 @@ const startServer = async () => {
       throw apiError;
     }
 
+    // Initialize always-active tokens (SOL, BONK, etc.)
+    logger.info('🪙 Initializing always-active tokens...');
+    try {
+      const { initializeAlwaysActiveTokens } = await import('#modules/tokens/services/tokenActivationService.js');
+      initializeAlwaysActiveTokens();
+      logger.info('✅ Always-active tokens initialized');
+      
+      // Start periodic poller to keep tokens fresh (every 5 min)
+      const { startTokenActivationPoller } = await import('#jobs/tokenActivationPoller.js');
+      startTokenActivationPoller();
+      logger.info('✅ Token activation poller started');
+    } catch (tokenError) {
+      logger.warn('⚠️ Failed to initialize token activation system:', tokenError.message);
+    }
+
     logger.info('🔗 Setting up WebSocket...');
     // 4) WebSocket (namespace/handlers viven en apps/ws) - TODO: migrate to apps/ws
     let server, io;
