@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import { cleanupRelayByTier } from '#jobs/tasks/cleanupRelayByTier.js';
 import { pullActivityEvents } from '#jobs/tasks/pullActivityEvents.js';
+import { snapshotOverviewHourly } from '#jobs/tasks/snapshotOverview.js';
 import config from '#config/appConfig.js';
 
 const RELAY_CLEANUP_CRON = (process.env.RELAY_CLEANUP_CRON || config?.relayCleanupCron || '5 3 * * *').trim();
@@ -33,6 +34,21 @@ try {
 }
 
 console.log(`✅ Job programado: Limpieza relay (${RELAY_CLEANUP_CRON})`);
+
+// Snapshots: cada hora a :05 tomamos snapshot de la hora anterior
+try {
+  cron.schedule('5 * * * *', async () => {
+    try {
+      const res = await snapshotOverviewHourly();
+      console.log('📝 Snapshot overview OK:', res.file);
+    } catch (err) {
+      console.error('❌ Snapshot overview error:', err?.message || err);
+    }
+  });
+  console.log('✅ Job programado: Snapshot overview (5 * * * *)');
+} catch (e) {
+  console.error('❌ No se pudo programar snapshot overview:', e?.message || e);
+}
 
 if (ACTIVITY_PULL_CRON) {
   try {
