@@ -91,7 +91,7 @@ export const THEME_TOKENS = {
     "--overlay-dark-light": "rgba(0, 0, 0, 0.08)",
     
     // Sistema de semáforo (notificaciones)
-    "--success-color": "rgb(34, 197, 94)", // Verde unificado
+    "--success-color": "#16C784", // Verde CoinMarketCap
     "--warning-color": "#fbbf24",
     "--error-color": "#ff8581",
     "--header-title-offset-collapsed": "0px",
@@ -237,7 +237,7 @@ export const THEME_TOKENS = {
     "--overlay-dark-light": "rgba(0, 0, 0, 0.08)",
     
     // Sistema de semáforo (notificaciones)
-    "--success-color": "rgb(34, 197, 94)", // Verde unificado
+    "--success-color": "#16C784", // Verde CoinMarketCap
     "--warning-color": "#fbbf24",
     "--error-color": "#ff8581",
     "--header-title-offset-collapsed": "0px",

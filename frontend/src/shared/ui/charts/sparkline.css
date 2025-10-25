@@ -152,9 +152,6 @@
   }
 }
 
-/* ===== HOVER EFFECTS (hero only) ===== */
-.sparkline--hero:hover .sparkline-svg--hero {
-  filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.2))
-          drop-shadow(0 0 12px currentColor);
-}
+/* ===== HOVER EFFECTS (disabled) ===== */
+/* No hover effects on sparkline charts */
 
