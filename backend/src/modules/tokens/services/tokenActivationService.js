@@ -11,8 +11,8 @@ const activatedTokens = new Map();
 // How long to keep activation status cached (24 hours)
 const ACTIVATION_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
-// How often to refresh/poll active tokens (5 minutes)
-const POLLING_INTERVAL_MS = 5 * 60 * 1000;
+// How often to refresh/poll active tokens (1 hour)
+const POLLING_INTERVAL_MS = 60 * 60 * 1000;
 
 // Always-active tokens (core tokens that should always be tracked)
 const ALWAYS_ACTIVE_TOKENS = [

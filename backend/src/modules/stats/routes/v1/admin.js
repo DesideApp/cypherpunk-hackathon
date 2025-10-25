@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { listUsers, listRecentLogins, listTopUsers } from '../../controllers/adminUsers.controller.js';
 import { listRelayUsage, listRelayPending, getRelayOverview } from '../../controllers/adminRelay.controller.js';
 import { getInfraOverview } from '../../controllers/adminInfra.controller.js';
-import { getAdoptionOverview } from '../../controllers/adminAdoption.controller.js';
+import { getAdoptionOverview, getCohorts, getFunnel } from '../../controllers/adminAdoption.controller.js';
 
 const router = Router();
 
@@ -21,5 +21,7 @@ router.get('/infra/overview', getInfraOverview);
 
 // Adoption & cohorts
 router.get('/adoption/overview', getAdoptionOverview);
+router.get('/adoption/cohorts', getCohorts);
+router.get('/adoption/funnel', getFunnel);
 
 export default router;

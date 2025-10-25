@@ -96,3 +96,23 @@ export async function fetchAdoptionOverview(params = {}) {
   if (!res || res.error) throw new Error(res?.message || 'Failed to load adoption overview');
   return res;
 }
+
+export async function fetchAdoptionCohorts({ weeks = 8, activity = 'messages' } = {}) {
+  const params = new URLSearchParams();
+  params.set('weeks', String(weeks));
+  params.set('activity', String(activity));
+  const url = `/api/v1/stats/admin/adoption/cohorts?${params.toString()}`;
+  const res = await apiRequest(url, { method: 'GET' });
+  if (!res || res.error) throw new Error(res?.message || 'Failed to load cohorts');
+  return res;
+}
+
+export async function fetchAdoptionFunnel({ windowDays = 1, period = '30d' } = {}) {
+  const params = new URLSearchParams();
+  params.set('windowDays', String(windowDays));
+  if (period) params.set('period', String(period));
+  const url = `/api/v1/stats/admin/adoption/funnel?${params.toString()}`;
+  const res = await apiRequest(url, { method: 'GET' });
+  if (!res || res.error) throw new Error(res?.message || 'Failed to load funnel');
+  return res;
+}
