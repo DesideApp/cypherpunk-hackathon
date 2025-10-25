@@ -577,9 +577,14 @@ export default function BuyTokenModal({
                 }
               />
 
-              <ActionModalHint className="buy-selected-card__action-hint">
-                Choose how much SOL to spend.
-              </ActionModalHint>
+              <div className="buy-selected-card__hints">
+                <ActionModalHint>
+                  Blinks are executed from your connected wallet.
+                </ActionModalHint>
+                <ActionModalHint>
+                  Choose how much SOL to spend.
+                </ActionModalHint>
+              </div>
             </ActionModalCard>
 
             <ActionModalPresetAmounts

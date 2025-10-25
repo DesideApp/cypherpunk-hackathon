@@ -480,15 +480,22 @@
   background: color-mix(in srgb, var(--card-accent, rgba(59, 130, 246, 0.2)) 18%, transparent);
 }
 
-/* Action hint - blanco y destacado */
-.buy-selected-card__action-hint {
+/* Action hints - dos líneas separadas, blancas */
+.buy-selected-card__hints {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   margin: 0;
   padding-top: 8px;
-  font-size: 0.88rem;
+  border-top: 1px solid color-mix(in srgb, var(--card-accent, rgba(255,255,255,0.1)) 22%, transparent);
+}
+
+.buy-selected-card__hints .action-modal-hint {
+  font-size: 0.85rem;
   font-weight: 500;
   color: var(--text-primary);
   text-align: left;
-  border-top: 1px solid color-mix(in srgb, var(--card-accent, rgba(255,255,255,0.1)) 22%, transparent);
+  margin: 0;
 }
 
 .buy-token-info {
