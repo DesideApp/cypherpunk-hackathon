@@ -61,14 +61,14 @@ export async function fetchRecentLogins({ limit = 20, search = '' } = {}) {
 export async function fetchRelayPending({ limit = 20 } = {}) {
   const params = new URLSearchParams();
   if (limit) params.set('limit', String(limit));
-  const url = `/api/v1/stats/admin/relay/pending?${params.toString()}`;
+  const url = `/api/v1/stats/relay/pending?${params.toString()}`;
   const res = await apiRequest(url, { method: 'GET' });
   if (!res || res.error) throw new Error(res?.message || 'Failed to load relay pending');
   return res; // { data: [...], totals: { count, bytes } }
 }
 
 export async function fetchRelayOverview() {
-  const url = `/api/v1/stats/admin/relay/overview`;
+  const url = `/api/v1/stats/relay/overview`;
   const res = await apiRequest(url, { method: 'GET' });
   if (!res || res.error) throw new Error(res?.message || 'Failed to load relay overview');
   return res;
@@ -80,7 +80,7 @@ export async function fetchInfraOverview({ period = '1d', from, to, bucketMinute
   if (to) params.set('to', typeof to === 'string' ? to : new Date(to).toISOString());
   if (!from && !to && period) params.set('period', String(period));
   if (bucketMinutes) params.set('bucketMinutes', String(bucketMinutes));
-  const url = `/api/v1/stats/admin/infra/overview?${params.toString()}`;
+  const url = `/api/v1/stats/infra/overview?${params.toString()}`;
   const res = await apiRequest(url, { method: 'GET' });
   if (!res || res.error) throw new Error(res?.message || 'Failed to load infra overview');
   return res;
@@ -91,7 +91,7 @@ export async function fetchAdoptionOverview(params = {}) {
   if (params.period) mapped.set('period', String(params.period));
   if (params.rangeStart) mapped.set('from', params.rangeStart);
   if (params.rangeEnd) mapped.set('to', params.rangeEnd);
-  const url = `/api/v1/stats/admin/adoption/overview?${mapped.toString()}`;
+  const url = `/api/v1/stats/adoption/overview?${mapped.toString()}`;
   const res = await apiRequest(url, { method: 'GET' });
   if (!res || res.error) throw new Error(res?.message || 'Failed to load adoption overview');
   return res;
@@ -101,7 +101,7 @@ export async function fetchAdoptionCohorts({ weeks = 8, activity = 'messages' } 
   const params = new URLSearchParams();
   params.set('weeks', String(weeks));
   params.set('activity', String(activity));
-  const url = `/api/v1/stats/admin/adoption/cohorts?${params.toString()}`;
+  const url = `/api/v1/stats/adoption/cohorts?${params.toString()}`;
   const res = await apiRequest(url, { method: 'GET' });
   if (!res || res.error) throw new Error(res?.message || 'Failed to load cohorts');
   return res;
@@ -111,7 +111,7 @@ export async function fetchAdoptionFunnel({ windowDays = 1, period = '30d' } = {
   const params = new URLSearchParams();
   params.set('windowDays', String(windowDays));
   if (period) params.set('period', String(period));
-  const url = `/api/v1/stats/admin/adoption/funnel?${params.toString()}`;
+  const url = `/api/v1/stats/adoption/funnel?${params.toString()}`;
   const res = await apiRequest(url, { method: 'GET' });
   if (!res || res.error) throw new Error(res?.message || 'Failed to load funnel');
   return res;

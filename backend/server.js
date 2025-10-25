@@ -10,7 +10,7 @@ import { fileURLToPath } from 'url';
 
 // ── Middlewares transversales
 import { detectCountry } from '#middleware/geoMiddleware.js';
-import { apmMiddleware } from '#middleware/apmMiddleware.js';
+import { apmMiddleware as httpApmMiddleware } from '#middleware/apmMiddleware.js';
 
 // ── Config / validación (carga .env dentro)
 import logger from '#config/logger.js';
@@ -167,7 +167,7 @@ const startServer = async () => {
     );
 
     // APM (HTTP request metrics)
-    app.use(apmMiddleware);
+    app.use(httpApmMiddleware);
 
     // Geo (anota req.country para flags/policy)
     app.use(detectCountry);
