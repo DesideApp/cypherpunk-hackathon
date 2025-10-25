@@ -261,42 +261,10 @@
   cursor: not-allowed;
 }
 
-.buy-token-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: 1px solid color-mix(in srgb, var(--icon-outline, rgba(255,255,255,0.18)) 65%, transparent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background:
-    linear-gradient(160deg,
-      color-mix(in srgb, var(--icon-bg, color-mix(in srgb, var(--background-color) 82%, transparent)) 100%, transparent) 0%,
-      color-mix(in srgb, var(--icon-bg, color-mix(in srgb, var(--background-color) 82%, transparent)) 70%, transparent) 100%);
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.22), 0 0 16px var(--icon-glow, transparent);
-  flex-shrink: 0;
-}
-
-.buy-token-icon .inner {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--background-color) 92%, transparent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-
-.buy-token-icon .inner img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  display: block;
-  clip-path: circle(50%);
-  transform: scale(var(--icon-scale, 0.9));
-  transform-origin: center;
-}
+/* ===== OBSOLETE: .buy-token-icon removed =====
+ * Now using ActionModalTokenLogo primitive from shared/ui/action-modals
+ * Styles are in shared/ui/actionmodals.css
+ */
 
 .buy-selected-card {
   position: relative;
@@ -497,30 +465,13 @@
   margin: 0;
 }
 
-.buy-token-info {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex: 1;
-  gap: 16px;
-  min-width: 0;
-}
-
-.buy-token-code {
-  font-weight: 700;
-  color: var(--text-primary);
-  letter-spacing: .02em;
-  font-size: 0.92rem;
-}
-
-.buy-token-right {
-  margin-left: auto;
-  text-align: right;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 72px;
-}
+/* ===== OBSOLETE: Old token button layout removed =====
+ * .buy-token-info (old version with justify-content: space-between)
+ * .buy-token-code (replaced by .buy-token-name)
+ * .buy-token-right (no longer used)
+ * 
+ * Current layout is defined at line 751+ (.buy-token-info, .buy-token-name, .buy-token-price)
+ */
 
 .buy-price {
   font-family: var(--font-data-family, "JetBrains Mono", monospace);
