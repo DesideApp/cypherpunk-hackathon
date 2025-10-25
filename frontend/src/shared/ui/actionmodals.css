@@ -678,6 +678,53 @@
 }
 
 /* =========================================================================
+   TOKEN LOGO SIMPLE (for lists, buttons, compact views)
+   ========================================================================= */
+
+.action-modal-token-logo-simple {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Sin border circular - solo glow */
+  filter: 
+    drop-shadow(0 2px 6px rgba(0, 0, 0, 0.15))
+    drop-shadow(0 0 12px var(--icon-glow, transparent));
+  transition: filter 0.3s ease;
+}
+
+/* Size variants */
+.action-modal-token-logo-simple--small {
+  width: 32px;
+  height: 32px;
+}
+
+.action-modal-token-logo-simple--medium {
+  width: 44px;
+  height: 44px;
+}
+
+.action-modal-token-logo-simple--large {
+  width: 52px;
+  height: 52px;
+}
+
+.action-modal-token-logo-simple img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 50%;
+  transform: scale(var(--icon-scale, 0.92));
+}
+
+/* Hover effect (parent must have hover state) */
+.action-modal-token-logo-simple:hover {
+  filter: 
+    drop-shadow(0 3px 8px rgba(0, 0, 0, 0.2))
+    drop-shadow(0 0 16px var(--icon-glow, transparent));
+}
+
+/* =========================================================================
    RESPONSIVE
    ========================================================================= */
 

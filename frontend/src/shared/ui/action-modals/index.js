@@ -1,5 +1,6 @@
 export { ActionModalCard } from "./ActionModalCard.jsx";
 export { ActionModalTokenHeader } from "./ActionModalTokenHeader.jsx";
+export { ActionModalTokenLogo } from "./ActionModalTokenLogo.jsx";
 export { ActionModalIdentity } from "./ActionModalIdentity.jsx";
 export { ActionModalIdentityFlow } from "./ActionModalIdentityFlow.jsx";
 export { ActionModalPresetAmounts } from "./ActionModalPresetAmounts.jsx";
