@@ -135,7 +135,7 @@ function applyEMA(data, period = 6) {
 
 /**
  * Generate synthetic price history based on actual 24h change
- * Creates an EMA-smoothed trend line (not point-to-point prices)
+ * Like CoinMarketCap: visible volatility but smooth trend with thicker line
  * @param {number} priceChange24h - Actual 24h price change percentage (e.g., 2.5 for +2.5%)
  * @returns {number[]} Array of EMA-smoothed price points for the last 24h
  */
@@ -148,7 +148,7 @@ function generatePriceHistory(priceChange24h = 0) {
   const endPrice = startPrice * (1 + priceChange24h / 100);
   const totalChange = endPrice - startPrice;
   
-  // Generate base trend with subtle variations
+  // Generate base trend with MORE visible variations (like CMC)
   for (let i = 0; i < points; i++) {
     const progress = i / (points - 1); // 0 to 1
     
@@ -156,16 +156,16 @@ function generatePriceHistory(priceChange24h = 0) {
     const trendPrice = startPrice + (totalChange * progress);
     
     // Add gentle wave for natural flow
-    const wave = Math.sin(progress * Math.PI * 2) * (Math.abs(totalChange) * 0.12);
+    const wave = Math.sin(progress * Math.PI * 2) * (Math.abs(totalChange) * 0.15);
     
-    // Tiny random noise for realism
-    const noise = (Math.random() - 0.5) * 0.3;
+    // More visible random noise (like CMC charts)
+    const noise = (Math.random() - 0.5) * 1.2;
     
     rawData.push(trendPrice + wave + noise);
   }
   
-  // Apply EMA smoothing (period=6 for smooth but responsive line)
-  const smoothed = applyEMA(rawData, 6);
+  // Apply EMA smoothing (period=5 for more responsive, visible movement)
+  const smoothed = applyEMA(rawData, 5);
   
   return smoothed;
 }

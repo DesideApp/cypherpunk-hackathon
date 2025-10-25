@@ -152,7 +152,7 @@ export function Sparkline({
           d={path.path || path}
           fill="none"
           stroke={strokeColor}
-          strokeWidth="2"
+          strokeWidth="2.5"
           strokeLinecap="round"
           strokeLinejoin="round"
           vectorEffect="non-scaling-stroke"
