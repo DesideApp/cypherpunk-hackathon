@@ -735,19 +735,20 @@
   align-items: center;
   background-color: var(--window-background);
   border-radius: 18px;
-  padding: 7.5px 11px;
+  padding: 9px 13px;
   border: 1.5px solid var(--border-color);
   transition: var(--transition-all);
+  min-height: 42px;
 }
 
 .action-modal-search-input:hover:not(.action-modal-search-input--disabled) {
-  border: 2px solid var(--border-color-active);
-  padding: 7px 10.5px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1.5px solid var(--border-color-active);
 }
 
 .action-modal-search-input--focused {
-  border: 2px solid var(--accent-color);
-  padding: 7px 10.5px;
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1.5px solid var(--accent-color);
 }
 
 .action-modal-search-input--disabled {

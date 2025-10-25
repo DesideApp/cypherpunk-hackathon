@@ -29,36 +29,43 @@ export default function StatsDashboard() {
   return (
     <div className="stats-layout">
       <header className="stats-layout__header">
-        <div>
-          <h1>Product Insights</h1>
-          <p>Métricas internas de mensajería, acciones y adopción.</p>
+        <div className="stats-layout__header-inner">
+          <div className="stats-layout__heading">
+            <span className="stats-layout__eyebrow">Insights</span>
+            <h1>Product Insights</h1>
+            <p>Métricas internas de mensajería, acciones y adopción.</p>
+          </div>
         </div>
       </header>
 
       <nav className="stats-layout__tabs">
-        {TABS.map((tab) => (
-          <NavLink
-            key={tab.key}
-            to={tab.path}
-            className={({ isActive }) => `stats-tab ${isActive ? "active" : ""}`}
-          >
-            {tab.label}
-          </NavLink>
-        ))}
+        <div className="stats-layout__tabs-inner">
+          {TABS.map((tab) => (
+            <NavLink
+              key={tab.key}
+              to={tab.path}
+              className={({ isActive }) => `stats-tab ${isActive ? "active" : ""}`}
+            >
+              {tab.label}
+            </NavLink>
+          ))}
+        </div>
       </nav>
 
       <div className="stats-layout__content">
-        <Routes>
-          <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="traffic" element={<Traffic />} />
-          <Route path="users" element={<Users />} />
-          <Route path="actions" element={<Actions />} />
-          <Route path="adoption" element={<Adoption />} />
-          <Route path="infra" element={<Infra />} />
-          <Route path="relay" element={<Relay />} />
-          <Route path="*" element={<Navigate to="dashboard" replace />} />
-        </Routes>
+        <div className="stats-layout__content-inner">
+          <Routes>
+            <Route index element={<Navigate to="dashboard" replace />} />
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="traffic" element={<Traffic />} />
+            <Route path="users" element={<Users />} />
+            <Route path="actions" element={<Actions />} />
+            <Route path="adoption" element={<Adoption />} />
+            <Route path="infra" element={<Infra />} />
+            <Route path="relay" element={<Relay />} />
+            <Route path="*" element={<Navigate to="dashboard" replace />} />
+          </Routes>
+        </div>
       </div>
     </div>
   );

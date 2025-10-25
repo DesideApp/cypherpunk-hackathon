@@ -7,7 +7,7 @@
 }
 
 .stats-layout__header {
-  padding: 32px 0 18px;
+  padding: 20px 0 12px;
   border-bottom: 1px solid rgba(148, 163, 184, 0.14);
 }
 
@@ -37,7 +37,7 @@
 
 .stats-layout__heading h1 {
   margin: 0;
-  font-size: 2rem;
+  font-size: 1.6rem;
   line-height: 1.25;
   color: var(--color-text-primary, #f8fafc);
 }
@@ -63,6 +63,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 14px;
+  justify-content: center;
 }
 
 .stats-tab {
@@ -107,7 +108,7 @@
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 28px 36px 64px;
+  padding: 24px 36px 48px;
   display: flex;
   flex-direction: column;
   gap: 36px;
