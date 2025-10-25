@@ -54,7 +54,9 @@
     "telegram:dev": "nodemon backend/src/modules/telegram-bot/startBot.js",
     "telegram:test": "node scripts/test-telegram-bot.mjs",
     "telegram:setup": "./scripts/quick-telegram-setup.sh",
-    "generate-intents": "node scripts/generate-intents.mjs"
+    "generate-intents": "node scripts/generate-intents.mjs",
+    "smoke:infra": "node scripts/smoke-infra.mjs",
+    "smoke:relay": "node scripts/smoke-relay.mjs"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.1",

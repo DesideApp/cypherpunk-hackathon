@@ -8,6 +8,7 @@
   position: relative;
   display: flex;
   align-items: center;
+  width: 100%;
 }
 
 /* ActionModalSearchInput styles are in shared/ui/actionmodals.css */

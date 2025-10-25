@@ -739,6 +739,7 @@
   border: 1.5px solid var(--border-color);
   transition: border-color 0.15s ease, padding 0.15s ease;
   min-height: 42px;
+  width: 100%;
 }
 
 .action-modal-search-input:hover:not(.action-modal-search-input--disabled) {
