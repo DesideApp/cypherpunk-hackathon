@@ -734,7 +734,7 @@
 .buy-token-info {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   flex: 1;
   min-width: 0;
 }
@@ -744,14 +744,19 @@
   font-weight: 600;
   letter-spacing: 0.01em;
   color: var(--text-primary);
+  width: 90px;
   flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .buy-token-price {
   font-size: 0.85rem;
   font-weight: 500;
   color: var(--text-secondary);
-  flex: 1;
-  text-align: center;
+  width: 100px;
+  text-align: right;
+  flex-shrink: 0;
   opacity: 0.9;
 }
