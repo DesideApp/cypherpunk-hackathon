@@ -378,6 +378,12 @@ export default function BuyTokenModal({
   const changeRaw = typeof selectedPriceEntry?.priceChange24h === "number" ? selectedPriceEntry.priceChange24h : null;
   const changeLabel = changeRaw != null ? formatPercent(changeRaw) : null;
   const changeTone = typeof changeRaw === "number" ? (changeRaw > 0 ? "positive" : changeRaw < 0 ? "negative" : null) : null;
+  
+  // Generate synthetic price history (memoized to prevent re-generation on every render)
+  const syntheticPriceHistory = useMemo(() => {
+    return generatePriceHistory(changeRaw || 0);
+  }, [changeRaw]);
+  
   const solPriceEntry = prices?.[INPUT_MINT] || null;
   const solUsdPrice = typeof solPriceEntry?.usdPrice === "number" ? solPriceEntry.usdPrice : null;
   const shortMint = selected?.outputMint ? shortAddress(selected.outputMint) : null;
@@ -660,7 +666,7 @@ export default function BuyTokenModal({
                 data={
                   priceHistory && priceHistory.length > 0
                     ? priceHistory
-                    : generatePriceHistory(changeRaw || 0)
+                    : syntheticPriceHistory
                 }
                 price={priceLabel ? priceLabel.replace('US$', 'USD') : "—"}
                 change={changeLabel || "—"}
