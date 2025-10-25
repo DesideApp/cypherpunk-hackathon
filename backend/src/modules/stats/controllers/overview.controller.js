@@ -2,7 +2,10 @@ import { computeStatsOverview } from '../services/metrics.service.js';
 
 export const getStatsOverview = async (req, res) => {
   try {
-    const { bucketMinutes, bucketCount, period, from, to } = req.query;
+    const { bucketMinutes, bucketCount, period } = req.query;
+    // Soportar ambos nombres de parámetros: from/to y rangeStart/rangeEnd
+    const from = req.query.from || req.query.rangeStart || undefined;
+    const to = req.query.to || req.query.rangeEnd || undefined;
 
     const data = await computeStatsOverview({
       bucketMinutes,

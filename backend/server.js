@@ -141,6 +141,8 @@ const startServer = async () => {
     app.use(
       helmet({
         contentSecurityPolicy: false,
+        // Permit loading static assets (avatars) from this API on other origins (SPA domain)
+        crossOriginResourcePolicy: { policy: process.env.CORP_POLICY || 'cross-origin' },
         hsts: { maxAge: 63072000, includeSubDomains: true, preload: true }
       })
     );

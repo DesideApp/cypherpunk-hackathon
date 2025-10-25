@@ -13,6 +13,7 @@ import {
 import './AdminDashboard.css';
 
 const rawBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+const INTERNAL_API = import.meta.env.VITE_INTERNAL_API_SECRET || '';
 const ADMIN_JWT =
   import.meta.env.VITE_ADMIN_JWT ||
   import.meta.env.VITE_API_TOKEN ||
@@ -82,7 +83,8 @@ export default function AdminDashboard() {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            ...(ADMIN_JWT ? { Authorization: `Bearer ${ADMIN_JWT}` } : {})
+            ...(ADMIN_JWT ? { Authorization: `Bearer ${ADMIN_JWT}` } : {}),
+            ...(INTERNAL_API ? { 'x-internal-api': INTERNAL_API } : {})
           },
           credentials: ADMIN_JWT ? 'omit' : 'include',
           signal: controller.signal

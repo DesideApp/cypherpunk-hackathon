@@ -13,6 +13,7 @@ const ADMIN_JWT =
   import.meta.env.VITE_API_TOKEN ||
   import.meta.env.VITE_BEARER_TOKEN ||
   '';
+const INTERNAL_API = import.meta.env.VITE_INTERNAL_API_SECRET || '';
 
 const resolveBaseUrl = () => {
   if (rawBaseUrl) {
@@ -99,7 +100,8 @@ export default function UserManagement() {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            ...(ADMIN_JWT ? { Authorization: `Bearer ${ADMIN_JWT}` } : {})
+            ...(ADMIN_JWT ? { Authorization: `Bearer ${ADMIN_JWT}` } : {}),
+            ...(INTERNAL_API ? { 'x-internal-api': INTERNAL_API } : {})
           },
           credentials: ADMIN_JWT ? 'omit' : 'include',
           signal: controller.signal
