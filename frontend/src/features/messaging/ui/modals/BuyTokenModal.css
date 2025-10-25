@@ -709,17 +709,28 @@
 /* ===== TOKEN BUTTON INFO STYLES ===== */
 /* Logo styles are now in shared/ui/action-modals (ActionModalTokenLogo primitive) */
 
+.buy-token-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
 .buy-token-name {
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 600;
   letter-spacing: 0.01em;
   color: var(--text-primary);
+  flex-shrink: 0;
 }
 
 .buy-token-price {
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   font-family: var(--font-data-family, "JetBrains Mono", monospace);
   letter-spacing: 0.02em;
-  color: var(--text-secondary);
-  opacity: 0.85;
+  color: var(--text-primary);
+  font-weight: 500;
+  margin-left: auto;
+  flex-shrink: 0;
 }

@@ -632,12 +632,15 @@ export default function BuyTokenModal({
             ) : (
               <div className="buy-grid">
                 {tokens.map((t) => {
-                  const price = t.outputMint ? prices?.[t.outputMint]?.usdPrice : null;
+                  const priceEntry = t.outputMint ? prices?.[t.outputMint] : null;
+                  const price = priceEntry?.usdPrice || null;
+                  const priceChange = priceEntry?.change24h || null;
                   return (
                     <TokenButton
                       key={t.code}
                       token={t}
                       price={price}
+                      priceChange={priceChange}
                       onClick={pickToken}
                       disabled={!t.outputMint}
                     />
