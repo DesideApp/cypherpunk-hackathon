@@ -26,6 +26,9 @@
   margin: 0 auto 14px;
   color: var(--text-secondary);
   max-width: 620px;
+  font-size: 0.92rem; /* un pelín más pequeña (estilo pie) */
+  line-height: 1.55;
+  letter-spacing: -0.005em;
 }
 
 .empty-welcome__cta { margin: 6px 0 16px; }
@@ -46,7 +49,7 @@
 .empty-welcome__disclaimer {
   margin-top: 12px;
   color: var(--text-muted);
-  font-size: 0.85rem;
+  font-size: 0.82rem; /* más pie aún */
   line-height: 1.5;
 }
 

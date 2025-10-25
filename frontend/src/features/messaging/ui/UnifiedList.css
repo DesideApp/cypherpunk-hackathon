@@ -170,7 +170,7 @@
   background-color: var(--surface-color);
   border: 2px solid var(--border-color);
   margin-right: var(--space-sm);
-  overflow: hidden; /* Recorta la imagen para asegurar círculo perfecto */
+  overflow: visible; /* Permite que el indicador salga por fuera si hace falta */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -184,8 +184,8 @@
 /* Indicador de online en el avatar */
 .avatar-online-indicator {
   position: absolute;
-  bottom: 0px;   /* Mantener el indicador dentro del círculo */
-  right: 0px;
+  bottom: -2px;   /* Ligeramente fuera del círculo */
+  right: -2px;
   width: 12px;
   height: 12px;
   border-radius: 50%;
@@ -285,6 +285,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  border-radius: 50%; /* Asegura recorte circular de la imagen */
 }
 
 .avatar-placeholder {
