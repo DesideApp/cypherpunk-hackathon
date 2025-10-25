@@ -276,11 +276,6 @@
   transition: var(--transition-all);
 }
 
-.ui-search-input:hover:not(.ui-search-input--disabled) {
-  border: 2px solid var(--border-color-active);
-  padding: 7px 10.5px;
-}
-
 .ui-search-input--focused {
   border: 2px solid var(--accent-color);
   padding: 7px 10.5px;
@@ -288,6 +283,11 @@
 
 .ui-search-input--focused:hover {
   border: 2px solid var(--accent-color);
+  padding: 7px 10.5px;
+}
+
+.ui-search-input:hover:not(.ui-search-input--disabled):not(.ui-search-input--focused) {
+  border: 2px solid var(--border-color-active);
   padding: 7px 10.5px;
 }
 
