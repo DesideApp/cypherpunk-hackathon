@@ -51,15 +51,13 @@ export default function TokenButton({ token, price, onClick, disabled }) {
         disabled
         title="Loading token..."
       >
-        <div className="buy-token-icon">
-          <div className="inner">
-            <div style={{ 
-              width: '20px', 
-              height: '20px', 
-              backgroundColor: '#64748b', 
-              borderRadius: '50%' 
-            }} />
-          </div>
+        <div className="buy-token-logo" style={{ opacity: 0.5 }}>
+          <div style={{ 
+            width: '32px', 
+            height: '32px', 
+            backgroundColor: '#64748b', 
+            borderRadius: '50%' 
+          }} />
         </div>
         <div className="buy-token-info">
           <div className="buy-token-name">{token.code}</div>
@@ -85,10 +83,8 @@ export default function TokenButton({ token, price, onClick, disabled }) {
       disabled={disabled}
       title={disabled ? "Token not configured" : `Buy ${token.code}`}
     >
-      <div className="buy-token-icon" style={iconStyle}>
-        <div className="inner" style={innerStyle}>
-          <img src={iconPath} alt={meta.label || token.code} />
-        </div>
+      <div className="buy-token-logo" style={iconStyle}>
+        <img src={iconPath} alt={meta.label || token.code} style={innerStyle} />
       </div>
       <div className="buy-token-info">
         <div className="buy-token-name">{meta.label || token.code}</div>
