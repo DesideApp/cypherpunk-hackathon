@@ -37,9 +37,8 @@
 }
 
 .sparkline-svg--hero {
-  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15))
-          drop-shadow(0 0 8px currentColor);
-  opacity: 0.9;
+  filter: drop-shadow(0 0 10px currentColor);
+  opacity: 0.95;
 }
 
 /* Path stroke */
