@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import User from '#modules/users/models/user.model.js';
 import { getPublicKey } from '#shared/services/keyManager.js';
 import { COOKIE_NAMES } from '#config/cookies.js';
+import logger from '#config/logger.js';
 
 const require = createRequire(import.meta.url);
 const jwt = require('jsonwebtoken');
@@ -74,6 +75,7 @@ function sendCorsError(res, req, statusCode, errorMessage, nextStep) {
 export const protectRoute = async (req, res, next) => {
   try {
     if (req.method === 'OPTIONS') return next();
+    const AUTH_DEBUG = String(process.env.AUTH_DEBUG || 'false').toLowerCase() === 'true';
 
     // DEV-ONLY: bypass de pruebas (asegúrate de NO definir TEST_BYPASS_WALLET en prod)
     if (process.env.TEST_BYPASS_WALLET === '1' && process.env.NODE_ENV !== 'production') {
@@ -110,6 +112,7 @@ export const protectRoute = async (req, res, next) => {
     }
 
     if (!token) {
+      if (AUTH_DEBUG) logger.warn(`[auth] missing token path=${req.originalUrl || req.path}`);
       return sendCorsError(res, req, 401, 'Authentication required', 'SIGN_IN');
     }
 
@@ -127,7 +130,8 @@ export const protectRoute = async (req, res, next) => {
         ...(JWT_ISSUER ? { issuer: JWT_ISSUER } : {}),
         ...(JWT_AUDIENCE ? { audience: JWT_AUDIENCE } : {})
       });
-    } catch {
+    } catch (e) {
+      if (AUTH_DEBUG) logger.warn(`[auth] jwt.verify failed path=${req.originalUrl || req.path} reason=${e?.message || e}`);
       return sendCorsError(res, req, 403, 'Invalid authentication or CSRF token', 'REAUTHENTICATE');
     }
 
@@ -147,6 +151,7 @@ export const protectRoute = async (req, res, next) => {
       const csrfStored = user.csrfToken || '';
       const valid = csrfHeader && (csrfHeader === csrfStored || csrfHeader === csrfCookie);
       if (!valid) {
+        if (AUTH_DEBUG) logger.warn(`[auth] CSRF mismatch path=${req.originalUrl || req.path} header=${(csrfHeader||'').slice(0,8)}... cookie=${(csrfCookie||'').slice(0,8)}... stored=${(csrfStored||'').slice(0,8)}...`);
         return sendCorsError(res, req, 403, 'Invalid authentication or CSRF token', 'REAUTHENTICATE');
       }
     }
@@ -155,6 +160,7 @@ export const protectRoute = async (req, res, next) => {
     req.user = { ...user.toObject(), wallet };
     req.auth = { source: tokenSource, exp: decoded.exp };
 
+    if (AUTH_DEBUG) logger.info(`[auth] ok wallet=${wallet} path=${req.originalUrl || req.path}`);
     return next();
   } catch (error) {
     console.error('❌ Auth Middleware Error:', error.message);

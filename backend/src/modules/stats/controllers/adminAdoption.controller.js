@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import User from '#modules/users/models/user.model.js';
 import Stats from '#modules/stats/models/stats.model.js';
+import logger from '#config/logger.js';
 
 function parseDateSafe(v) {
   if (!v) return null;
@@ -103,6 +104,7 @@ export async function getAdoptionOverview(req, res) {
       },
     };
 
+    try { const DBG = String(process.env.STATS_DEBUG || 'false').toLowerCase() === 'true'; if (DBG) logger.info(`[adoption] users total=${totalUsers} new=${newUsers} dau=${dau}`); } catch{}
     return res.status(200).json(payload);
   } catch (error) {
     const { from, to } = resolveRange(req.query || {});

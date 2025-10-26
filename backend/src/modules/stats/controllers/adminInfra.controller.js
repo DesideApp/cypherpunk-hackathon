@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import logger from '#config/logger.js';
 
 function parseDateSafe(v) {
   if (!v) return null;
@@ -170,6 +171,8 @@ export async function getInfraOverview(req, res) {
       series: outSeries,
     };
 
+    const DBG = String(process.env.STATS_DEBUG || 'false').toLowerCase() === 'true';
+    if (DBG) logger.info(`[infra] totals=${overview.totals.requests} p95=${overview.totals.p95} buckets=${overview.series.length}`);
     return res.status(200).json(overview);
   } catch (error) {
     // Fallback completamente tolerante

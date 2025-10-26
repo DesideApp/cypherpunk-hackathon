@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import logger from '#config/logger.js';
 
 function sanitizeRoute(path) {
   if (!path) return '/';
@@ -55,6 +56,15 @@ export function apmMiddleware(req, res, next) {
       if (db) {
         await db.collection('apm_http').insertOne(doc);
       }
+
+      // Debug (muestral) opcional
+      try {
+        const DEBUG = String(process.env.APM_DEBUG || 'false').toLowerCase() === 'true';
+        const rate = Math.min(1, Math.max(0, Number(process.env.APM_DEBUG_RATE || '0.1')));
+        if (DEBUG && Math.random() < rate) {
+          logger.info(`[APM] ${method} ${route} → ${status} in ${Math.round(doc.durationMs)}ms`);
+        }
+      } catch {}
     } catch (e) {
       // swallow errors silently
     }
@@ -64,4 +74,3 @@ export function apmMiddleware(req, res, next) {
 }
 
 export default apmMiddleware;
-

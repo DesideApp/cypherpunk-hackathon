@@ -279,10 +279,8 @@ export default function ChatWindow({ selectedContact, activePanel, setActivePane
 
   // Perfil para hero de primera conversación
   const { profile: heroProfile } = useUserProfile(peerWallet, { ensure: !!peerWallet });
-  const [hasDraft, setHasDraft] = useState(false);
   const onTypingLocal = useCallback((flag) => {
     try { setTyping(!!flag); } catch {}
-    setHasDraft(!!flag);
   }, [setTyping]);
 
   const trunc = useCallback((s) => {
@@ -797,7 +795,8 @@ export default function ChatWindow({ selectedContact, activePanel, setActivePane
     };
   }, [isMobileLayout]);
 
-  const heroActive = !!peerWallet && messages.length === 0 && !hasDraft;
+  // Hero activo SOLO hasta que exista el primer mensaje (enter/enviado)
+  const heroActive = !!peerWallet && messages.length === 0;
 
   // Mostrar welcome cuando no hay contacto seleccionado (desktop only)
   if (!peerWallet && !isMobileLayout) {
@@ -818,21 +817,23 @@ export default function ChatWindow({ selectedContact, activePanel, setActivePane
       className={`chat-window ${isMobileLayout ? "chat-window--mobile" : ""}`}
     >
       <div className="chat-window-inner">
-        {!heroActive && (
-          <ChatHeader
-            selectedContact={selected}
-            peerOnline={peerOnline}
-            isTyping={isTypingRemote}
-            messages={messages}
-            onSearchSelect={(msg) => {
-              // TODO: scroll al mensaje seleccionado
-              console.log("Selected message:", msg);
-            }}
-            isCompactLayout={isMobileLayout}
-            onOpenContacts={isMobileLayout ? openContactsPanel : undefined}
-            onOpenLeftbar={isMobileLayout && allowMobileMenu ? openLeftbarDrawer : undefined}
-          />
-        )}
+        <div className="chat-header-slot">
+          <div className={`header-layer ${heroActive ? 'is-hidden' : ''}`}>
+            <ChatHeader
+              selectedContact={selected}
+              peerOnline={peerOnline}
+              isTyping={isTypingRemote}
+              messages={messages}
+              onSearchSelect={(msg) => {
+                // TODO: scroll al mensaje seleccionado
+                console.log("Selected message:", msg);
+              }}
+              isCompactLayout={isMobileLayout}
+              onOpenContacts={isMobileLayout ? openContactsPanel : undefined}
+              onOpenLeftbar={isMobileLayout && allowMobileMenu ? openLeftbarDrawer : undefined}
+            />
+          </div>
+        </div>
 
         <div className="chat-window-body">
           <div className="chat-window-messages">

@@ -18,6 +18,7 @@ import agreementRoutes    from '#modules/agreements/routes/index.js';
 import statsRoutes        from '#modules/stats/routes/index.js';
 import tokenRoutes        from '#modules/tokens/routes/index.js';
 import naturalCommandsRoutes from '#modules/natural-commands/routes/index.js';
+import historyRoutes      from '#modules/history/routes/index.js';
 // import telegramBotRoutes  from '../../../modules/telegram-bot/routes/index.js'; // Disabled for memory optimization
 import linkPreviewRoutes  from '#modules/link-preview/routes/index.js';
 import activityRoutes     from '#modules/activity/routes/index.js';
@@ -35,6 +36,7 @@ v1.use('/contacts', protectRoute, contactRoutes);
 v1.use('/signal',   protectRoute, signalRoutes);
 v1.use('/relay',    protectRoute, relayRoutes);
 v1.use('/dm',       protectRoute, dmRoutes);
+v1.use('/history',  protectRoute, historyRoutes);
 v1.use('/blinks',   protectRoute, blinkRoutes);
 v1.use('/agreements', protectRoute, agreementRoutes);
 v1.use('/activity', protectRoute, activityRoutes);

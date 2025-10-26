@@ -6,6 +6,8 @@ import { io as ioExport, isWalletOnlineWithTTL } from "#shared/services/websocke
 import cfg from "#config/runtimeConfig.js";
 import config from "#config/appConfig.js";
 import logEvent from '#modules/stats/services/eventLogger.service.js';
+import logger from '#config/logger.js';
+import { appendMessageToHistory } from '#modules/history/services/history.service.js';
 
 const MAX_BOX_BYTES = (cfg?.relay?.maxBoxBytes ?? config.relayMaxBoxBytes);
 const OFFLINE_ONLY  = (cfg?.relay?.offlineOnly ?? config.relayOfflineOnly);
@@ -203,6 +205,25 @@ export const enqueueMessage = async (req, res) => {
 
     const nowUsed = willUse;
     const isOverflow = nowUsed > quota && nowUsed <= allowedWithGrace;
+
+    const historyCreatedAt = targetDoc?.createdAt || new Date();
+    try {
+      await appendMessageToHistory({
+        convId: finalMeta?.convId,
+        participants: [sender, dest],
+        sender,
+        relayMessageId: targetId,
+        clientMsgId: req.body?.clientMsgId,
+        box,
+        boxSize,
+        iv,
+        messageType,
+        meta: finalMeta || undefined,
+        createdAt: historyCreatedAt,
+      });
+    } catch (historyErr) {
+      logger.warn(`⚠️ relay→history append failed (${targetId}): ${historyErr?.message || historyErr}`);
+    }
 
     return res.status(202).json({
       status: "queued",

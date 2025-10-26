@@ -1,5 +1,6 @@
 // src/modules/stats/controllers/adminRelay.controller.js
 import User from '#modules/users/models/user.model.js';
+import logger from '#config/logger.js';
 
 /**
  * GET /api/v1/stats/admin/relay/usage
@@ -82,6 +83,7 @@ export async function listRelayPending(req, res) {
       { $group: { _id: null, count: { $sum: 1 }, bytes: { $sum: '$boxSize' } } }
     ]).catch(() => []);
     const totals = totalsAgg[0] || { count: 0, bytes: 0 };
+    try { const DBG = String(process.env.STATS_DEBUG || 'false').toLowerCase() === 'true'; if (DBG) logger.info(`[relay] pending totals count=${totals.count} bytes=${totals.bytes} rows=${rows.length}`); } catch{}
     return res.status(200).json({ data: rows, totals });
   } catch (error) {
     return res.status(200).json({ data: [], totals: { count: 0, bytes: 0 } });
@@ -129,6 +131,7 @@ export async function getRelayOverview(req, res) {
       errors: errAgg.map((e) => ({ code: e._id || 'unknown', count: e.count })),
       purges: purgeAgg.map((p) => ({ kind: p._id, count: p.count || 0, bytes: p.bytes || 0 }))
     };
+    try { const DBG = String(process.env.STATS_DEBUG || 'false').toLowerCase() === 'true'; if (DBG) logger.info(`[relay] overview messages=${out.messages.length} errors=${out.errors.length} purges=${out.purges.length}`); } catch{}
     return res.status(200).json(out);
   } catch (error) {
     const now = new Date();
