@@ -378,9 +378,13 @@ export const ackMessages = async (req, res) => {
     // Eliminar los mensajes después de marcar como acknowledged
     const result = await RelayMessage.deleteMany({ _id: { $in: idsToAck }, to: String(wallet) });
 
-    if (totalBytes > 0) {
-      await User.updateOne({ wallet }, { $inc: { relayUsedBytes: -totalBytes } });
-    }
+    // Calcular bytes restantes tras el ACK para evitar valores negativos por carreras/doble ACK.
+    const [remainingAgg] = await RelayMessage.aggregate([
+      { $match: { to: wallet } },
+      { $group: { _id: null, bytes: { $sum: '$boxSize' } } },
+    ]);
+    const remainingBytes = remainingAgg?.bytes || 0;
+    await User.updateOne({ wallet }, { $set: { relayUsedBytes: remainingBytes } });
 
     await safeLog(wallet, 'relay_ack', { count: result.deletedCount || 0, freedBytes: totalBytes || 0 });
 
@@ -497,11 +501,17 @@ export const purgeRelayMailbox = async (req, res) => {
     const bytesFreed = docs.reduce((sum, d) => sum + (d.boxSize || 0), 0);
 
     await RelayMessage.deleteMany({ to: wallet });
-    if (bytesFreed > 0) {
-      await User.updateOne({ wallet }, { $inc: { relayUsedBytes: -bytesFreed } });
-    }
+
+    // Recalcular uso restante para garantizar que nunca quede negativo.
+    const [remain] = await RelayMessage.aggregate([
+      { $match: { to: wallet } },
+      { $group: { _id: null, bytes: { $sum: '$boxSize' } } },
+    ]);
+    const remainBytes = remain?.bytes || 0;
+    await User.updateOne({ wallet }, { $set: { relayUsedBytes: remainBytes } });
+
     try { await safeLog(wallet, 'relay_purged_manual', { count: docs.length, freedBytes: bytesFreed }); } catch {}
-    return res.status(200).json({ data: { ok: true, messagesDeleted: docs.length, bytesFreed } });
+    return res.status(200).json({ data: { ok: true, messagesDeleted: docs.length, bytesFreed, usedBytesNow: remainBytes } });
   } catch (error) {
     return res.status(500).json({ error: "FAILED_TO_PURGE", details: error.message });
   }

@@ -154,6 +154,13 @@ export const loginUser = async (req, res) => {
       return res.status(401).json({ error: 'INVALID_SIGNATURE', nextStep: 'RETRY_SIGNING' });
     }
 
+    // Sanea cuentas con contador negativo por eventuales carreras previas.
+    await User.updateOne(
+      { wallet: pubkey, relayUsedBytes: { $lt: 0 } },
+      { $set: { relayUsedBytes: 0 } },
+      { runValidators: false }
+    ).catch(() => {});
+
     const user = await User.findOneAndUpdate(
       { wallet: pubkey },
       { $setOnInsert: { registeredAt: new Date() }, $set: { lastLogin: new Date() }, $inc: { loginCount: 1 } },
