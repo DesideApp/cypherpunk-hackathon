@@ -771,4 +771,6 @@
   text-align: right;
   opacity: 0.9;
   white-space: nowrap;
+  min-width: 80px;
+  flex-shrink: 0;
 }
