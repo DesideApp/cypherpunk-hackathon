@@ -105,14 +105,16 @@ export default function TokenButton({ token, price, priceChange, onClick, disabl
       </div>
       <div className="buy-token-right">
         {priceChange != null && priceData.length > 0 && (
-          <Sparkline
-            data={priceData}
-            variant="mini"
-            width={56}
-            height={20}
-            trend={priceChange >= 0 ? 'positive' : 'negative'}
-            animate={false}
-          />
+          <div className="buy-token-graph-container">
+            <Sparkline
+              data={priceData}
+              variant="mini"
+              width={56}
+              height={20}
+              trend={priceChange >= 0 ? 'positive' : 'negative'}
+              animate={false}
+            />
+          </div>
         )}
         <div className="buy-token-price">
           {formatPriceUSD(price)}

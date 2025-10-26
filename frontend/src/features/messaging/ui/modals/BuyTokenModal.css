@@ -756,6 +756,14 @@
   flex-shrink: 0;
 }
 
+.buy-token-graph-container {
+  width: 56px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .buy-token-price {
   font-size: 0.85rem;
   font-weight: 500;
