@@ -212,7 +212,7 @@
 .buy-token {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   padding: 10px 12px;
   border: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
   border-radius: var(--radius-md, 12px);
@@ -225,6 +225,7 @@
   transition: var(--transition-all);
   min-height: 48px;
   margin: 0;
+  justify-content: space-between;
 }
 
 .buy-token + .buy-token {
@@ -731,13 +732,11 @@
 /* ===== TOKEN BUTTON INFO STYLES ===== */
 /* Logo styles are now in shared/ui/action-modals (ActionModalTokenLogo primitive) */
 
-.buy-token-info {
+.buy-token-left {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex: 1;
-  min-width: 0;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .buy-token-name {
@@ -745,17 +744,23 @@
   font-weight: 600;
   letter-spacing: 0.01em;
   color: var(--text-primary);
-  flex-shrink: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.buy-token-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
 }
 
 .buy-token-price {
   font-size: 0.85rem;
   font-weight: 500;
   color: var(--text-secondary);
-  flex-shrink: 0;
   text-align: right;
   opacity: 0.9;
+  white-space: nowrap;
 }

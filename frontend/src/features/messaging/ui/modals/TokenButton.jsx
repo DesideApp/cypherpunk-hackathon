@@ -91,17 +91,19 @@ export default function TokenButton({ token, price, priceChange, onClick, disabl
       disabled={disabled}
       title={disabled ? "Token not configured" : `Buy ${token.code}`}
     >
-      <ActionModalTokenLogo
-        icon={iconPath}
-        alt={meta.label || token.code}
-        size="small"
-        style={{
-          ...iconStyle,
-          ...(innerStyle || {})
-        }}
-      />
-      <div className="buy-token-info">
+      <div className="buy-token-left">
+        <ActionModalTokenLogo
+          icon={iconPath}
+          alt={meta.label || token.code}
+          size="small"
+          style={{
+            ...iconStyle,
+            ...(innerStyle || {})
+          }}
+        />
         <div className="buy-token-name">{meta.label || token.code}</div>
+      </div>
+      <div className="buy-token-right">
         {priceChange != null && priceData.length > 0 && (
           <Sparkline
             data={priceData}
