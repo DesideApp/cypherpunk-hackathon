@@ -734,6 +734,7 @@
 .buy-token-info {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
   flex: 1;
   min-width: 0;
@@ -757,5 +758,4 @@
   flex-shrink: 0;
   text-align: right;
   opacity: 0.9;
-  margin-left: auto;
 }
