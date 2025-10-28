@@ -1,15 +1,19 @@
 // Aggregate previous day's hourly overview snapshots into a daily snapshot
 import fs from 'fs/promises';
 import path from 'path';
-import { gzip as _gzip } from 'zlib';
+import { gzip as _gzip, gunzip as _gunzip } from 'zlib';
 import { promisify } from 'util';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 function alignToDay(d) { const x = new Date(d); x.setHours(0,0,0,0); return x; }
 
 async function ensureDir(dir) { await fs.mkdir(dir, { recursive: true }).catch(() => {}); }
 
 export async function snapshotOverviewDaily() {
-  const baseDir = process.env.SNAPSHOT_DIR || path.resolve(process.cwd(), 'backups', 'metrics');
+  const baseDir = process.env.SNAPSHOT_DIR || path.resolve(__dirname, '../../../..', 'backups', 'metrics');
   const now = new Date();
   // Previous day
   const dayEnd = alignToDay(now); // today 00:00 
@@ -25,9 +29,17 @@ export async function snapshotOverviewDaily() {
 
   for (let h = 0; h < 24; h += 1) {
     const hh = String(h).padStart(2, '0');
-    const file = path.join(baseDir, 'overview', yyyy, mm, dd, `${hh}.json`);
+    const gzFile = path.join(baseDir, 'overview', yyyy, mm, dd, `${hh}.json.gz`);
+    const jsonFile = path.join(baseDir, 'overview', yyyy, mm, dd, `${hh}.json`);
     try {
-      const raw = await fs.readFile(file, 'utf8');
+      let raw;
+      try {
+        const gunzip = promisify(_gunzip);
+        const gz = await fs.readFile(gzFile);
+        raw = (await gunzip(gz)).toString('utf8');
+      } catch {
+        raw = await fs.readFile(jsonFile, 'utf8');
+      }
       const snap = JSON.parse(raw);
       msgTotal += Number(snap?.messages?.count || 0);
       connTotal += Number(snap?.connections?.count || 0);
