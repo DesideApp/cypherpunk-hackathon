@@ -31,7 +31,7 @@ export async function activateToken(mint, code, userPubkey = null) {
       return { success: false, isActive: false, wasAlreadyActive: false };
     }
 
-    const url = apiUrl('/v1/tokens/activate');
+    const url = apiUrl('/api/v1/tokens/activate');
     
     const res = await fetch(url, {
       method: 'POST',
@@ -85,7 +85,7 @@ export async function checkTokenStatus(mint) {
       return { success: false, isActive: false };
     }
 
-    const url = apiUrl(`/v1/tokens/${encodeURIComponent(mint)}/status`);
+    const url = apiUrl(`/api/v1/tokens/${encodeURIComponent(mint)}/status`);
     
     const res = await fetch(url, {
       headers: { Accept: 'application/json' },
@@ -123,50 +123,38 @@ export async function checkTokenStatus(mint) {
  * @returns {Promise<{success: boolean, data: number[], points: number, isTokenActive: boolean}>}
  */
 export async function fetchTokenHistory(mint, walletAddress = null, points = 48, resolution = '1h') {
-  try {
-    if (!mint) {
-      return { success: false, data: [], points: 0 };
-    }
+  if (!mint) throw new Error('mint is required');
 
-    const params = new URLSearchParams({
-      resolution,
-      points: points.toString()
-    });
+  const params = new URLSearchParams({
+    resolution,
+    points: points.toString()
+  });
 
-    if (walletAddress) {
-      params.append('walletAddress', walletAddress);
-    }
+  if (walletAddress) params.append('walletAddress', walletAddress);
 
-    const url = apiUrl(`/v1/tokens/${encodeURIComponent(mint)}/history?${params.toString()}`);
-    
-    const res = await fetch(url, {
-      headers: { Accept: 'application/json' },
-      credentials: 'include' // Include cookies for auth if needed
-    });
+  const url = apiUrl(`/api/v1/tokens/${encodeURIComponent(mint)}/history?${params.toString()}`);
+  const res = await fetch(url, {
+    headers: { Accept: 'application/json' },
+    credentials: 'include'
+  });
 
-    if (!res.ok) {
-      console.warn('[priceService] Failed to fetch token history', {
-        mint,
-        status: res.status
-      });
-      return { success: false, data: [], points: 0 };
-    }
-
-    const result = await res.json();
-    
-    return {
-      success: result.success || false,
-      data: result.data || [],
-      points: result.points || 0,
-      isTokenActive: result.isTokenActive !== undefined ? result.isTokenActive : false,
-      message: result.message
-    };
-  } catch (error) {
-    console.error('[priceService] Error fetching token history', {
-      mint,
-      error: error.message
-    });
-    return { success: false, data: [], points: 0 };
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`history request failed (${res.status}): ${body.slice(0, 160)}`);
   }
-}
 
+  const result = await res.json();
+  if (!result || result.success === false) {
+    throw new Error(result?.message || 'history response error');
+  }
+
+  if (!Array.isArray(result.data)) {
+    throw new Error('history payload missing data');
+  }
+
+  return {
+    data: result.data,
+    points: result.points || result.data.length,
+    source: result.source || null,
+  };
+}
