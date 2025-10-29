@@ -92,6 +92,7 @@ export const THEME_TOKENS = {
     
     // Sistema de semáforo (notificaciones)
     "--success-color": "#0FAF6F", // Verde CMC con más contraste para light mode
+    "--danger-color": "#EA3943", // Rojo CMC para gráficas negativas
     "--warning-color": "#fbbf24",
     "--error-color": "#ff8581",
     "--header-title-offset-collapsed": "0px",
@@ -238,6 +239,7 @@ export const THEME_TOKENS = {
     
     // Sistema de semáforo (notificaciones)
     "--success-color": "#0FAF6F", // Verde CMC unificado (más contraste)
+    "--danger-color": "#EA3943", // Rojo CMC para gráficas negativas
     "--warning-color": "#fbbf24",
     "--error-color": "#ff8581",
     "--header-title-offset-collapsed": "0px",

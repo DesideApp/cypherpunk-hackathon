@@ -23,6 +23,7 @@
 - ✅ **LIVE & FUNCTIONAL**
 - Real swaps via Jupiter API
 - Token metadata with visual indicators
+- 24h price charts (CoinGecko API)
 - Slippage control + gas estimation
 
 **💳 Fund Wallet Modal**
@@ -198,6 +199,7 @@ Set `DATA_MODE=local` and `MONGO_URI=mongodb://127.0.0.1:27017/deside` in `.env`
 ## 📚 Additional Documentation
 
 - [Blink Registration Guide](docs/dial-to-blinks.md)
+- [Price History Flow](docs/PRICE_HISTORY_FLOW.md)
 - [Fund Wallet Setup](docs/FUND_WALLET_SETUP.md)
 - [Fund Wallet Providers](docs/FUND_WALLET_PROVIDERS.md)
 - [AI Token Agent Demo](ai-token-agent/DEMO.md)
