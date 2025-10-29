@@ -3,7 +3,16 @@ import { cleanupRelayByTier } from '#jobs/tasks/cleanupRelayByTier.js';
 import { pullActivityEvents } from '#jobs/tasks/pullActivityEvents.js';
 import { snapshotOverviewHourly } from '#jobs/tasks/snapshotOverview.js';
 import { snapshotOverviewDaily } from '#jobs/tasks/snapshotOverviewDaily.js';
+import { reconcileRelayHistory } from '#jobs/tasks/reconcileRelayHistory.js';
+import {
+  recordJobStart,
+  recordJobSuccess,
+  recordJobError,
+} from '#jobs/jobStatusTracker.js';
 import config from '#config/appConfig.js';
+import { createModuleLogger } from '#config/logger.js';
+
+const log = createModuleLogger({ module: 'jobs.scheduler' });
 
 const RELAY_CLEANUP_CRON = (process.env.RELAY_CLEANUP_CRON || config?.relayCleanupCron || '5 3 * * *').trim();
 const ACTIVITY_PULL_CRON = String(process.env.ACTIVITY_PULL_CRON || '').trim();
@@ -12,14 +21,27 @@ const ACTIVITY_PULL_DRY_RUN = String(process.env.ACTIVITY_PULL_DRY_RUN ?? 'true'
 
 function scheduleCleanup(cronExpr) {
   cron.schedule(cronExpr, async () => {
-    console.log(`🧹 Ejecutando limpieza relay por tier (CRON="${cronExpr}") …`);
+    log.info('cron_cleanup_start', { cronExpr });
+    recordJobStart('cleanupRelayByTier', { cronExpr });
     try {
       const res = await cleanupRelayByTier({ dryRun: false });
-      console.log(
-        `✅ Limpieza OK: removed=${res?.totals?.removed ?? 0} freed=${Math.round((res?.totals?.freedBytes ?? 0) / 1024)}KB in ${res?.durationMs ?? '?'}ms`
-      );
+      log.info('cron_cleanup_success', {
+        cronExpr,
+        removed: res?.totals?.removed ?? 0,
+        freedBytes: res?.totals?.freedBytes ?? 0,
+        durationMs: res?.durationMs ?? null,
+      });
+      recordJobSuccess('cleanupRelayByTier', {
+        removed: res?.totals?.removed ?? 0,
+        freedBytes: res?.totals?.freedBytes ?? 0,
+        durationMs: res?.durationMs ?? null,
+      });
     } catch (e) {
-      console.error('❌ Limpieza relay error:', e?.message || e);
+      log.error('cron_cleanup_error', {
+        cronExpr,
+        error: e?.stack || e?.message || e,
+      });
+      recordJobError('cleanupRelayByTier', e);
     }
   });
 }
@@ -27,67 +49,128 @@ function scheduleCleanup(cronExpr) {
 try {
   scheduleCleanup(RELAY_CLEANUP_CRON);
 } catch (e) {
-  console.error(
-    `❌ Cron inválido (${RELAY_CLEANUP_CRON}). Usando fallback "*/30 * * * *". Motivo:`,
-    e?.message || e
-  );
+  log.error('cron_cleanup_invalid', {
+    cronExpr: RELAY_CLEANUP_CRON,
+    error: e?.message || e,
+  });
   scheduleCleanup('*/30 * * * *');
+  recordJobError('cleanupRelayByTier', e);
 }
 
-console.log(`✅ Job programado: Limpieza relay (${RELAY_CLEANUP_CRON})`);
+log.info('cron_cleanup_scheduled', { cronExpr: RELAY_CLEANUP_CRON });
 
 // Snapshots: cada hora a :05 tomamos snapshot de la hora anterior
 try {
   cron.schedule('5 * * * *', async () => {
+    recordJobStart('snapshotOverviewHourly', { cronExpr: '5 * * * *' });
     try {
       const res = await snapshotOverviewHourly();
-      console.log('📝 Snapshot overview OK:', res.file);
+      log.info('cron_snapshot_hourly_success', {
+        file: res.file,
+      });
+      recordJobSuccess('snapshotOverviewHourly', { file: res.file });
     } catch (err) {
-      console.error('❌ Snapshot overview error:', err?.message || err);
+      log.error('cron_snapshot_hourly_error', {
+        error: err?.stack || err?.message || err,
+      });
+      recordJobError('snapshotOverviewHourly', err);
     }
   });
-  console.log('✅ Job programado: Snapshot overview (5 * * * *)');
+  log.info('cron_snapshot_hourly_scheduled', { cronExpr: '5 * * * *' });
 } catch (e) {
-  console.error('❌ No se pudo programar snapshot overview:', e?.message || e);
+  log.error('cron_snapshot_hourly_schedule_error', {
+    error: e?.message || e,
+  });
+  recordJobError('snapshotOverviewHourly', e);
 }
 
 // Snapshot diario (día anterior) a las 00:10
 try {
   cron.schedule('10 0 * * *', async () => {
+    recordJobStart('snapshotOverviewDaily', { cronExpr: '10 0 * * *' });
     try {
       const res = await snapshotOverviewDaily();
-      console.log('📝 Snapshot daily overview OK:', res.file);
+      log.info('cron_snapshot_daily_success', { file: res.file });
+      recordJobSuccess('snapshotOverviewDaily', { file: res.file });
     } catch (err) {
-      console.error('❌ Snapshot daily overview error:', err?.message || err);
+      log.error('cron_snapshot_daily_error', {
+        error: err?.stack || err?.message || err,
+      });
+      recordJobError('snapshotOverviewDaily', err);
     }
   });
-  console.log('✅ Job programado: Snapshot overview daily (10 0 * * *)');
+  log.info('cron_snapshot_daily_scheduled', { cronExpr: '10 0 * * *' });
 } catch (e) {
-  console.error('❌ No se pudo programar snapshot daily overview:', e?.message || e);
+  log.error('cron_snapshot_daily_schedule_error', { error: e?.message || e });
+  recordJobError('snapshotOverviewDaily', e);
+}
+
+// Reconciliación relay ↔ history diaria a las 02:30
+try {
+  cron.schedule('30 2 * * *', async () => {
+    const options = {
+      batchSize: Number.parseInt(process.env.RECONCILE_BATCH_SIZE ?? '0', 10),
+      repair: String(process.env.RECONCILE_REPAIR ?? 'true').toLowerCase() !== 'false',
+      checkHistory: String(process.env.RECONCILE_CHECK_HISTORY ?? 'true').toLowerCase() !== 'false',
+    };
+    log.info('cron_reconcile_start', options);
+    recordJobStart('reconcileRelayHistory', options);
+    try {
+      const res = await reconcileRelayHistory(options);
+      log.info('cron_reconcile_success', { ...res });
+      recordJobSuccess('reconcileRelayHistory', res);
+    } catch (err) {
+      log.error('cron_reconcile_error', {
+        error: err?.stack || err?.message || err,
+      });
+      recordJobError('reconcileRelayHistory', err);
+    }
+  });
+  log.info('cron_reconcile_scheduled', { cronExpr: '30 2 * * *' });
+} catch (error) {
+  log.error('cron_reconcile_schedule_error', { error: error?.message || error });
+  recordJobError('reconcileRelayHistory', error);
 }
 
 if (ACTIVITY_PULL_CRON) {
   try {
     cron.schedule(ACTIVITY_PULL_CRON, async () => {
-      console.log(`🔁 Poll actividad (CRON="${ACTIVITY_PULL_CRON}") …`);
+      log.info('cron_activity_pull_start', { cronExpr: ACTIVITY_PULL_CRON, dryRun: ACTIVITY_PULL_DRY_RUN });
+      recordJobStart('pullActivityEvents', { cronExpr: ACTIVITY_PULL_CRON, dryRun: ACTIVITY_PULL_DRY_RUN });
       try {
         const res = await pullActivityEvents({
           limit: Number.isFinite(ACTIVITY_PULL_LIMIT) && ACTIVITY_PULL_LIMIT > 0 ? ACTIVITY_PULL_LIMIT : 100,
           dryRun: ACTIVITY_PULL_DRY_RUN,
         });
-        console.log(
-          `✅ Poll actividad OK: processed=${res?.processed ?? 0} duration=${res?.durationMs ?? 0}ms dryRun=${res?.dryRun}`
-        );
+        log.info('cron_activity_pull_success', {
+          cronExpr: ACTIVITY_PULL_CRON,
+          processed: res?.processed ?? 0,
+          durationMs: res?.durationMs ?? 0,
+          dryRun: res?.dryRun,
+        });
+        recordJobSuccess('pullActivityEvents', {
+          processed: res?.processed ?? 0,
+          durationMs: res?.durationMs ?? 0,
+          dryRun: res?.dryRun,
+        });
       } catch (error) {
-        console.error('❌ Poll actividad error:', error?.message || error);
+        log.error('cron_activity_pull_error', {
+          cronExpr: ACTIVITY_PULL_CRON,
+          error: error?.stack || error?.message || error,
+        });
+        recordJobError('pullActivityEvents', error);
       }
     });
-    console.log(`✅ Job programado: Poll actividad (${ACTIVITY_PULL_CRON}) dryRun=${ACTIVITY_PULL_DRY_RUN}`);
+    log.info('cron_activity_pull_scheduled', { cronExpr: ACTIVITY_PULL_CRON, dryRun: ACTIVITY_PULL_DRY_RUN });
   } catch (error) {
-    console.error('❌ Cron poll actividad inválido. Define ACTIVITY_PULL_CRON con un valor válido.', error?.message || error);
+    log.error('cron_activity_pull_schedule_error', {
+      cronExpr: ACTIVITY_PULL_CRON,
+      error: error?.message || error,
+    });
+    recordJobError('pullActivityEvents', error);
   }
 } else {
-  console.log('ℹ️ Poll actividad inactivo (define ACTIVITY_PULL_CRON para habilitarlo).');
+  log.info('cron_activity_pull_inactive');
 }
 
 export {};

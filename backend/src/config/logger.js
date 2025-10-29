@@ -3,66 +3,67 @@ import DailyRotateFile from 'winston-daily-rotate-file';
 import path from 'path';
 import fs from 'fs';
 
-// ✅ Directorio de logs configurable por variable de entorno
 const logDir = process.env.LOG_DIR || 'logs';
-
-// ✅ Asegurar que la carpeta de logs existe
 if (!fs.existsSync(logDir)) {
   fs.mkdirSync(logDir, { recursive: true });
 }
 
-// ✅ Formato de logs mejorado
-const logFormat = format.combine(
-  format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-  format.errors({ stack: true }), // ✅ Capturar stack de errores
-  format.printf(({ timestamp, level, message, stack }) => {
+const baseFormat = format.combine(
+  format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
+  format.errors({ stack: true }),
+  format.metadata({ fillExcept: ['timestamp', 'level', 'message'] })
+);
+
+const jsonFormat = format.combine(baseFormat, format.json());
+
+const devConsoleFormat = format.combine(
+  baseFormat,
+  format.colorize({ all: true }),
+  format.printf(({ timestamp, level, message, stack, metadata }) => {
+    const meta = Object.keys(metadata || {}).length ? ` ${JSON.stringify(metadata)}` : '';
     return stack
-      ? `${timestamp} [${level}]: ${message}\nStack Trace:\n${stack}`
-      : `${timestamp} [${level}]: ${message}`;
+      ? `${timestamp} [${level}] ${message}${meta}\n${stack}`
+      : `${timestamp} [${level}] ${message}${meta}`;
   })
 );
 
-// ✅ Definición de transportes con rotación diaria de logs
 const logger = createLogger({
-  level: process.env.LOG_LEVEL || 'info', // ✅ Nivel de logs configurable
-  format: logFormat,
+  level: process.env.LOG_LEVEL || 'info',
+  defaultMeta: {
+    service: process.env.SERVICE_NAME || 'relay-backend',
+    environment: process.env.NODE_ENV || 'development',
+  },
+  format: jsonFormat,
   transports: [
-    // 📋 Log en consola (detallado en desarrollo)
     new transports.Console({
-      level: process.env.NODE_ENV === 'production' ? 'info' : 'debug', // ✅ En desarrollo, más detalles
-      format: format.combine(format.colorize(), logFormat),
+      level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
+      format: process.env.NODE_ENV === 'production' ? jsonFormat : devConsoleFormat,
     }),
-
-    // 📁 Archivo de errores rotativo diario
     new DailyRotateFile({
       filename: path.join(logDir, 'error-%DATE%.log'),
       datePattern: 'YYYY-MM-DD',
       level: 'error',
       maxSize: '20m',
-      maxFiles: '30d', // Guardar los últimos 30 días
+      maxFiles: '30d',
+      format: jsonFormat,
     }),
-
-    // 📁 Archivo combinado rotativo diario
     new DailyRotateFile({
       filename: path.join(logDir, 'combined-%DATE%.log'),
       datePattern: 'YYYY-MM-DD',
       maxSize: '20m',
       maxFiles: '30d',
+      format: jsonFormat,
     }),
   ],
-
-  // ✅ Captura de excepciones no controladas
   exceptionHandlers: [
-    new transports.File({ filename: path.join(logDir, 'exceptions.log') }),
+    new transports.File({ filename: path.join(logDir, 'exceptions.log'), format: jsonFormat }),
   ],
-
-  // ✅ Captura de promesas no manejadas
   rejectionHandlers: [
-    new transports.File({ filename: path.join(logDir, 'rejections.log') }),
+    new transports.File({ filename: path.join(logDir, 'rejections.log'), format: jsonFormat }),
   ],
 });
 
-// ✅ Mensaje inicial indicando que el logger está activo
-logger.info('📋 Logger inicializado correctamente.');
+export const createModuleLogger = (moduleMeta = {}) =>
+  logger.child({ module: moduleMeta.module || moduleMeta.name || 'unknown-module', ...moduleMeta });
 
 export default logger;

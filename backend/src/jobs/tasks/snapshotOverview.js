@@ -42,7 +42,13 @@ export async function snapshotOverviewHourly(opts = {}) {
       ackP50: overview?.messages?.ackLatencyP50 ?? null,
       ackRate: overview?.messages?.ackRate ?? null,
     },
-    connections: { count: connCount, unique: overview?.connections?.uniqueParticipants ?? 0 },
+    connections: {
+      count: connCount,
+      unique: overview?.connections?.uniqueParticipants ?? 0,
+      new: overview?.connections?.newParticipants ?? null,
+      returning: overview?.connections?.returningParticipants ?? null,
+      returningRate: overview?.connections?.returningRate ?? null,
+    },
     rtc: overview?.rtc ?? {},
   };
 

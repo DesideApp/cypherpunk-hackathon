@@ -4,6 +4,7 @@ import { env } from '#config/env.js';
 import { BlinkExecutionError } from '#shared/services/dialectBlinkService.js';
 import { getTokenInfo } from '#shared/services/blinkValidationService.js';
 import logEvent from '#modules/stats/services/eventLogger.service.js';
+import { logActionBuy, logActionBuyFailed } from '#modules/actions/services/actionEvents.service.js';
 
 const INPUT_MINT = 'So11111111111111111111111111111111111111112';
 const INPUT_DECIMALS = 9;

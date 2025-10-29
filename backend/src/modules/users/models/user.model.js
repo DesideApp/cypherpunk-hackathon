@@ -45,12 +45,12 @@ const userSchema = new mongoose.Schema({
   banned: { type: Boolean, default: false, alias: 'isBanned' },
 
   // ===== Relay por usuario =====
-  relayTier: { type: String, enum: ['basic'], default: 'basic' },
+  relayTier: { type: String, enum: ['basic', 'free', 'plus', 'pro', 'growth', 'business', 'enterprise'], default: 'free' },
 
   // Límites de relay por usuario
-  relayQuotaBytes:      { type: Number, default: 8 * 1024 * 1024 },   // 8 MB
+  relayQuotaBytes:      { type: Number, default: 30 * 1024 * 1024 },  // 30 MB
   relayUsedBytes:       { type: Number, default: 0, min: 0 },
-  relayTTLSeconds:      { type: Number, default: 5 * 24 * 60 * 60 },  // 5 días
+  relayTTLSeconds:      { type: Number, default: 30 * 24 * 60 * 60 }, // 30 días
   relayOverflowGracePct:{ type: Number, default: 0 },
   relayAutoPurge:       { type: Boolean, default: false },
 

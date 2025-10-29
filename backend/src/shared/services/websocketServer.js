@@ -8,11 +8,11 @@ import logger from '#config/logger.js';
 import Contact from '#modules/contacts/models/contact.model.js';
 import { ContactStatus } from '#modules/contacts/contact.constants.js';
 import User from '#modules/users/models/user.model.js';
-import RelayMessage from '#modules/relay/models/relayMessage.model.js';
 import APMWs from '#modules/stats/models/apmWs.model.js';
 import logEvent from '#modules/stats/services/eventLogger.service.js';
 import { getPublicKey } from '#shared/services/keyManager.js';
 import { COOKIE_NAMES } from '#config/cookies.js';
+import { getRelayStore } from '#modules/relay/services/relayStoreProvider.js';
 
 dotenv.config();
 const require = createRequire(import.meta.url);
@@ -341,8 +341,8 @@ export default function createWebSocketServer(app) {
 
         // Flush IDs pendientes
         try {
-          const pending = await RelayMessage.find({ to: pubkey }, { _id: 1 }).lean();
-          const ids = pending.map(m => String(m._id));
+          const relayStore = getRelayStore();
+          const ids = await relayStore.listPendingIds(pubkey);
           if (ids.length) socket.emit('relay:flush', ids);
         } catch (e) {
           console.warn(`[WS] relay:flush fetch error: ${e?.message || e}`);

@@ -1,6 +1,7 @@
-import RelayMessage from "../models/relayMessage.model.js";
-import User from "#modules/users/models/user.model.js";
 import { io as ioExport } from "#shared/services/websocketServer.js";
+import { getRelayStore } from '#modules/relay/services/relayStoreProvider.js';
+import { resolveQuota, checkQuota, applyQuota } from '#modules/relay/services/quota.service.js';
+import logger from '#config/logger.js';
 
 function base64Json(value) {
   const json = JSON.stringify(value ?? {});
@@ -65,13 +66,27 @@ export async function sendAgreementUpdate({
     role: roleValue,
   };
 
-  const existing = await RelayMessage.findById(messageId).lean();
+  const relayStore = getRelayStore();
+  const existing = await relayStore.findById(messageId);
   const previousSize = existing?.boxSize || 0;
+  const deltaBytes = boxSize - previousSize;
 
-  await RelayMessage.updateOne(
-    { _id: messageId },
-    {
-      $set: {
+  let quotaCtx;
+  try {
+    quotaCtx = await resolveQuota({ wallet: toWallet, incomingBytes: boxSize, deltaBytes });
+    const quotaCheck = checkQuota(quotaCtx);
+    if (!quotaCheck.allowed) {
+      const err = new Error(`relay quota check failed: ${quotaCheck.reason}`);
+      err.code = quotaCheck.reason;
+      err.details = quotaCheck.details;
+      throw err;
+    }
+
+    await applyQuota(
+      { ...quotaCtx },
+      relayStore,
+      {
+        messageId,
         to: toWallet,
         from: fromWallet,
         box,
@@ -79,20 +94,17 @@ export async function sendAgreementUpdate({
         iv: null,
         messageType: "agreement",
         meta,
-        status: "pending",
-        "timestamps.enqueuedAt": new Date(),
-      },
-      $setOnInsert: {
-        _id: messageId,
-        createdAt: new Date(),
-      },
-    },
-    { upsert: true }
-  );
-
-  const delta = boxSize - previousSize;
-  if (delta !== 0) {
-    await User.updateOne({ wallet: toWallet }, { $inc: { relayUsedBytes: delta } });
+      }
+    );
+  } catch (error) {
+    logger.warn('[Relay] sendAgreementUpdate failed', {
+      messageId,
+      toWallet,
+      code: error?.code,
+      details: error?.details,
+      error: error?.message,
+    });
+    throw error;
   }
 
   const ioInstance = ioExport;

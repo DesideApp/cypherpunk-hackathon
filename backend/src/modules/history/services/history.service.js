@@ -1,6 +1,8 @@
 import Conversation from '../models/conversation.model.js';
 import ConversationMessage from '../models/message.model.js';
-import logger from '#config/logger.js';
+import { createModuleLogger } from '#config/logger.js';
+
+const log = createModuleLogger({ module: 'history.service' });
 
 function normalizeWallet(value) {
   return typeof value === 'string' ? value.trim() : '';
@@ -31,7 +33,9 @@ function decodeCursor(cursor) {
     if (!parsed) return null;
     return parsed;
   } catch (err) {
-    logger.warn(`⚠️ history cursor decode failed: ${err?.message || err}`);
+    log.warn('history_cursor_decode_failed', {
+      error: err?.message || err,
+    });
     return null;
   }
 }
@@ -111,7 +115,13 @@ export async function appendMessageToHistory({
           },
         },
       }
-    ).catch(err => logger.warn(`⚠️ history add-member failed: ${err?.message || err}`));
+    ).catch(err =>
+      log.warn('history_add_member_failed', {
+        convId: conversationId,
+        missingMembers,
+        error: err?.message || err,
+      })
+    );
   }
 
   const messagePayload = {
@@ -140,7 +150,17 @@ export async function appendMessageToHistory({
     await Conversation.updateOne(
       { _id: conversationId },
       { $inc: { seqMax: -1, messageCount: -1 } }
-    ).catch(e => logger.warn(`⚠️ history rollback failed: ${e?.message || e}`));
+    ).catch(e =>
+      log.warn('history_rollback_failed', {
+        convId: conversationId,
+        error: e?.message || e,
+      })
+    );
+    log.error('history_message_insert_failed', {
+      convId: conversationId,
+      relayMessageId,
+      error: err?.message || err,
+    });
     throw err;
   }
 
@@ -164,7 +184,11 @@ export async function appendMessageToHistory({
       arrayFilters: [{ 'sender.wallet': sender }],
     }
   ).catch(err => {
-    logger.warn(`⚠️ history lastMessage update failed: ${err?.message || err}`);
+    log.warn('history_last_message_update_failed', {
+      convId: conversationId,
+      relayMessageId,
+      error: err?.message || err,
+    });
   });
 
   return { convId: conversationId, seq, existing: false };

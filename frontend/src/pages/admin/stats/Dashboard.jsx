@@ -12,6 +12,10 @@ import {
   fetchStatsOverview,
   fetchRelayPending,
   fetchRelayOverview,
+  fetchAdoptionOverview,
+  fetchAdoptionFunnel,
+  fetchJobStatuses,
+  fetchRelayErrors,
 } from "@features/stats";
 import "./shared.css";
 import "./Dashboard.css";
@@ -23,6 +27,13 @@ const computeTrend = (current, previous) => {
   const variation = ((current - previous) / previous) * 100;
   const sign = variation >= 0 ? "+" : "";
   return `${sign}${variation.toFixed(1)}%`;
+};
+
+const formatDateTime = (value) => {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString();
 };
 
 const FALLBACK_PRODUCT = {
@@ -69,6 +80,15 @@ export default function Dashboard() {
   });
   const [selectedPeriod, setSelectedPeriod] = useState("1d");
   const [relaySnapshot, setRelaySnapshot] = useState({ pendingCount: 0, pendingBytes: 0, purgedCount: 0, purgedBytes: 0 });
+  const [adoptionOverview, setAdoptionOverview] = useState(null);
+  const [adoptionFunnel, setAdoptionFunnel] = useState(null);
+  const [adoptionLoading, setAdoptionLoading] = useState(true);
+  const [adoptionWindowDays, setAdoptionWindowDays] = useState(1);
+  const [jobStatuses, setJobStatuses] = useState({ jobs: {}, metrics: null });
+  const [jobStatusLoading, setJobStatusLoading] = useState(true);
+  const [jobStatusError, setJobStatusError] = useState(null);
+  const [relayErrors, setRelayErrors] = useState({ errors: [], range: null });
+  const [relayErrorsError, setRelayErrorsError] = useState(null);
 
   const prevMetricsRef = useRef(null);
 
@@ -137,6 +157,75 @@ export default function Dashboard() {
     };
   }, [selectedPeriod]);
 
+  useEffect(() => {
+    let cancelled = false;
+    const resolveWindowDays = (periodKey) => {
+      if (periodKey === "1h" || periodKey === "1d") return 1;
+      if (periodKey === "7d") return 7;
+      return 14;
+    };
+
+    const loadAdoption = async () => {
+      try {
+        const windowDays = resolveWindowDays(selectedPeriod);
+        setAdoptionWindowDays(windowDays);
+        setAdoptionLoading(true);
+        const [overviewRes, funnelRes] = await Promise.all([
+          fetchAdoptionOverview({ period: selectedPeriod }),
+          fetchAdoptionFunnel({ period: selectedPeriod, windowDays }),
+        ]);
+        if (cancelled) return;
+        setAdoptionOverview(overviewRes);
+        setAdoptionFunnel(funnelRes);
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Failed to load adoption metrics", err);
+          setAdoptionOverview(null);
+          setAdoptionFunnel(null);
+        }
+      } finally {
+        if (!cancelled) setAdoptionLoading(false);
+      }
+    };
+
+    loadAdoption();
+    const interval = setInterval(loadAdoption, 180_000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [selectedPeriod]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadJobStatuses = async () => {
+      try {
+        setJobStatusLoading(true);
+        setJobStatusError(null);
+        const data = await fetchJobStatuses();
+        if (!cancelled) setJobStatuses(data);
+        const errorsData = await fetchRelayErrors({ limit: 15 });
+        if (!cancelled) setRelayErrors(errorsData);
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Failed to load job statuses", err);
+          setJobStatusError("Failed to load job statuses");
+          setRelayErrorsError("Failed to load relay errors");
+        }
+      } finally {
+        if (!cancelled) setJobStatusLoading(false);
+      }
+    };
+
+    loadJobStatuses();
+    const interval = setInterval(loadJobStatuses, 120_000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
+
   const messages = useMemo(
     () =>
       overview?.messages ?? {
@@ -150,19 +239,38 @@ export default function Dashboard() {
   );
 
   const connections = useMemo(
-    () =>
-      overview?.connections ?? {
-        active: 0,
-        newToday: 0,
-        disconnections: 0,
-        peak24h: 0,
-        avgActive: 0,
-        totalInteractions: 0,
-        uniqueParticipants: 0,
-        history: [],
-      },
+    () => {
+      const source = overview?.connections ?? {};
+      const uniqueParticipants = source.uniqueParticipants ?? 0;
+      const newParticipants = source.newParticipants ?? 0;
+      const returningParticipants =
+        source.returningParticipants ?? Math.max(0, uniqueParticipants - newParticipants);
+      const returningRate =
+        source.returningRate ??
+        (uniqueParticipants > 0
+          ? Number(((returningParticipants / uniqueParticipants) * 100).toFixed(2))
+          : null);
+      return {
+        active: source.active ?? 0,
+        newToday: source.newToday ?? 0,
+        disconnections: source.disconnections ?? 0,
+        peak24h: source.peak24h ?? 0,
+        avgActive: source.avgActive ?? 0,
+        totalInteractions: source.totalInteractions ?? 0,
+        uniqueParticipants,
+        newParticipants,
+        returningParticipants,
+        returningRate,
+        history: source.history ?? [],
+      };
+    },
     [overview]
   );
+
+  const jobItems = useMemo(() => {
+    const entries = Object.entries(jobStatuses?.jobs || {});
+    return entries.map(([name, status]) => ({ name, ...status }));
+  }, [jobStatuses]);
 
   const product = useMemo(() => overview?.productInsights ?? FALLBACK_PRODUCT, [overview]);
 
@@ -196,6 +304,52 @@ export default function Dashboard() {
   }));
 
   const tableRows = [...chartData].slice(-30).reverse();
+  const formatNumber = (value) => Number(value ?? 0).toLocaleString("en-US");
+  const formatPercent = (value) => (value != null ? `${Number(value).toFixed(2)}%` : "—");
+  const formatDuration = (ms) => {
+    if (ms == null) return "—";
+    if (ms === 0) return "0s";
+    const seconds = Math.round(ms / 1000);
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.round(seconds / 60);
+    if (minutes < 60) return `${minutes}m`;
+    const hours = Math.round(minutes / 60);
+    return `${hours}h`;
+  };
+
+  const jobStatusClass = (status) => {
+    if (status === 'success') return 'job-status--success';
+    if (status === 'error') return 'job-status--error';
+    if (status === 'running') return 'job-status--running';
+    return 'job-status--unknown';
+  };
+
+  const returningRateDisplay = formatPercent(connections.returningRate);
+  const adoptionUsers = adoptionOverview?.users ?? {
+    dau: 0,
+    wau: 0,
+    mau: 0,
+  };
+  const dauWauMauValue =
+    adoptionLoading && !adoptionOverview
+      ? "..."
+      : `${formatNumber(adoptionUsers.dau)} / ${formatNumber(adoptionUsers.wau)} / ${formatNumber(adoptionUsers.mau)}`;
+  const wauMauRatio =
+    adoptionUsers?.mau > 0
+      ? Number(((adoptionUsers.wau / adoptionUsers.mau) * 100).toFixed(2))
+      : null;
+  const activationA = adoptionFunnel?.activationA ?? null;
+  const activationB = adoptionFunnel?.activationB ?? null;
+  const activationAValue =
+    adoptionLoading && !adoptionFunnel ? "..." : activationA ? formatPercent(activationA.conversionPct) : "—";
+  const activationBValue =
+    adoptionLoading && !adoptionFunnel ? "..." : activationB ? formatPercent(activationB.conversionPct) : "—";
+  const activationASubtitle = activationA
+    ? `Count: ${formatNumber(activationA.count ?? 0)} • p50 ${formatDuration(activationA.ttaP50ms)} • p95 ${formatDuration(activationA.ttaP95ms)}`
+    : `Window ${adoptionWindowDays}d`;
+  const activationBSubtitle = activationB
+    ? `Count: ${formatNumber(activationB.count ?? 0)} • p50 ${formatDuration(activationB.ttaP50ms)} • p95 ${formatDuration(activationB.ttaP95ms)}`
+    : `Window ${adoptionWindowDays}d`;
 
   const findExtremum = (series, comparator) =>
     series.reduce((acc, entry) => {
@@ -289,22 +443,155 @@ export default function Dashboard() {
         </div>
       </div>
 
+      <div className="dashboard-section">
+        <h3 className="dashboard-section__title">Highlights</h3>
+        <div className="stats-grid highlight">
+          <StatCard
+            title="Messages last minute"
+            value={formatNumber(messages.lastMinute)}
+            icon="💬"
+            color="#6366f1"
+            trend={trends.messagesMinute}
+            subtitle="vs previous snapshot"
+          />
+          <StatCard
+            title="Active wallets (period)"
+            value={formatNumber(connections.uniqueParticipants)}
+            icon="👥"
+            color="#0ea5e9"
+            subtitle={`New: ${formatNumber(connections.newParticipants)} • Returning: ${formatNumber(connections.returningParticipants)}`}
+          />
+          <StatCard
+            title="Returning rate"
+            value={returningRateDisplay}
+            icon="🔁"
+            color="#3b82f6"
+            subtitle={`Returning ${formatNumber(connections.returningParticipants)} of ${formatNumber(connections.uniqueParticipants)}`}
+          />
+          <StatCard
+            title="Activation A"
+            value={activationAValue}
+            icon="🎯"
+            color="#10b981"
+            subtitle={activationASubtitle}
+          />
+          <StatCard
+            title="Activation B"
+            value={activationBValue}
+            icon="🚀"
+            color="#14b8a6"
+            subtitle={activationBSubtitle}
+          />
+          <StatCard
+            title="DAU / WAU / MAU"
+            value={dauWauMauValue}
+            icon="📊"
+            color="#f97316"
+            subtitle={wauMauRatio != null ? `WAU/MAU ${formatPercent(wauMauRatio)}` : "WAU/MAU —"}
+          />
+        </div>
+      </div>
+
       {/* Relay snapshot */}
-      <div className="stats-grid secondary">
-        <StatCard
-          title="Relay pending"
-          value={relayPendingCount.toLocaleString('en-US')}
-          icon="📦"
-          color="#8b5cf6"
-          subtitle={formatBytes(relayPendingBytes)}
-        />
-        <StatCard
-          title="Purged (24h)"
-          value={relayPurgedCount.toLocaleString('en-US')}
-          icon="🧹"
-          color="#7c3aed"
-          subtitle={formatBytes(relayPurgedBytes)}
-        />
+      <div className="dashboard-section">
+        <h3 className="dashboard-section__title">Relay health</h3>
+        <div className="stats-grid secondary">
+          <StatCard
+            title="Relay pending"
+            value={relayPendingCount.toLocaleString('en-US')}
+            icon="📦"
+            color="#8b5cf6"
+            subtitle={formatBytes(relayPendingBytes)}
+          />
+          <StatCard
+            title="Purged (24h)"
+            value={relayPurgedCount.toLocaleString('en-US')}
+            icon="🧹"
+            color="#7c3aed"
+            subtitle={formatBytes(relayPurgedBytes)}
+          />
+        </div>
+      </div>
+
+      <div className="dashboard-section jobs-section">
+        <h3 className="dashboard-section__title">Jobs & alerts</h3>
+        {jobStatusError && <p className="jobs-status__notice jobs-status__notice--error">{jobStatusError}</p>}
+        {jobStatusLoading && !jobItems.length ? (
+          <div className="stats-panel__loading"><div className="stats-panel__spinner" /><p>Cargando estado de jobs…</p></div>
+        ) : (
+          <div className="jobs-status">
+            {jobItems.length === 0 ? (
+              <p className="jobs-status__empty">Aún no hay ejecuciones registradas.</p>
+            ) : (
+              jobItems.map((job) => (
+                <div key={job.name} className={`jobs-status__item ${jobStatusClass(job.status)}`}>
+                  <div className="jobs-status__header">
+                    <span className="jobs-status__name">{job.name}</span>
+                    <span className="jobs-status__status">{job.status ?? 'unknown'}</span>
+                  </div>
+                  <div className="jobs-status__meta">
+                    <span>Última ejecución: {formatDateTime(job.finishedAt || job.startedAt)}</span>
+                    <span>Duración: {formatDuration(job.durationMs)}</span>
+                  </div>
+                  {job.result && Object.keys(job.result).length > 0 && (
+                    <div className="jobs-status__result">
+                      {Object.entries(job.result).map(([key, value]) => (
+                        <span key={key}>
+                          {key}: {typeof value === 'number' ? value.toLocaleString('en-US') : String(value)}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {job.error && (
+                    <div className="jobs-status__error">
+                      <span>Error:</span>
+                      <code>{job.error}</code>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+            {jobStatuses.metrics && (
+              <div className="jobs-status__metrics">
+                <h4>Reconciliación relay ↔ history</h4>
+                <div className="jobs-status__metrics-grid">
+                  <div>
+                    <span className="label">Revisados</span>
+                    <span className="value">{(jobStatuses.metrics.relayHistoryChecked ?? 0).toLocaleString('en-US')}</span>
+                  </div>
+                  <div>
+                    <span className="label">Faltan en history</span>
+                    <span className="value">{(jobStatuses.metrics.relayHistoryMissingInHistory ?? 0).toLocaleString('en-US')}</span>
+                  </div>
+                  <div>
+                    <span className="label">Reparados</span>
+                    <span className="value">{(jobStatuses.metrics.relayHistoryRepaired ?? 0).toLocaleString('en-US')}</span>
+                  </div>
+                  <div>
+                    <span className="label">Faltan en relay</span>
+                    <span className="value">{(jobStatuses.metrics.relayHistoryMissingInRelay ?? 0).toLocaleString('en-US')}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        {relayErrorsError && (
+          <p className="jobs-status__notice jobs-status__notice--error">{relayErrorsError}</p>
+        )}
+        {!relayErrorsError && relayErrors?.errors?.length > 0 && (
+          <div className="relay-errors">
+            <h4>Errores relay (últimas 24h)</h4>
+            <ul>
+              {relayErrors.errors.map((item) => (
+                <li key={item.code}>
+                  <span className="relay-error__code">{item.code}</span>
+                  <span className="relay-error__count">{item.count.toLocaleString('en-US')}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
 
       <div className="dashboard-meta">
@@ -333,13 +620,6 @@ export default function Dashboard() {
       </div>
 
       <div className="stats-grid">
-        <StatCard
-          title="Messages last minute"
-          value={messages.lastMinute.toLocaleString("en-US")}
-          icon="💬"
-          color="#6366f1"
-          trend={trends.messagesMinute}
-        />
         <StatCard
           title="Messages last hour"
           value={messages.lastHour.toLocaleString("en-US")}

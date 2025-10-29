@@ -69,6 +69,8 @@ function buildIncrements(eventType, data) {
       inc.blinkExecutes = 1;
       inc.blinkVolume = (data.volume || 0);
       break;
+    case 'blink_execute_failed':
+      break;
     case 'natural_command_parsed':
       inc.naturalCommandsParsed = 1;
       break;
@@ -89,6 +91,18 @@ function buildIncrements(eventType, data) {
       break;
     case 'relay_message':
       inc.relayMessages = 1;
+      break;
+    case 'action_send':
+      inc.actionsSend = 1;
+      break;
+    case 'action_request_created':
+      inc.actionsRequests = 1;
+      break;
+    case 'action_buy':
+      inc.actionsBuy = 1;
+      break;
+    case 'action_agreement_created':
+      inc.actionsAgreements = 1;
       break;
     default:
       break;

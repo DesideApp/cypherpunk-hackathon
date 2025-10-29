@@ -25,7 +25,21 @@ export async function snapshotOverviewDaily() {
 
   let msgTotal = 0;
   let connTotal = 0;
-  const accum = { deliveryP95: [], ackP95: [], deliveryP50: [], ackP50: [], ackRate: [], rtcSuccess: [], rtcTtcP95: [], rtcTtcP50: [], rtcFallback: [] };
+  let uniqueMax = 0;
+  let newTotal = 0;
+  let returningTotal = 0;
+  const accum = {
+    deliveryP95: [],
+    ackP95: [],
+    deliveryP50: [],
+    ackP50: [],
+    ackRate: [],
+    rtcSuccess: [],
+    rtcTtcP95: [],
+    rtcTtcP50: [],
+    rtcFallback: [],
+    returningRate: [],
+  };
 
   for (let h = 0; h < 24; h += 1) {
     const hh = String(h).padStart(2, '0');
@@ -43,6 +57,9 @@ export async function snapshotOverviewDaily() {
       const snap = JSON.parse(raw);
       msgTotal += Number(snap?.messages?.count || 0);
       connTotal += Number(snap?.connections?.count || 0);
+      uniqueMax = Math.max(uniqueMax, Number(snap?.connections?.unique || 0));
+      newTotal += Number(snap?.connections?.new || 0);
+      returningTotal += Number(snap?.connections?.returning || 0);
       const m = snap?.messages || {};
       const r = snap?.rtc || {};
       if (m.deliveryP95 != null) accum.deliveryP95.push(Number(m.deliveryP95));
@@ -54,6 +71,7 @@ export async function snapshotOverviewDaily() {
       if (r.ttcP95 != null) accum.rtcTtcP95.push(Number(r.ttcP95));
       if (r.ttcP50 != null) accum.rtcTtcP50.push(Number(r.ttcP50));
       if (r?.fallback?.ratioPct != null) accum.rtcFallback.push(Number(r.fallback.ratioPct));
+      if (snap?.connections?.returningRate != null) accum.returningRate.push(Number(snap.connections.returningRate));
     } catch {}
   }
 
@@ -62,7 +80,13 @@ export async function snapshotOverviewDaily() {
   const payload = {
     date: dayStart.toISOString().slice(0,10),
     messages: { count: msgTotal, deliveryP95Avg: avg(accum.deliveryP95), deliveryP50Avg: avg(accum.deliveryP50), ackP95Avg: avg(accum.ackP95), ackP50Avg: avg(accum.ackP50), ackRateAvg: avg(accum.ackRate) },
-    connections: { count: connTotal },
+    connections: {
+      count: connTotal,
+      uniqueMax,
+      new: newTotal,
+      returning: returningTotal,
+      returningRateAvg: avg(accum.returningRate),
+    },
     rtc: { successRateAvg: avg(accum.rtcSuccess), ttcP95Avg: avg(accum.rtcTtcP95), ttcP50Avg: avg(accum.rtcTtcP50), fallbackAvg: avg(accum.rtcFallback) },
   };
 
