@@ -11,7 +11,7 @@ import { VersionedTransaction, Transaction } from "@solana/web3.js";
 import { Buffer } from "buffer";
 import { getAllowedTokens, clearAllowedTokensCache } from "@features/messaging/services/allowedTokensService.js";
 import { executeBuyBlink } from "@features/messaging/services/buyBlinkService.js";
-import { fetchPrices, fetchTokenHistory, activateToken } from "@shared/services/priceService.js";
+import { fetchPrices, fetchTokenHistory } from "@shared/services/priceService.js";
 import { 
   ModalShell, 
   UiChip, 
@@ -297,21 +297,8 @@ export default function BuyTokenModal({
 
     let alive = true;
 
-    // Step 1: Activate token for tracking (lazy loading)
-    // This tells backend to start tracking this token if not already active
-    activateToken(selected.outputMint, selected.code, walletAddress)
-      .then((activationResult) => {
-        if (!alive) return;
-
-        console.log('[BuyTokenModal] Token activation', {
-          token: selected.code,
-          isActive: activationResult.isActive,
-          wasAlreadyActive: activationResult.wasAlreadyActive
-        });
-
-        // Step 2: Try to fetch historical data from backend (Dialect Markets API)
-        return fetchTokenHistory(selected.outputMint, walletAddress, 48, '1h');
-      })
+    // Fetch historical data directly from backend (cache handles throttling)
+    fetchTokenHistory(selected.outputMint, walletAddress, 48, '1h')
       .then((result) => {
         if (!alive) return;
         

@@ -1,16 +1,38 @@
 // backend/src/modules/tokens/routes/index.js
 import { Router } from 'express';
-import { getAllowedTokens, getTokenByCode } from '../services/tokenService.js';
-import { fetchPositionHistory, extractTokenPriceHistory } from '#shared/services/dialectMarketsService.js';
+import { getAllowedTokens, getTokenByCode, getTokenByMint } from '../services/tokenService.js';
+import { fetchCoingeckoPriceHistory } from '#shared/services/tokenHistoryService.js';
 import { 
   activateToken, 
-  isTokenActivated, 
   getActivationStats 
 } from '../services/tokenActivationService.js';
 import addTokenRoutes from './addToken.js';
 import logger from '#config/logger.js';
 
 const router = Router();
+
+const PRICE_HISTORY_TTL_MS = 60 * 1000; // 1 minute cache per token
+const priceHistoryCache = new Map(); // Map<cacheKey, { data:number[], points:number, fetchedAt:number, source:string }>
+
+function makeHistoryCacheKey(mint, interval, days, points) {
+  return `${mint}:${interval}:${days}:${points}`;
+}
+
+function mapResolutionToCoingecko(resolution) {
+  switch ((resolution || '').toLowerCase()) {
+    case '1m':
+    case '5m':
+    case '15m':
+    case '30m':
+    case '1h':
+    case '6h':
+    case '12h':
+    case '1d':
+      return { interval: 'hourly', days: 1 };
+    default:
+      return { interval: 'hourly', days: 1 };
+  }
+}
 
 /**
  * Normalize price history to a specific number of points
@@ -37,6 +59,67 @@ function normalizePricePoints(history, targetPoints) {
   return normalized;
 }
 
+function generateSyntheticHistory(points) {
+  const total = Number.isFinite(points) && points > 0 ? points : 48;
+  const data = [];
+  let value = 100;
+  for (let i = 0; i < total; i++) {
+    const drift = (Math.random() - 0.5) * 2;
+    value = Math.max(0.1, value + drift);
+    data.push(Number(value.toFixed(4)));
+  }
+  return data;
+}
+
+async function getTokenHistoryData({ mint, code, points = 48, resolution = '1h' }) {
+  const normalizedPoints = Number.parseInt(points, 10) || 48;
+  const { interval, days } = mapResolutionToCoingecko(resolution);
+  const cacheKey = makeHistoryCacheKey(mint, interval, days, normalizedPoints);
+
+  const cached = priceHistoryCache.get(cacheKey);
+  if (cached && (Date.now() - cached.fetchedAt) < PRICE_HISTORY_TTL_MS) {
+    logger.debug('[tokens/history] Serving price history from cache', { mint, interval, days, source: cached.source });
+    return {
+      data: cached.data,
+      points: cached.points,
+      source: cached.source,
+    };
+  }
+
+  const history = await fetchCoingeckoPriceHistory({
+    code,
+    interval,
+    days
+  });
+
+  let normalizedHistory = [];
+  let source = 'coingecko';
+
+  if (history.length > 0) {
+    normalizedHistory = normalizePricePoints(history, normalizedPoints);
+  } else {
+    normalizedHistory = generateSyntheticHistory(normalizedPoints);
+    source = 'synthetic';
+    logger.warn('[tokens/history] Coingecko returned no data; serving synthetic history', {
+      mint,
+      code
+    });
+  }
+
+  priceHistoryCache.set(cacheKey, {
+    data: normalizedHistory,
+    points: normalizedHistory.length,
+    fetchedAt: Date.now(),
+    source
+  });
+
+  return {
+    data: normalizedHistory,
+    points: normalizedHistory.length,
+    source
+  };
+}
+
 /**
  * GET /api/v1/tokens/allowed
  * Retorna la lista de tokens permitidos para compra
@@ -44,19 +127,25 @@ function normalizePricePoints(history, targetPoints) {
 router.get('/allowed', async (req, res) => {
   try {
     const tokens = await getAllowedTokens();
-    
+
     res.status(200).json({
       success: true,
       count: tokens.length,
-      tokens: tokens.map(t => ({
-        mint: t.mint,
-        code: t.code,
-        label: t.label,
-        decimals: t.decimals,
-        maxAmount: t.maxAmount,
-        minAmount: t.minAmount,
-        verified: t.verified || false,
-      })),
+      tokens: tokens.map((t) => {
+        const synthetic = generateSyntheticHistory(32);
+        return {
+          mint: t.mint,
+          code: t.code,
+          label: t.label,
+          decimals: t.decimals,
+          maxAmount: t.maxAmount,
+          minAmount: t.minAmount,
+          verified: t.verified || false,
+          history: synthetic,
+          historyPoints: synthetic.length,
+          historySource: 'synthetic',
+        };
+      }),
     });
   } catch (error) {
     res.status(500).json({
@@ -191,7 +280,6 @@ router.get('/:mint/history', async (req, res) => {
   try {
     const { mint } = req.params;
     const {
-      walletAddress,
       startTime,
       endTime,
       resolution = '1h',
@@ -202,54 +290,28 @@ router.get('/:mint/history', async (req, res) => {
     const end = endTime || new Date().toISOString();
     const start = startTime || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-    // Check if token is activated (lazy loading)
-    const isActive = isTokenActivated(mint);
+    const tokenMeta = await getTokenByMint(mint);
+    if (!tokenMeta) {
+      return res.status(404).json({
+        success: false,
+        error: 'Token not found',
+        mint,
+      });
+    }
     
     logger.debug('[tokens/history] Fetching price history', {
       mint,
-      walletAddress,
       startTime: start,
       endTime: end,
       resolution,
-      isTokenActive: isActive
+      isTokenActive: true
     });
 
-    // Only fetch from Dialect Markets if token is activated AND wallet provided
-    if (walletAddress && isActive) {
-      const positionData = await fetchPositionHistory({
-        walletAddress,
-        startTime: start,
-        endTime: end,
-        resolution
-      });
-
-      // Extract price points for this token
-      const priceHistory = extractTokenPriceHistory(positionData, mint);
-
-      // Normalize to requested number of points
-      const normalized = normalizePricePoints(priceHistory, parseInt(points));
-
-      return res.status(200).json({
-        success: true,
-        mint,
-        startTime: start,
-        endTime: end,
-        resolution,
-        points: normalized.length,
-        data: normalized
-      });
-    }
-
-    // Fallback: Token not activated or no wallet address
-    const reason = !isActive 
-      ? 'Token not activated yet. Call POST /tokens/activate first.'
-      : 'Historical data requires walletAddress parameter';
-    
-    logger.warn('[tokens/history] Cannot fetch data', {
+    const history = await getTokenHistoryData({
       mint,
-      isActive,
-      hasWallet: !!walletAddress,
-      reason
+      code: tokenMeta.code,
+      points,
+      resolution
     });
 
     res.status(200).json({
@@ -258,10 +320,10 @@ router.get('/:mint/history', async (req, res) => {
       startTime: start,
       endTime: end,
       resolution,
-      points: 0,
-      data: [],
-      isTokenActive: isActive,
-      message: reason
+      points: history.points,
+      data: history.data,
+      isTokenActive: true,
+      source: history.source
     });
   } catch (error) {
     logger.error('[tokens/history] Failed to fetch price history', {
@@ -319,4 +381,3 @@ router.get('/:code', async (req, res) => {
 router.use('/', addTokenRoutes);
 
 export default router;
-

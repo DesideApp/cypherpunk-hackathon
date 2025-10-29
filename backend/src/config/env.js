@@ -31,6 +31,8 @@ export const env = cleanEnv(process.env, {
   JUPITER_PLATFORM_FEE_BPS: num({ default: 0 }),
   JUPITER_FEE_ACCOUNT:      str({ default: '' }),
 
+  COINGECKO_API_KEY:        str({ default: '' }),
+
   // Token mints para blinks de compra
   MINT_BONK:                str({ default: '' }),
   MINT_JUP:                 str({ default: '' }),
