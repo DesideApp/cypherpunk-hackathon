@@ -244,6 +244,12 @@
   color: var(--danger-color, #ef4444);
 }
 
+.users-actions__summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-md);
+}
+
 .users-actions__grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));

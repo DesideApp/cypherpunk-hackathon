@@ -2,6 +2,11 @@ import Agreement from '../models/agreement.model.js';
 import { AgreementStatus } from '../constants.js';
 import { buildSignatureTransaction, verifySignatureTransaction, fetchAgreementTransaction } from '../services/signature.service.js';
 import { sendAgreementUpdate } from '#modules/relay/services/actionMessaging.service.js';
+import {
+  logActionAgreementCreated,
+  logActionAgreementSigned,
+  logActionAgreementSettled,
+} from '#modules/actions/services/actionEvents.service.js';
 
 function asIsoOrNull(value) {
   if (!value) return null;
@@ -119,9 +124,18 @@ export async function createAgreement(req, res) {
     });
 
     const sanitizedAgreement = sanitize(agreement);
+    const counterparty = roster.find((p) => p && p !== normalizedCreator) || null;
+
+    await logActionAgreementCreated({
+      actor: normalizedCreator,
+      agreementId: sanitizedAgreement?.id || agreement.id,
+      counterparty,
+      amount,
+      token: token ? String(token).toUpperCase() : null,
+      deadline: deadlineDate ? deadlineDate.toISOString() : null,
+    });
 
     try {
-      const counterparty = roster.find((p) => p && p !== normalizedCreator) || null;
       if (counterparty) {
         await sendAgreementUpdate({
           agreement: sanitizedAgreement,
@@ -312,6 +326,13 @@ export async function confirmAgreementSignature(req, res) {
       console.warn('[agreement] notify failed', notifyError?.message || notifyError);
     }
 
+    await logActionAgreementSigned({
+      actor: normalizedSigner,
+      agreementId: sanitized?.id || agreement.id,
+      stage: agreement.receipt.status || null,
+      txSig: nowSig,
+    });
+
     return res.status(200).json({
       receipt: agreement.receipt,
       agreement: sanitized,
@@ -384,6 +405,15 @@ export async function markAgreementSettled(req, res) {
     };
 
     await agreement.save();
+
+    const actorWallet = req.user?.wallet || null;
+    if (actorWallet) {
+      await logActionAgreementSettled({
+        actor: actorWallet,
+        agreementId: agreement.id,
+        txSig: signature,
+      });
+    }
 
     return res.status(200).json({
       txSig: agreement.receipt.settlement.txSig,

@@ -101,6 +101,11 @@
   font-size: 1rem;
 }
 
+.actions-highlight__title {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
 .actions-highlight__value {
   font-size: 1.35rem;
   font-weight: 700;

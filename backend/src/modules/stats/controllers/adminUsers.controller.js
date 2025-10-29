@@ -67,16 +67,17 @@ export async function listUsers(req, res) {
     const total = await User.countDocuments(filter);
 
     // Sorting map
-  const SORT_FIELDS = new Set([
-    'lastLogin',
-    'registeredAt',
-    'loginCount',
-    'messagesSent',
-    'relayUsedBytes',
-    'tokensAdded',
-    'blinkExecutes',
-    'naturalCommandsExecuted'
-  ]);
+    const SORT_FIELDS = new Set([
+      'lastLogin',
+      'registeredAt',
+      'loginCount',
+      'messagesSent',
+      'relayUsedBytes',
+      'actionsSend',
+      'actionsRequests',
+      'actionsBuy',
+      'actionsAgreements'
+    ]);
     const effectiveSort = SORT_FIELDS.has(sortBy) ? sortBy : 'lastLogin';
 
     // Aggregation to join Stats (for messagesSent) and project required fields
@@ -102,9 +103,10 @@ export async function listUsers(req, res) {
           relayUsedBytes: 1,
           relayQuotaBytes: 1,
           messagesSent: { $ifNull: ['$statsDoc.messagesSent', 0] },
-          tokensAdded: { $ifNull: ['$statsDoc.tokensAdded', 0] },
-          blinkExecutes: { $ifNull: ['$statsDoc.blinkExecutes', 0] },
-          naturalCommandsExecuted: { $ifNull: ['$statsDoc.naturalCommandsExecuted', 0] },
+          actionsSend: { $ifNull: ['$statsDoc.actionsSend', 0] },
+          actionsRequests: { $ifNull: ['$statsDoc.actionsRequests', 0] },
+          actionsBuy: { $ifNull: ['$statsDoc.actionsBuy', 0] },
+          actionsAgreements: { $ifNull: ['$statsDoc.actionsAgreements', 0] },
         }
       },
       { $sort: { [effectiveSort]: sortOrder, wallet: 1 } },

@@ -21,10 +21,16 @@ async function safeLog(userWallet, eventType, data = {}) {
   }
 }
 
+function normalizeNumber(value) {
+  if (value === null || value === undefined) return null;
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
 export async function logActionSend({ actor, to, amount, token, source, txSig, convId }) {
   await safeLog(actor, ACTION_EVENT.SEND, {
     to,
-    amount: amount != null ? Number(amount) : null,
+    amount: normalizeNumber(amount),
     token: token || null,
     source: source || null,
     txSig: txSig || null,
@@ -43,7 +49,7 @@ export async function logActionSendFailed({ actor, to, reason, meta }) {
 export async function logActionRequestCreated({ actor, to, amount, token, note, actionUrl }) {
   await safeLog(actor, ACTION_EVENT.REQUEST_CREATED, {
     to: to || null,
-    amount: amount != null ? Number(amount) : null,
+    amount: normalizeNumber(amount),
     token: token || null,
     note: note || null,
     actionUrl: actionUrl || null,
@@ -53,7 +59,7 @@ export async function logActionRequestCreated({ actor, to, amount, token, note, 
 export async function logActionRequestCompleted({ actor, from, amount, token, txSig }) {
   await safeLog(actor, ACTION_EVENT.REQUEST_COMPLETED, {
     from: from || null,
-    amount: amount != null ? Number(amount) : null,
+    amount: normalizeNumber(amount),
     token: token || null,
     txSig: txSig || null,
   });
@@ -62,9 +68,9 @@ export async function logActionRequestCompleted({ actor, from, amount, token, tx
 export async function logActionBuy({ actor, token, amountInSol, expectedOut, volume, actionUrl, txSig }) {
   await safeLog(actor, ACTION_EVENT.BUY, {
     token: token || null,
-    amountInSol: amountInSol != null ? Number(amountInSol) : null,
-    expectedOut: expectedOut != null ? Number(expectedOut) : null,
-    volume: volume != null ? Number(volume) : null,
+    amountInSol: normalizeNumber(amountInSol),
+    expectedOut: normalizeNumber(expectedOut),
+    volume: normalizeNumber(volume),
     actionUrl: actionUrl || null,
     txSig: txSig || null,
   });
@@ -73,7 +79,7 @@ export async function logActionBuy({ actor, token, amountInSol, expectedOut, vol
 export async function logActionBuyFailed({ actor, token, amount, reason }) {
   await safeLog(actor, ACTION_EVENT.BUY_FAILED, {
     token: token || null,
-    amount: amount != null ? Number(amount) : null,
+    amount: normalizeNumber(amount),
     reason: reason || null,
   });
 }
@@ -82,7 +88,7 @@ export async function logActionAgreementCreated({ actor, agreementId, counterpar
   await safeLog(actor, ACTION_EVENT.AGREEMENT_CREATED, {
     agreementId: agreementId || null,
     counterparty: counterparty || null,
-    amount: amount != null ? Number(amount) : null,
+    amount: normalizeNumber(amount),
     token: token || null,
     deadline: deadline || null,
   });

@@ -297,27 +297,30 @@ export default function Users() {
     statsMeta.rangeLabel || formatRangeLabel(stats?.period?.start, stats?.period?.end) || "";
   const capacityTotals = relayCapacity?.totals ?? null;
   const capacityHotspots = relayCapacity?.hotspots ?? [];
-  const actionsTokens = actionsInsights?.tokens ?? {};
-  const actionsBlinks = actionsInsights?.blinks ?? {};
-  const actionsNatural = actionsInsights?.natural ?? {};
+  const actionsSend = actionsInsights?.send ?? {};
+  const actionsRequest = actionsInsights?.request ?? {};
+  const actionsBuy = actionsInsights?.buy ?? {};
+  const actionsAgreement = actionsInsights?.agreement ?? {};
   const actionsRangeLabel = actionsInsights?.range
     ? formatRangeLabel(actionsInsights.range.from, actionsInsights.range.to)
     : statsRangeLabel;
-  const actionsTopTokenUsers = actionsTokens.topUsers24h ?? [];
-  const actionsTopTokenCodes = actionsTokens.topTokens24h ?? [];
-  const actionsTopBlinkUsers = actionsBlinks.topUsers24h ?? [];
-  const actionsTopBlinkTokens = actionsBlinks.topTokens24h ?? [];
-  const actionsBlinkFailures = actionsBlinks.failures24h?.byReason ?? [];
-  const actionsTopNaturalUsers = actionsNatural.topUsers24h ?? [];
-  const actionsTopNaturalActions = actionsNatural.topActions24h ?? [];
+  const actionsTopSendUsers = actionsSend.topUsers ?? [];
+  const actionsSendTokens = actionsSend.tokens ?? [];
+  const actionsTopRequestUsers = actionsRequest.topUsers ?? [];
+  const actionsTopBuyUsers = actionsBuy.topUsers ?? [];
+  const actionsBuyTokens = actionsBuy.tokens ?? [];
+  const actionsAgreementCreators = actionsAgreement.topCreators ?? [];
+  const actionsAgreementSigners = actionsAgreement.topSigners ?? [];
+  const actionsAgreementSettlements = actionsAgreement.settlements ?? [];
   const hasAnyActionInsight =
-    actionsTopTokenUsers.length > 0 ||
-    actionsTopTokenCodes.length > 0 ||
-    actionsTopBlinkUsers.length > 0 ||
-    actionsTopBlinkTokens.length > 0 ||
-    actionsBlinkFailures.length > 0 ||
-    actionsTopNaturalUsers.length > 0 ||
-    actionsTopNaturalActions.length > 0;
+    actionsTopSendUsers.length > 0 ||
+    actionsSendTokens.length > 0 ||
+    actionsTopRequestUsers.length > 0 ||
+    actionsTopBuyUsers.length > 0 ||
+    actionsBuyTokens.length > 0 ||
+    actionsAgreementCreators.length > 0 ||
+    actionsAgreementSigners.length > 0 ||
+    actionsAgreementSettlements.length > 0;
   const globalUsagePct = capacityTotals ? capacityTotals.globalRatio * 100 : 0;
   const warningPct = capacityTotals ? capacityTotals.warningThreshold * 100 : 80;
   const criticalPct = capacityTotals ? capacityTotals.criticalThreshold * 100 : 95;
@@ -355,10 +358,15 @@ export default function Users() {
   };
   const getQuotaPercentage = (used, total) => ((used / total) * 100).toFixed(1);
   const formatNumber = (value) => Number(value ?? 0).toLocaleString("en-US");
-  const formatPercent = (value) =>
-    value != null && Number.isFinite(value)
-      ? `${Number(value).toFixed(2)}%`
-      : "—";
+  const formatAmount = (value, digits = 4) => {
+    if (value === null || value === undefined) return "—";
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return "—";
+    return numeric.toLocaleString("en-US", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: digits,
+    });
+  };
   const formatDateTime = (value) =>
     value
       ? new Date(value).toLocaleString(undefined, {
@@ -651,94 +659,131 @@ export default function Users() {
             <span className="users-actions__status">Cargando…</span>
           ) : null}
         </div>
+        <div className="users-actions__summary">
+          <SummaryCard
+            title="Send (period)"
+            value={actionsSend.periodCount ?? 0}
+            accent="#3b82f6"
+            subtitle={`Volumen ${formatAmount(actionsSend.periodVolume)} · Total ${formatNumber(actionsSend.lifetimeTotal)}`}
+          />
+          <SummaryCard
+            title="Requests (period)"
+            value={actionsRequest.periodCount ?? 0}
+            accent="#f59e0b"
+            subtitle={`Importe ${formatAmount(actionsRequest.periodAmount)} · Total ${formatNumber(actionsRequest.lifetimeTotal)}`}
+          />
+          <SummaryCard
+            title="Buy (period)"
+            value={actionsBuy.periodCount ?? 0}
+            accent="#10b981"
+            subtitle={`Volumen ${formatAmount(actionsBuy.periodVolume)} · Total ${formatNumber(actionsBuy.lifetimeTotal)}`}
+          />
+          <SummaryCard
+            title="Agreements (period)"
+            value={actionsAgreement.periodCreated ?? 0}
+            accent="#8b5cf6"
+            subtitle={`Firmados ${formatNumber(actionsAgreement.periodSigned)} · Settled ${formatNumber(actionsAgreement.periodSettled)}`}
+          />
+        </div>
         <div className="users-actions__grid">
-          {actionsTopTokenUsers.length > 0 && (
+          {actionsTopSendUsers.length > 0 && (
             <ActionTable
-              title="Tokens · Top wallets (24h)"
-              columns={["Usuario", "Tokens añadidos", "Último", "Tokens"]}
-              rows={actionsTopTokenUsers.map((item) => [
+              title="Send · Top usuarios"
+              columns={["Usuario", "Envíos", "Volumen", "Promedio", "Tokens", "Último"]}
+              rows={actionsTopSendUsers.map((item) => [
+                renderUserLabel(item),
+                formatNumber(item.count),
+                formatAmount(item.totalAmount),
+                item.avgAmount != null ? formatAmount(item.avgAmount) : "—",
+                item.tokens?.length ? item.tokens.join(", ") : "—",
+                formatDateTime(item.lastAt),
+              ])}
+            />
+          )}
+          {actionsSendTokens.length > 0 && (
+            <ActionTable
+              title="Send · Tokens"
+              columns={["Token", "Envíos", "Volumen"]}
+              rows={actionsSendTokens.map((token) => [
+                token.token || "—",
+                formatNumber(token.count),
+                formatAmount(token.totalAmount),
+              ])}
+            />
+          )}
+          {actionsTopRequestUsers.length > 0 && (
+            <ActionTable
+              title="Requests · Top usuarios"
+              columns={["Usuario", "Solicitudes", "Importe", "Promedio", "Tokens", "Último"]}
+              rows={actionsTopRequestUsers.map((item) => [
+                renderUserLabel(item),
+                formatNumber(item.count),
+                formatAmount(item.totalAmount),
+                item.avgAmount != null ? formatAmount(item.avgAmount) : "—",
+                item.tokens?.length ? item.tokens.join(", ") : "—",
+                formatDateTime(item.lastAt),
+              ])}
+            />
+          )}
+          {actionsTopBuyUsers.length > 0 && (
+            <ActionTable
+              title="Buy · Top usuarios"
+              columns={["Usuario", "Compras", "Volumen token", "Importe SOL", "Tokens", "Último"]}
+              rows={actionsTopBuyUsers.map((item) => [
+                renderUserLabel(item),
+                formatNumber(item.count),
+                formatAmount(item.totalVolume),
+                formatAmount(item.totalAmountSol),
+                item.tokens?.length ? item.tokens.join(", ") : "—",
+                formatDateTime(item.lastAt),
+              ])}
+            />
+          )}
+          {actionsBuyTokens.length > 0 && (
+            <ActionTable
+              title="Buy · Tokens"
+              columns={["Token", "Compras", "Volumen"]}
+              rows={actionsBuyTokens.map((token) => [
+                token.token || "—",
+                formatNumber(token.count),
+                formatAmount(token.totalVolume),
+              ])}
+            />
+          )}
+          {actionsAgreementCreators.length > 0 && (
+            <ActionTable
+              title="Agreements · Creadores"
+              columns={["Usuario", "Creó", "Contrapartes", "Último"]}
+              rows={actionsAgreementCreators.map((item) => [
+                renderUserLabel(item),
+                formatNumber(item.count),
+                item.counterparts?.length
+                  ? item.counterparts.map((wallet) => shortenWallet(wallet)).join(", ")
+                  : "—",
+                formatDateTime(item.lastAt),
+              ])}
+            />
+          )}
+          {actionsAgreementSigners.length > 0 && (
+            <ActionTable
+              title="Agreements · Firmantes"
+              columns={["Usuario", "Firmó", "Etapas", "Último"]}
+              rows={actionsAgreementSigners.map((item) => [
+                renderUserLabel(item),
+                formatNumber(item.count),
+                item.stages?.length ? item.stages.join(", ") : "—",
+                formatDateTime(item.lastAt),
+              ])}
+            />
+          )}
+          {actionsAgreementSettlements.length > 0 && (
+            <ActionTable
+              title="Agreements · Liquidaciones"
+              columns={["Usuario", "Liquidó", "Último"]}
+              rows={actionsAgreementSettlements.map((item) => [
                 renderUserLabel(item),
                 formatNumber(item.count),
                 formatDateTime(item.lastAt),
-                item.tokens?.length ? item.tokens.join(", ") : "—",
-              ])}
-            />
-          )}
-          {actionsTopTokenCodes.length > 0 && (
-            <ActionTable
-              title="Tokens · Más añadidos (24h)"
-              columns={["Token", "Mint", "Altas", "Usuarios"]}
-              rows={actionsTopTokenCodes.map((item) => [
-                item.code || "—",
-                item.mint || "—",
-                formatNumber(item.count),
-                formatNumber(item.uniqueUsers),
-              ])}
-            />
-          )}
-          {actionsTopBlinkUsers.length > 0 && (
-            <ActionTable
-              title="Blinks · Usuarios (24h)"
-              columns={["Usuario", "Hits", "Exec", "Éxito", "Fallos", "Volumen (SOL)", "Tokens"]}
-              rows={actionsTopBlinkUsers.map((item) => [
-                renderUserLabel(item),
-                formatNumber(item.metadataHits),
-                formatNumber(item.executes),
-                formatPercent(item.successRate),
-                formatPercent(item.failureRate),
-                formatNumber(item.volume),
-                item.tokens?.length ? item.tokens.join(", ") : "—",
-              ])}
-            />
-          )}
-          {actionsTopBlinkTokens.length > 0 && (
-            <ActionTable
-              title="Blinks · Tokens (24h)"
-              columns={["Token", "Hits", "Exec", "Éxito", "Volumen (SOL)"]}
-              rows={actionsTopBlinkTokens.map((token) => [
-                token.token || "—",
-                formatNumber(token.metadataHits),
-                formatNumber(token.executes),
-                formatPercent(token.successRate),
-                formatNumber(token.volume),
-              ])}
-            />
-          )}
-          {actionsBlinkFailures.length > 0 && (
-            <ActionTable
-              title={`Blinks · Fallos (24h · ${formatNumber(actionsBlinks.failures24h?.total ?? 0)})`}
-              columns={["Motivo", "Recuentos"]}
-              rows={actionsBlinkFailures.map((item, idx) => [
-                item.reason || `unknown_${idx}`,
-                formatNumber(item.count),
-              ])}
-            />
-          )}
-          {actionsTopNaturalUsers.length > 0 && (
-            <ActionTable
-              title="Comandos naturales · Usuarios (24h)"
-              columns={["Usuario", "Parsed", "Exec", "Rechazados", "Fallos", "Éxito"]}
-              rows={actionsTopNaturalUsers.map((item) => [
-                renderUserLabel(item),
-                formatNumber(item.parsed),
-                formatNumber(item.executed),
-                formatNumber(item.rejected),
-                formatNumber(item.failed),
-                formatPercent(item.successRate),
-              ])}
-            />
-          )}
-          {actionsTopNaturalActions.length > 0 && (
-            <ActionTable
-              title="Comandos naturales · Acciones (24h)"
-              columns={["Acción", "Parsed", "Exec", "Rechazados", "Fallos", "Éxito"]}
-              rows={actionsTopNaturalActions.map((item) => [
-                item.action || "—",
-                formatNumber(item.parsed),
-                formatNumber(item.executed),
-                formatNumber(item.rejected),
-                formatNumber(item.failed),
-                formatPercent(item.successRate),
               ])}
             />
           )}
@@ -759,6 +804,10 @@ export default function Users() {
                 <option value="registeredAt">Registro</option>
                 <option value="loginCount">Logins</option>
                 <option value="messagesSent">Mensajes</option>
+                <option value="actionsSend">Actions send</option>
+                <option value="actionsRequests">Actions requests</option>
+                <option value="actionsBuy">Actions buy</option>
+                <option value="actionsAgreements">Actions agreements</option>
                 <option value="tokensAdded">Tokens añadidos</option>
                 <option value="blinkExecutes">Blinks ejecutados</option>
                 <option value="naturalCommandsExecuted">Comandos naturales</option>
@@ -798,9 +847,10 @@ export default function Users() {
                   <th>Mensajes</th>
                   {showActionMetrics && (
                     <>
-                      <th>Tokens</th>
-                      <th>Blinks</th>
-                      <th>Comandos</th>
+                      <th>Send</th>
+                      <th>Requests</th>
+                      <th>Buy</th>
+                      <th>Agreements</th>
                     </>
                   )}
                   <th>Relay uso</th>
@@ -821,9 +871,10 @@ export default function Users() {
                   <td>{user.messagesSent}</td>
                   {showActionMetrics && (
                     <>
-                      <td>{formatNumber(user.tokensAdded)}</td>
-                      <td>{formatNumber(user.blinkExecutes)}</td>
-                      <td>{formatNumber(user.naturalCommandsExecuted)}</td>
+                      <td>{formatNumber(user.actionsSend)}</td>
+                      <td>{formatNumber(user.actionsRequests)}</td>
+                      <td>{formatNumber(user.actionsBuy)}</td>
+                      <td>{formatNumber(user.actionsAgreements)}</td>
                     </>
                   )}
                   <td>

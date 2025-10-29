@@ -305,11 +305,21 @@ export async function executeBuyBlink(req, res) {
       },
     };
     applyBlinkHeaders(res);
+    const volumeOut = expectedOut ? Number(expectedOut) : 0;
     await safeLog(account, 'blink_execute', {
       token,
       amountInSol: amount,
       expectedOut,
-      volume: expectedOut ? Number(expectedOut) : 0,
+      volume: volumeOut,
+    });
+    await logActionBuy({
+      actor: account,
+      token,
+      amountInSol: amount,
+      expectedOut,
+      volume: volumeOut,
+      actionUrl: req.body?.actionUrl || null,
+      txSig: null,
     });
     return res.status(200).json(payload);
   } catch (error) {
@@ -318,6 +328,12 @@ export async function executeBuyBlink(req, res) {
       token,
       amount: amountRaw,
       error: error?.message,
+    });
+    await logActionBuyFailed({
+      actor: req.user?.wallet || account,
+      token,
+      amount: amountRaw,
+      reason: error?.message,
     });
     if (error instanceof BlinkExecutionError) {
       applyBlinkHeaders(res);

@@ -37,30 +37,13 @@ const formatDateTime = (value) => {
 };
 
 const FALLBACK_PRODUCT = {
-  tokens: { total: 0, last24h: 0 },
-  blinks: {
-    metadataHits: 0,
-    metadataHits24h: 0,
-    executes: 0,
-    executes24h: 0,
-    successRate24h: null,
-    volumeTotal: 0,
-    volume24h: 0,
-  },
-  naturalCommands: {
-    parsed: 0,
-    executed: 0,
-    rejected: 0,
-    failed: 0,
-    parsed24h: 0,
-    executed24h: 0,
-    rejected24h: 0,
-    failed24h: 0,
+  actions: {
+    send: { total: 0, count24h: 0, volume24h: 0 },
+    request: { total: 0, count24h: 0, amount24h: 0 },
+    buy: { total: 0, count24h: 0, volume24h: 0 },
+    agreement: { total: 0, created24h: 0, signed24h: 0, settled24h: 0 },
   },
   messaging: {
-    dmStarted: 0,
-    dmAccepted: 0,
-    relayMessages: 0,
     dmStarted24h: 0,
     dmAccepted24h: 0,
     relayMessages24h: 0,
@@ -273,6 +256,7 @@ export default function Dashboard() {
   }, [jobStatuses]);
 
   const product = useMemo(() => overview?.productInsights ?? FALLBACK_PRODUCT, [overview]);
+  const actionsProduct = product.actions ?? FALLBACK_PRODUCT.actions;
 
   const bucketMinutes = overview?.bucket?.minutes ?? periodMeta.bucketMinutes;
   const bucketMeta = useMemo(
@@ -305,6 +289,15 @@ export default function Dashboard() {
 
   const tableRows = [...chartData].slice(-30).reverse();
   const formatNumber = (value) => Number(value ?? 0).toLocaleString("en-US");
+  const formatAmount = (value, digits = 4) => {
+    if (value === null || value === undefined) return "—";
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return "—";
+    return numeric.toLocaleString("en-US", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: digits,
+    });
+  };
   const formatPercent = (value) => (value != null ? `${Number(value).toFixed(2)}%` : "—");
   const formatDuration = (ms) => {
     if (ms == null) return "—";
@@ -645,32 +638,32 @@ export default function Dashboard() {
 
       <div className="stats-grid secondary">
         <StatCard
-          title="Tokens añadidos (24h)"
-          value={product.tokens.last24h.toLocaleString("en-US")}
-          icon="🪙"
+          title="Send (24h)"
+          value={actionsProduct.send.count24h.toLocaleString("en-US")}
+          icon="✉️"
           color="#7b1fa2"
-          subtitle={`Total: ${product.tokens.total.toLocaleString("en-US")}`}
+          subtitle={`Volumen ${formatAmount(actionsProduct.send.volume24h)} • Total ${formatNumber(actionsProduct.send.total)}`}
         />
         <StatCard
-          title="Blink executes (24h)"
-          value={product.blinks.executes24h.toLocaleString("en-US")}
-          icon="⚡"
-          color="#f472b6"
-          subtitle={`${product.blinks.metadataHits24h.toLocaleString("en-US")} hits • ${product.blinks.volume24h.toLocaleString("en-US")} vol • ${product.blinks.successRate24h != null ? `${product.blinks.successRate24h}% success` : "no data"}`}
+          title="Requests (24h)"
+          value={actionsProduct.request.count24h.toLocaleString("en-US")}
+          icon="🧾"
+          color="#f97316"
+          subtitle={`Importe ${formatAmount(actionsProduct.request.amount24h)} • Total ${formatNumber(actionsProduct.request.total)}`}
         />
         <StatCard
-          title="Commands executed (24h)"
-          value={product.naturalCommands.executed24h.toLocaleString("en-US")}
-          icon="🤖"
+          title="Buy (24h)"
+          value={actionsProduct.buy.count24h.toLocaleString("en-US")}
+          icon="🛒"
           color="#0ea5e9"
-          subtitle={`${product.naturalCommands.parsed24h.toLocaleString("en-US")} parsed • ${product.naturalCommands.rejected24h.toLocaleString("en-US")} rejected`}
+          subtitle={`Volumen ${formatAmount(actionsProduct.buy.volume24h)} • Total ${formatNumber(actionsProduct.buy.total)}`}
         />
         <StatCard
-          title="DM requests (24h)"
-          value={product.messaging.dmStarted24h.toLocaleString("en-US")}
-          icon="📨"
+          title="Agreements (24h)"
+          value={actionsProduct.agreement.created24h.toLocaleString("en-US")}
+          icon="🤝"
           color="#10b981"
-          subtitle={`${product.messaging.dmAccepted24h.toLocaleString("en-US")} accepted • ${product.messaging.relayMessages24h.toLocaleString("en-US")} relay msgs`}
+          subtitle={`Firmados ${formatNumber(actionsProduct.agreement.signed24h)} • Settled ${formatNumber(actionsProduct.agreement.settled24h)}`}
         />
       </div>
 

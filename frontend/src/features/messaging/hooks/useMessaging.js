@@ -378,6 +378,7 @@ export default function useMessaging({
             token,
             amount,
             note: note || null,
+            actionUrl: actionUrl || null,
           },
           force: true,
         });
@@ -494,6 +495,9 @@ export default function useMessaging({
               to: peerWallet,
               token: token || null,
               blinkKind: kind || 'buy',
+              amount: resolvedAmount ?? null,
+              source: source || null,
+              txSig: txSig || null,
             },
             force: true,
           });

@@ -10,6 +10,10 @@ import { appendMessageToHistory } from '#modules/history/services/history.servic
 import { getRelayStore } from '#modules/relay/services/relayStoreProvider.js';
 import { resolveQuota, checkQuota, applyQuota } from '#modules/relay/services/quota.service.js';
 import { relayFetchCounter, observeFetchLatency, relayAckLatency, relayMailboxUsageGauge } from '#modules/relay/services/relayMetrics.js';
+import {
+  logActionSend,
+  logActionRequestCreated,
+} from '#modules/actions/services/actionEvents.service.js';
 
 const log = createModuleLogger({ module: 'relay.controller' });
 
@@ -222,6 +226,30 @@ export const enqueueMessage = async (req, res) => {
         recipientOnline: !!recipientOnline,
         forced: !!isForced,
       });
+
+      if (finalMeta?.kind === 'blink-action') {
+        const blinkKind = (finalMeta?.blinkKind || '').toLowerCase();
+        if (blinkKind === 'transfer' || blinkKind === 'send' || blinkKind === 'transfer-send') {
+          await logActionSend({
+            actor: sender,
+            to: dest,
+            amount: finalMeta?.amount ?? null,
+            token: finalMeta?.token || null,
+            source: finalMeta?.source || null,
+            txSig: finalMeta?.txSig || null,
+            convId: finalMeta?.convId || null,
+          });
+        }
+      } else if (finalMeta?.kind === 'payment-request') {
+        await logActionRequestCreated({
+          actor: sender,
+          to: dest,
+          amount: finalMeta?.amount ?? null,
+          token: finalMeta?.token || null,
+          note: finalMeta?.note || null,
+          actionUrl: finalMeta?.actionUrl || null,
+        });
+      }
     } catch {}
 
     try {
