@@ -3,7 +3,6 @@ import { getTokenMeta } from "../../config/tokenMeta.js";
 import { formatPriceUSD } from "@shared/utils/priceFormatter.js";
 import { ActionModalTokenLogo } from "@shared/ui/action-modals/index.js";
 import { Sparkline } from "@shared/ui/charts/index.js";
-import { generatePriceHistory } from "./BuyTokenModal.jsx";
 
 /**
  * Token button with automatic color generation
@@ -12,11 +11,32 @@ export default function TokenButton({ token, price, priceChange, onClick, disabl
   const [meta, setMeta] = useState(null);
   const [loading, setLoading] = useState(true);
   
-  // Memoize price history to prevent regeneration on every render
   const priceData = useMemo(() => {
-    if (priceChange == null) return [];
-    return generatePriceHistory(priceChange);
-  }, [priceChange]);
+    if (Array.isArray(token?.history) && token.history.length > 0) {
+      return token.history;
+    }
+    if (typeof priceChange === "number") {
+      // fallback for legacy data
+      const base = [];
+      let value = 100;
+      for (let i = 0; i < 32; i++) {
+        const delta = priceChange / Math.max(1, 32);
+        value += delta;
+        base.push(value);
+      }
+      return base;
+    }
+    return [];
+  }, [token?.history, priceChange]);
+
+  const sparklineTrend = useMemo(() => {
+    if (priceData.length < 2) return 'neutral';
+    const first = priceData[0];
+    const last = priceData[priceData.length - 1];
+    if (last > first) return 'positive';
+    if (last < first) return 'negative';
+    return 'neutral';
+  }, [priceData]);
   
   useEffect(() => {
     let mounted = true;
@@ -104,14 +124,14 @@ export default function TokenButton({ token, price, priceChange, onClick, disabl
         <div className="buy-token-name">{meta.label || token.code}</div>
       </div>
       <div className="buy-token-right">
-        {priceChange != null && priceData.length > 0 && (
+        {priceData.length > 0 && (
           <div className="buy-token-graph-container">
             <Sparkline
               data={priceData}
               variant="mini"
               width={56}
               height={20}
-              trend={priceChange >= 0 ? 'positive' : 'negative'}
+              trend={sparklineTrend}
               animate={false}
             />
           </div>
@@ -123,6 +143,3 @@ export default function TokenButton({ token, price, priceChange, onClick, disabl
     </button>
   );
 }
-
-
-

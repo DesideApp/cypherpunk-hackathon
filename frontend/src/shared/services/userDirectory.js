@@ -1,6 +1,7 @@
 // src/shared/services/userDirectory.js
 // Servicio centralizado de perfiles de usuario con caché + listeners
 import { apiRequest } from "@shared/services/apiService.js";
+import { apiUrl } from "@shared/config/env.js";
 import { hasSessionCookies } from "@shared/services/tokenService.js";
 
 const PUBKEY_REGEX = /^([1-9A-HJ-NP-Za-km-z]{32,44})$/;
@@ -24,6 +25,18 @@ const listeners = new Map();
 function now() { return Date.now(); }
 function isExpired(entry) { return !entry || !entry.expiresAt || entry.expiresAt <= now(); }
 
+function normalizeAvatarUrl(value) {
+  if (!value) return null;
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith('/')) {
+    try { return apiUrl(trimmed); } catch { return trimmed; }
+  }
+  return trimmed;
+}
+
 function normalizeProfile(raw, pk) {
   if (!raw || raw.registered === false) {
     return {
@@ -44,7 +57,7 @@ function normalizeProfile(raw, pk) {
     relationship: raw.relationship || "none",
     blocked: !!raw.blocked,
     nickname: raw.nickname || null,
-    avatar: raw.avatar || null,
+    avatar: normalizeAvatarUrl(raw.avatar) || null,
     social: raw.social || { x: null, website: null },
   };
 }
@@ -207,4 +220,3 @@ export default {
   subscribe,
   clearAll,
 };
-
