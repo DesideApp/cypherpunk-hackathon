@@ -7,7 +7,7 @@ import { Sparkline } from "@shared/ui/charts/index.js";
 /**
  * Token button with automatic color generation
  */
-export default function TokenButton({ token, price, priceChange, onClick, disabled }) {
+export default function TokenButton({ token, price, onClick, disabled }) {
   const [meta, setMeta] = useState(null);
   const [loading, setLoading] = useState(true);
   
@@ -15,19 +15,8 @@ export default function TokenButton({ token, price, priceChange, onClick, disabl
     if (Array.isArray(token?.history) && token.history.length > 0) {
       return token.history;
     }
-    if (typeof priceChange === "number") {
-      // fallback for legacy data
-      const base = [];
-      let value = 100;
-      for (let i = 0; i < 32; i++) {
-        const delta = priceChange / Math.max(1, 32);
-        value += delta;
-        base.push(value);
-      }
-      return base;
-    }
     return [];
-  }, [token?.history, priceChange]);
+  }, [token?.history]);
 
   const sparklineTrend = useMemo(() => {
     if (priceData.length < 2) return 'neutral';

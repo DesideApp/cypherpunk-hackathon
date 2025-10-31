@@ -1,7 +1,7 @@
 // backend/src/modules/tokens/routes/index.js
 import { Router } from 'express';
 import { getAllowedTokens, getTokenByCode, getTokenByMint } from '../services/tokenService.js';
-import { fetchCoingeckoPriceHistory } from '#shared/services/tokenHistoryService.js';
+import { fetchCoingeckoHistory } from '#shared/services/tokenHistoryService.js';
 import { 
   activateToken, 
   getActivationStats 
@@ -11,28 +11,8 @@ import logger from '#config/logger.js';
 
 const router = Router();
 
-const PRICE_HISTORY_TTL_MS = 60 * 1000; // 1 minute cache per token
-const priceHistoryCache = new Map(); // Map<cacheKey, { data:number[], points:number, fetchedAt:number, source:string }>
-
-function makeHistoryCacheKey(mint, interval, days, points) {
-  return `${mint}:${interval}:${days}:${points}`;
-}
-
-function mapResolutionToCoingecko(resolution) {
-  switch ((resolution || '').toLowerCase()) {
-    case '1m':
-    case '5m':
-    case '15m':
-    case '30m':
-    case '1h':
-    case '6h':
-    case '12h':
-    case '1d':
-      return { interval: 'hourly', days: 1 };
-    default:
-      return { interval: 'hourly', days: 1 };
-  }
-}
+const PRICE_HISTORY_TTL_MS = 60 * 1000;
+const priceHistoryCache = new Map(); // Map<cacheKey, { data:number[], points:number, fetchedAt:number }>
 
 /**
  * Normalize price history to a specific number of points
@@ -59,64 +39,44 @@ function normalizePricePoints(history, targetPoints) {
   return normalized;
 }
 
-function generateSyntheticHistory(points) {
-  const total = Number.isFinite(points) && points > 0 ? points : 48;
-  const data = [];
-  let value = 100;
-  for (let i = 0; i < total; i++) {
-    const drift = (Math.random() - 0.5) * 2;
-    value = Math.max(0.1, value + drift);
-    data.push(Number(value.toFixed(4)));
-  }
-  return data;
-}
-
 async function getTokenHistoryData({ mint, code, points = 48, resolution = '1h' }) {
   const normalizedPoints = Number.parseInt(points, 10) || 48;
-  const { interval, days } = mapResolutionToCoingecko(resolution);
-  const cacheKey = makeHistoryCacheKey(mint, interval, days, normalizedPoints);
+  const cacheKey = `${mint}:${normalizedPoints}:${resolution}`;
 
   const cached = priceHistoryCache.get(cacheKey);
   if (cached && (Date.now() - cached.fetchedAt) < PRICE_HISTORY_TTL_MS) {
-    logger.debug('[tokens/history] Serving price history from cache', { mint, interval, days, source: cached.source });
+    logger.debug('[tokens/history] Serving price history from cache', { mint });
     return {
       data: cached.data,
       points: cached.points,
-      source: cached.source,
+      source: 'cache',
     };
   }
 
-  const history = await fetchCoingeckoPriceHistory({
+  const history = await fetchCoingeckoHistory({
     code,
-    interval,
-    days
+    days: 1,
   });
 
-  let normalizedHistory = [];
-  let source = 'coingecko';
-
-  if (history.length > 0) {
-    normalizedHistory = normalizePricePoints(history, normalizedPoints);
-  } else {
-    normalizedHistory = generateSyntheticHistory(normalizedPoints);
-    source = 'synthetic';
-    logger.warn('[tokens/history] Coingecko returned no data; serving synthetic history', {
-      mint,
-      code
-    });
-  }
+  const normalizedHistory = normalizePricePoints(history, normalizedPoints);
 
   priceHistoryCache.set(cacheKey, {
     data: normalizedHistory,
     points: normalizedHistory.length,
     fetchedAt: Date.now(),
-    source
+  });
+
+  logger.info('[tokens/history] History fetched from Coingecko', {
+    mint,
+    code,
+    points: normalizedHistory.length,
+    cacheKey,
   });
 
   return {
     data: normalizedHistory,
     points: normalizedHistory.length,
-    source
+    source: 'coingecko'
   };
 }
 
@@ -132,7 +92,6 @@ router.get('/allowed', async (req, res) => {
       success: true,
       count: tokens.length,
       tokens: tokens.map((t) => {
-        const synthetic = generateSyntheticHistory(32);
         return {
           mint: t.mint,
           code: t.code,
@@ -141,9 +100,6 @@ router.get('/allowed', async (req, res) => {
           maxAmount: t.maxAmount,
           minAmount: t.minAmount,
           verified: t.verified || false,
-          history: synthetic,
-          historyPoints: synthetic.length,
-          historySource: 'synthetic',
         };
       }),
     });
@@ -322,7 +278,6 @@ router.get('/:mint/history', async (req, res) => {
       resolution,
       points: history.points,
       data: history.data,
-      isTokenActive: true,
       source: history.source
     });
   } catch (error) {
@@ -331,10 +286,10 @@ router.get('/:mint/history', async (req, res) => {
       mint: req.params.mint
     });
 
-    res.status(500).json({
+    res.status(502).json({
       success: false,
-      error: 'Failed to fetch price history',
-      message: error.message
+      error: 'COINGECKO_ERROR',
+      message: error.message,
     });
   }
 });

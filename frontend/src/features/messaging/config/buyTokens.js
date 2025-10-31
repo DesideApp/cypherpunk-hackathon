@@ -103,9 +103,6 @@ export function enrichTokenWithMetadata(token) {
     maxAmount: token.maxAmount,
     minAmount: token.minAmount,
     verified: token.verified || false,
-    history: Array.isArray(token.history) ? token.history : [],
-    historySource: token.historySource || null,
-    historyPoints: token.historyPoints || 0,
   };
 }
 
