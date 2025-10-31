@@ -114,63 +114,6 @@ function formatRelativeTime(timestamp) {
   return `${diffDays}d`;
 }
 
-/**
- * Apply Exponential Moving Average to smooth price data
- * @param {number[]} data - Raw price data
- * @param {number} period - EMA period (higher = smoother)
- * @returns {number[]} Smoothed data
- */
-function applyEMA(data, period = 6) {
-  if (data.length === 0) return data;
-  
-  const k = 2 / (period + 1); // Smoothing factor
-  const ema = [data[0]]; // First value = first data point
-  
-  for (let i = 1; i < data.length; i++) {
-    const value = data[i] * k + ema[i - 1] * (1 - k);
-    ema.push(value);
-  }
-  
-  return ema;
-}
-
-/**
- * Generate synthetic price history based on actual 24h change
- * Like CoinMarketCap: visible volatility but smooth trend with thicker line
- * @param {number} priceChange24h - Actual 24h price change percentage (e.g., 2.5 for +2.5%)
- * @returns {number[]} Array of EMA-smoothed price points for the last 24h
- */
-export function generatePriceHistory(priceChange24h = 0) {
-  const points = 48; // 48 data points for 24 hours (one per 30 min)
-  const rawData = [];
-  
-  // Start at 100, end at 100 + priceChange24h
-  const startPrice = 100;
-  const endPrice = startPrice * (1 + priceChange24h / 100);
-  const totalChange = endPrice - startPrice;
-  
-  // Generate base trend with MORE visible variations (like CMC)
-  for (let i = 0; i < points; i++) {
-    const progress = i / (points - 1); // 0 to 1
-    
-    // Base trend (linear)
-    const trendPrice = startPrice + (totalChange * progress);
-    
-    // Add gentle wave for natural flow
-    const wave = Math.sin(progress * Math.PI * 2) * (Math.abs(totalChange) * 0.15);
-    
-    // More visible random noise (like CMC charts)
-    const noise = (Math.random() - 0.5) * 1.2;
-    
-    rawData.push(trendPrice + wave + noise);
-  }
-  
-  // Apply EMA smoothing (period=5 for more responsive, visible movement)
-  const smoothed = applyEMA(rawData, 5);
-  
-  return smoothed;
-}
-
 export default function BuyTokenModal({
   open = false,
   presetToken = null,
@@ -224,23 +167,21 @@ export default function BuyTokenModal({
   }, [open, loadTokens]);
 
   // Enriquecer tokens del backend con metadata UI (dialPath, etc.)
+  const [historyMap, setHistoryMap] = useState({});
+
   const tokens = useMemo(() => {
     if (!backendTokens?.tokens) return [];
-    
-    const enrichedTokens = backendTokens.tokens.map(enrichTokenWithMetadata);
-    
-    console.debug("[BuyTokenModal] tokens enriched with metadata", {
-      count: enrichedTokens.length,
-      tokens: enrichedTokens.map((t) => ({ 
-        code: t.code, 
-        label: t.label, 
-        hasMint: !!t.outputMint,
-        hasDialPath: !!t.dialToUrl,
-      })),
+
+    return backendTokens.tokens.map((token) => {
+      const enriched = enrichTokenWithMetadata(token);
+      const entry = historyMap[token.mint] || null;
+      return {
+        ...enriched,
+        history: entry?.data || [],
+        historySource: entry?.source || null,
+      };
     });
-    
-    return enrichedTokens;
-  }, [backendTokens]);
+  }, [backendTokens, historyMap]);
 
   const [step, setStep] = useState("pick-token");
   const [selected, setSelected] = useState(null); // { code, outputMint }
@@ -249,6 +190,21 @@ export default function BuyTokenModal({
   const [prices, setPrices] = useState({});
   const [pricesUpdatedAt, setPricesUpdatedAt] = useState(null);
   const [priceHistory, setPriceHistory] = useState([]); // Historical price data for sparkline
+
+  const walletPublicKey = walletCtx?.publicKey;
+  const walletAddress = useMemo(() => {
+    if (walletPublicKey?.toBase58) {
+      try {
+        return walletPublicKey.toBase58();
+      } catch (_) {
+        return myWallet || null;
+      }
+    }
+    if (typeof walletPublicKey === "string" && walletPublicKey) {
+      return walletPublicKey;
+    }
+    return myWallet || null;
+  }, [walletPublicKey, myWallet]);
 
   // Fetch USD prices for visible tokens (Jupiter Price API v3)
   useEffect(() => {
@@ -272,63 +228,79 @@ export default function BuyTokenModal({
     } catch {}
   }, [tokens]);
 
-  // Wallet address (needed for token activation and history)
-  const walletPublicKey = walletCtx?.publicKey;
-  const walletAddress = useMemo(() => {
-    if (walletPublicKey?.toBase58) {
-      try {
-        return walletPublicKey.toBase58();
-      } catch (_) {
-        return myWallet || null;
-      }
+  useEffect(() => {
+    if (!backendTokens?.tokens?.length) {
+      setHistoryMap({});
+      return;
     }
-    if (typeof walletPublicKey === "string" && walletPublicKey) {
-      return walletPublicKey;
-    }
-    return myWallet || null;
-  }, [walletPublicKey, myWallet]);
 
-  // Fetch historical price data for selected token (with lazy activation)
+    let cancelled = false;
+    const entries = backendTokens.tokens.filter((token) => token.mint);
+
+    (async () => {
+      const results = await Promise.allSettled(
+        entries.map(async (token) => {
+          const res = await fetchTokenHistory(token.mint, null, 48, '1h');
+          return { mint: token.mint, data: res.data, source: res.source };
+        })
+      );
+
+      if (cancelled) return;
+
+      const nextHistory = {};
+
+      results.forEach((result, idx) => {
+        const mint = entries[idx].mint;
+        if (result.status === 'fulfilled') {
+          nextHistory[mint] = {
+            data: result.value.data,
+            source: result.value.source,
+          };
+          console.log('[BuyTokenModal] History loaded', {
+            mint,
+            points: result.value.data.length,
+            source: result.value.source,
+          });
+        } else {
+          console.warn('[BuyTokenModal] Failed to load history for token', {
+            mint,
+            error: result.reason?.message || result.reason,
+          });
+          nextHistory[mint] = { data: [], source: null };
+        }
+      });
+
+      setHistoryMap(nextHistory);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [backendTokens]);
+
+  // Fetch historical price data for selected token
   useEffect(() => {
     if (!selected?.outputMint || !open) {
       setPriceHistory([]);
       return;
     }
 
-    let alive = true;
-
-    // Fetch historical data directly from backend (cache handles throttling)
-    fetchTokenHistory(selected.outputMint, walletAddress, 48, '1h')
-      .then((result) => {
-        if (!alive) return;
-        
-        if (result.success && result.data && result.data.length > 0) {
-          console.log('[BuyTokenModal] Using real historical data from backend', {
-            token: selected.code,
-            points: result.data.length
-          });
-          setPriceHistory(result.data);
-        } else {
-          // Fallback: Use synthetic data based on priceChange24h
-          console.log('[BuyTokenModal] Using synthetic price history', {
-            token: selected.code,
-            isTokenActive: result.isTokenActive,
-            message: result.message
-          });
-          setPriceHistory(null); // null signals to use generatePriceHistory
-        }
-      })
-      .catch((error) => {
-        if (!alive) return;
-        console.warn('[BuyTokenModal] Error loading price history, using synthetic', {
-          token: selected.code,
-          error: error.message
-        });
-        setPriceHistory(null); // Fallback to synthetic
+    const entry = historyMap[selected.outputMint];
+    if (entry?.data?.length) {
+      setPriceHistory(entry.data);
+      console.log('[BuyTokenModal] Using cached history for token', {
+        token: selected.code,
+        points: entry.data.length,
+        source: entry.source,
       });
-
-    return () => { alive = false; };
-  }, [selected, open, walletAddress]);
+    } else {
+      setPriceHistory([]);
+      console.warn('[BuyTokenModal] No price history available for token', {
+        token: selected?.code,
+        mint: selected?.outputMint,
+      });
+    }
+  }, [selected, open, historyMap]);
 
   const amountOptions = [0.01, 0.1, 1];
   const inlineEnabled = FEATURES.PAYMENT_INLINE_EXEC;
@@ -358,11 +330,6 @@ export default function BuyTokenModal({
   const changeRaw = typeof selectedPriceEntry?.priceChange24h === "number" ? selectedPriceEntry.priceChange24h : null;
   const changeLabel = changeRaw != null ? formatPercent(changeRaw) : null;
   const changeTone = typeof changeRaw === "number" ? (changeRaw > 0 ? "positive" : changeRaw < 0 ? "negative" : null) : null;
-  
-  // Generate synthetic price history (memoized to prevent re-generation on every render)
-  const syntheticPriceHistory = useMemo(() => {
-    return generatePriceHistory(changeRaw || 0);
-  }, [changeRaw]);
   
   const solPriceEntry = prices?.[INPUT_MINT] || null;
   const solUsdPrice = typeof solPriceEntry?.usdPrice === "number" ? solPriceEntry.usdPrice : null;
@@ -630,7 +597,6 @@ export default function BuyTokenModal({
                       key={t.code}
                       token={t}
                       price={price}
-                      priceChange={priceChange}
                       onClick={pickToken}
                       disabled={!t.outputMint}
                     />
@@ -656,11 +622,7 @@ export default function BuyTokenModal({
               {/* Prioridad: datos reales de backend > sintéticos basados en changeRaw */}
               <Sparkline
                 variant="hero"
-                data={
-                  priceHistory && priceHistory.length > 0
-                    ? priceHistory
-                    : syntheticPriceHistory
-                }
+                data={priceHistory || []}
                 price={priceLabel ? priceLabel.replace('US$', 'USD') : "—"}
                 change={changeLabel || "—"}
                 trend={changeTone || 'neutral'}

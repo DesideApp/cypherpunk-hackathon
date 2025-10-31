@@ -32,6 +32,7 @@ export const env = cleanEnv(process.env, {
   JUPITER_FEE_ACCOUNT:      str({ default: '' }),
 
   COINGECKO_API_KEY:        str({ default: '' }),
+  COINGECKO_API_BASE_URL:   str({ default: 'https://api.coingecko.com/api/v3' }),
 
   // Token mints para blinks de compra
   MINT_BONK:                str({ default: '' }),

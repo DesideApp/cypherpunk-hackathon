@@ -808,3 +808,4 @@ curl "https://api.coingecko.com/api/v3/coins/solana/market_chart?vs_currency=usd
 - [Sparkline Component](./SPARKLINE_COMPONENT.md)
 - [Theme System](./THEME_SYSTEM.md)
 
+
