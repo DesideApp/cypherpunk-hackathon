@@ -100,7 +100,9 @@ docs/
 !docs/backend/**
 !docs/frontend/
 !docs/frontend/**
-scripts/
+# Ignore root scripts/ (smoke tests), but keep backend/scripts/ops/ (operational scripts)
+/scripts/
+!backend/scripts/ops/
 tests/
 
 # Root documentation files (private notes)
