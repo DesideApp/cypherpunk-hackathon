@@ -21,7 +21,10 @@ export async function logEvent(userId, eventType, data = {}, country = null) {
       }
     };
 
-    update.$inc = buildIncrements(eventType, data);
+    const increments = buildIncrements(eventType, data);
+    if (increments) {
+      update.$inc = increments;
+    }
 
     if (country) {
       update.$push.connectionHistory = {
@@ -91,6 +94,37 @@ function buildIncrements(eventType, data) {
       break;
     case 'relay_message':
       inc.relayMessages = 1;
+      break;
+    case 'relay_delivered':
+      // Event logged, no counter needed (tracked in events array)
+      break;
+    case 'relay_fetch':
+      // Event logged, no counter needed (tracked in events array)
+      break;
+    case 'relay_acked':
+      // Event logged, no counter needed (tracked in events array)
+      break;
+    case 'relay_ack':
+      // Event logged, no counter needed (tracked in events array)
+      break;
+    case 'relay_purged_manual':
+    case 'relay_purged_ttl':
+      // Event logged, no counter needed (tracked in events array)
+      break;
+    case 'relay_error':
+    case 'relay_skipped_online':
+    case 'relay_forced_offline':
+    case 'relay_usage_critical':
+    case 'relay_usage_warning':
+      // Event logged, no counter needed (tracked in events array)
+      break;
+    case 'rtc_offer':
+    case 'rtc_answer':
+    case 'rtc_candidate':
+    case 'rtc_established':
+    case 'rtc_failed':
+    case 'rtc_fallback_to_relay':
+      // Event logged, no counter needed (tracked in events array)
       break;
     case 'action_send':
       inc.actionsSend = 1;
