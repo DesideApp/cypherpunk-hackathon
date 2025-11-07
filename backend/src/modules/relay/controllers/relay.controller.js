@@ -7,13 +7,35 @@ import config from "#config/appConfig.js";
 import logEvent from '#modules/stats/services/eventLogger.service.js';
 import { createModuleLogger } from '#config/logger.js';
 import { appendMessageToHistory } from '#modules/history/services/history.service.js';
+import ConversationMessage from '#modules/history/models/message.model.js';
 import { getRelayStore } from '#modules/relay/services/relayStoreProvider.js';
 import { resolveQuota, checkQuota, applyQuota } from '#modules/relay/services/quota.service.js';
-import { relayFetchCounter, observeFetchLatency, relayAckLatency, relayMailboxUsageGauge } from '#modules/relay/services/relayMetrics.js';
+import computeUsageStatus from '#modules/relay/services/usageStatus.js';
+import {
+  relayFetchCounter,
+  observeFetchLatency,
+  relayAckLatency,
+  relayMailboxUsageGauge,
+  relayMailboxUsageRatioGauge,
+  recordHistorySyncAttempt,
+  recordHistorySyncSuccess,
+  recordHistorySyncFailure,
+} from '#modules/relay/services/relayMetrics.js';
 import {
   logActionSend,
   logActionRequestCreated,
 } from '#modules/actions/services/actionEvents.service.js';
+import {
+  shouldBlock as shouldBlockAbuse,
+  recordAbuseEvent,
+  getAbuseSnapshot,
+  unblockEntity,
+} from '#modules/relay/services/relayAbuse.service.js';
+import { deleteObject } from '#modules/attachments/services/r2Storage.js';
+import {
+  vaultPurgeCounter,
+  vaultUsageGauge,
+} from '#modules/attachments/services/attachmentMetrics.js';
 
 const log = createModuleLogger({ module: 'relay.controller' });
 
@@ -26,6 +48,32 @@ const SOLANA_PUBKEY = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 /* ───────────────────────── helpers ───────────────────────── */
+
+function respondWithAbuseBlock(req, res, block) {
+  if (!block) return false;
+  if (Number.isFinite(block.retryAfterSeconds) && block.retryAfterSeconds > 0) {
+    res.set('Retry-After', String(Math.max(1, Math.ceil(block.retryAfterSeconds))));
+  }
+  log.warn('relay_abuse_block_response', {
+    wallet: req.user?.wallet || null,
+    ip: req.ip,
+    reason: block.reason || 'abuse',
+    retryAfterSeconds: block.retryAfterSeconds ?? null,
+  });
+  res.status(429).json({
+    error: 'temporarily_blocked',
+    detail: {
+      reason: block.reason || 'abuse',
+      retryAfterSeconds: block.retryAfterSeconds ?? null,
+    },
+  });
+  return true;
+}
+
+function getTierDefinition(tierName) {
+  const key = tierName === 'basic' ? 'free' : tierName;
+  return config.tiers[key] || config.tiers.free;
+}
 
 function trimString(value) {
   if (typeof value !== "string") return null;
@@ -49,6 +97,150 @@ function normalizeMeta(rawMeta, { sender, dest }) {
 
   const entries = Object.entries(normalized).filter(([, value]) => value !== null);
   return entries.length ? Object.fromEntries(entries) : null;
+}
+
+function normalizePurgeFraction(value) {
+  if (value == null) return 1;
+  let fraction = null;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) fraction = null;
+    else if (trimmed.endsWith('%')) {
+      const num = Number(trimmed.slice(0, -1));
+      if (Number.isFinite(num)) fraction = num / 100;
+    } else {
+      fraction = Number(trimmed);
+    }
+  } else {
+    fraction = Number(value);
+  }
+  if (!Number.isFinite(fraction) || fraction <= 0) return 1;
+  if (fraction >= 1) return 1;
+  if (fraction >= 0.5) return 0.5;
+  return 0.25;
+}
+
+function normalizePurgeTarget(value) {
+  const target = typeof value === 'string' ? value.trim().toLowerCase() : 'relay';
+  if (target === 'vault') return 'vault';
+  if (target === 'both') return 'both';
+  return 'relay';
+}
+
+function escapeRegex(value) {
+  return value.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+}
+
+function buildAttachmentKeyRegex(wallet) {
+  return new RegExp(`^${escapeRegex(wallet)}/`);
+}
+
+async function purgeRelayPortion(relayStore, wallet, fraction) {
+  const stats = await relayStore.purgeMailboxFraction(wallet, fraction);
+  const remainBytes = await relayStore.recalcUsage(wallet);
+  await User.updateOne({ wallet }, { $set: { relayUsedBytes: remainBytes } });
+  return {
+    messagesDeleted: stats?.deleted ?? 0,
+    bytesFreed: stats?.freedBytes ?? 0,
+    usedBytesNow: remainBytes,
+  };
+}
+
+async function purgeVaultPortion(wallet, fraction) {
+  const user = await User.findOne({ wallet }, { vaultUsedBytes: 1 }).lean();
+  const currentUsage = Math.max(0, Number(user?.vaultUsedBytes) || 0);
+  if (currentUsage <= 0) {
+    return { attachmentsDeleted: 0, freedBytes: 0, vaultUsedBytes: 0 };
+  }
+
+  const targetBytes = fraction >= 0.999
+    ? currentUsage
+    : Math.max(1, Math.floor(currentUsage * fraction));
+
+  const keyRegex = buildAttachmentKeyRegex(wallet);
+  const pipeline = [
+    { $match: { 'attachments.0': { $exists: true }, participants: wallet } },
+    { $project: { attachments: 1, createdAt: 1 } },
+    { $unwind: '$attachments' },
+    { $match: { 'attachments.key': keyRegex } },
+    {
+      $addFields: {
+        attachmentCreatedAt: {
+          $ifNull: ['$attachments.createdAt', '$createdAt'],
+        },
+      },
+    },
+    { $sort: { attachmentCreatedAt: 1, _id: 1 } },
+    { $project: { messageId: '$_id', attachment: '$attachments' } },
+  ];
+
+  const cursor = ConversationMessage.aggregate(pipeline)
+    .option({ allowDiskUse: true })
+    .cursor({ batchSize: 200 });
+  const toRemove = [];
+  let accumulated = 0;
+  for await (const doc of cursor) {
+    const attachment = doc?.attachment;
+    if (!attachment?.key) continue;
+    const size = Number(attachment.sizeBytes) || 0;
+    toRemove.push({
+      messageId: doc.messageId,
+      key: attachment.key,
+      sizeBytes: size,
+    });
+    accumulated += size;
+    if (fraction < 0.999 && accumulated >= targetBytes) {
+      break;
+    }
+  }
+
+  if (!toRemove.length) {
+    return { attachmentsDeleted: 0, freedBytes: 0, vaultUsedBytes: currentUsage };
+  }
+
+  const grouped = new Map();
+  toRemove.forEach((entry) => {
+    if (!grouped.has(entry.messageId)) grouped.set(entry.messageId, []);
+    grouped.get(entry.messageId).push(entry.key);
+  });
+
+  for (const [messageId, keys] of grouped.entries()) {
+    try {
+      await ConversationMessage.updateOne(
+        { _id: messageId },
+        { $pull: { attachments: { key: { $in: keys } } } }
+      );
+    } catch (error) {
+      log.warn('vault_purge_message_update_failed', {
+        messageId,
+        error: error?.message || error,
+      });
+    }
+  }
+
+  for (const entry of toRemove) {
+    if (!entry.key) continue;
+    try {
+      await deleteObject({ key: entry.key });
+      vaultPurgeCounter.inc({ reason: 'manual' });
+    } catch (error) {
+      log.warn('vault_purge_object_delete_failed', {
+        key: entry.key,
+        error: error?.message || error,
+      });
+    }
+  }
+
+  const freedBytes = toRemove.reduce((sum, entry) => sum + (entry.sizeBytes || 0), 0);
+  const newUsage = Math.max(0, currentUsage - freedBytes);
+  await User.updateOne({ wallet }, { $set: { vaultUsedBytes: newUsage } });
+  vaultUsageGauge.labels(wallet).set(newUsage);
+
+  return {
+    attachmentsDeleted: toRemove.length,
+    freedBytes,
+    vaultUsedBytes: newUsage,
+  };
 }
 
 /** Mutualidad de contactos: ambos ACCEPTED y no bloqueados */
@@ -91,12 +283,17 @@ export const enqueueMessage = async (req, res) => {
     if (!ENABLED) return res.status(503).json({ error: "relay-disabled" });
 
     const sender = req.user?.wallet;
-    const { msgId, to, box, iv, force, meta: rawMeta } = req.body || {};
+    const { msgId, to, box, iv, force, meta: rawMeta, attachments: rawAttachments } = req.body || {};
     if (!sender) return res.status(401).json({ error: "unauthorized" });
+
+    if (respondWithAbuseBlock(req, res, shouldBlockAbuse({ scope: 'wallet', id: sender }))) {
+      return;
+    }
 
     // Validaciones de forma
     const dest = String(to || "").trim();
     if (!dest || dest === sender || !SOLANA_PUBKEY.test(dest)) {
+      recordAbuseEvent({ scope: 'wallet', id: sender, reason: 'invalid_pubkey' });
       try { await safeLog(sender, 'relay_error', { code: 'invalid_pubkey', to: dest || null }); } catch {}
       return res.status(400).json({ error: "INVALID_PUBKEY", nextStep: "CHECK_INPUT" });
     }
@@ -126,6 +323,7 @@ export const enqueueMessage = async (req, res) => {
     // Mutualidad de contactos
     const mutual = await areMutualContacts(sender, dest);
     if (!mutual) {
+      recordAbuseEvent({ scope: 'wallet', id: sender, reason: 'forbidden_not_contact' });
       try { await safeLog(sender, 'relay_error', { code: 'forbidden_not_contact', to: dest }); } catch {}
       return res.status(403).json({ error: "forbidden" });
     }
@@ -144,6 +342,7 @@ export const enqueueMessage = async (req, res) => {
     const agreementId = meta?.agreementId || null;
     const kind = meta?.kind || null;
     const messageType = trimString(req.body?.messageType) || kind || 'text';
+    const attachments = Array.isArray(rawAttachments) ? rawAttachments : undefined;
 
     const relayStore = getRelayStore();
 
@@ -214,6 +413,31 @@ export const enqueueMessage = async (req, res) => {
     const nowUsed = applyResult?.newUsedBytes ?? quotaCtx.usedBytes + Math.max(0, deltaBytes);
     const isOverflow = nowUsed > (quotaCtx?.quotaBytes ?? 0);
 
+    try {
+      relayMailboxUsageGauge.labels(dest).set(nowUsed);
+      const { ratio: usageRatio, status: usageStatus } = computeUsageStatus(
+        nowUsed,
+        quotaCtx.quotaBytes,
+        quotaCtx.warningRatio,
+        quotaCtx.criticalRatio
+      );
+      relayMailboxUsageRatioGauge.labels(dest).set(usageRatio);
+      if (usageStatus !== 'ok') {
+        await safeLog(dest, usageStatus === 'critical' ? 'relay_usage_critical' : 'relay_usage_warning', {
+          quotaBytes: quotaCtx.quotaBytes,
+          usedBytes: nowUsed,
+          ratio: usageRatio,
+          threshold: usageStatus === 'critical' ? quotaCtx.criticalRatio : quotaCtx.warningRatio,
+          sender,
+        });
+      }
+    } catch (usageLogErr) {
+      log.warn('usage_update_failed', {
+        wallet: dest,
+        error: usageLogErr?.message || usageLogErr,
+      });
+    }
+
     if (recipientOnline && !OFFLINE_ONLY) {
       ioInstance?.to?.(dest)?.emit?.("relay:flush", [targetIdForHistory]);
     }
@@ -253,7 +477,8 @@ export const enqueueMessage = async (req, res) => {
     } catch {}
 
     try {
-      await appendMessageToHistory({
+      recordHistorySyncAttempt('relay');
+      const historyResult = await appendMessageToHistory({
         convId: finalMeta?.convId,
         participants: [sender, dest],
         sender,
@@ -265,8 +490,16 @@ export const enqueueMessage = async (req, res) => {
         messageType,
         meta: finalMeta || undefined,
         createdAt,
+        attachments,
       });
+      recordHistorySyncSuccess('relay', historyResult?.existing);
     } catch (historyErr) {
+      const reason =
+        typeof historyErr?.code === 'string' ? historyErr.code :
+        typeof historyErr?.name === 'string' ? historyErr.name :
+        (historyErr?.message && historyErr.message.includes('duplicate')) ? 'duplicate' :
+        'exception';
+      recordHistorySyncFailure('relay', reason);
       log.warn('history_append_failed', {
         relayMessageId: targetIdForHistory,
         error: historyErr?.message || historyErr,
@@ -393,6 +626,28 @@ export const ackMessages = async (req, res) => {
     const remainingBytes = await relayStore.recalcUsage(wallet);
     await User.updateOne({ wallet }, { $set: { relayUsedBytes: remainingBytes } });
     relayMailboxUsageGauge.labels(wallet).set(remainingBytes);
+    try {
+      const quotaUser = await User.findOne(
+        { wallet },
+        { relayQuotaBytes: 1, relayTier: 1 }
+      ).lean();
+      const tierDef = getTierDefinition(quotaUser?.relayTier || 'free');
+      const quotaBytes = Number.isFinite(quotaUser?.relayQuotaBytes)
+        ? quotaUser.relayQuotaBytes
+        : tierDef.quotaBytes;
+      const { ratio: ackRatio } = computeUsageStatus(
+        remainingBytes,
+        quotaBytes,
+        Number.isFinite(tierDef.warningRatio) ? tierDef.warningRatio : config.relayWarningRatio,
+        Number.isFinite(tierDef.criticalRatio) ? tierDef.criticalRatio : config.relayCriticalRatio
+      );
+      relayMailboxUsageRatioGauge.labels(wallet).set(ackRatio);
+    } catch (ratioErr) {
+      log.warn('usage_ratio_update_failed', {
+        wallet,
+        error: ratioErr?.message || ratioErr,
+      });
+    }
 
     try {
       const now = Date.now();
@@ -503,13 +758,76 @@ export const getRelayUsage = async (req, res) => {
     ).lean();
 
     const tier = u?.relayTier || "free";
-    const tierKey = tier === 'basic' ? 'free' : tier;
-    const quota = u?.relayQuotaBytes ?? (config.tiers[tierKey]?.quotaBytes ?? config.tiers.free.quotaBytes);
+    const tierDef = getTierDefinition(tier);
+    const quota = Number.isFinite(u?.relayQuotaBytes) ? u.relayQuotaBytes : tierDef.quotaBytes;
     const used  = u?.relayUsedBytes ?? 0;
-    const ttl   = u?.relayTTLSeconds ?? (config.tiers[tierKey]?.ttlSeconds ?? config.tiers.free.ttlSeconds);
+    const ttl   = Number.isFinite(u?.relayTTLSeconds) ? u.relayTTLSeconds : tierDef.ttlSeconds;
     const free  = Math.max(0, quota - used);
+    const warningRatio = Number.isFinite(tierDef.warningRatio) ? tierDef.warningRatio : config.relayWarningRatio;
+    const criticalRatio = Number.isFinite(tierDef.criticalRatio) ? tierDef.criticalRatio : config.relayCriticalRatio;
+    const overflowGracePct = Number.isFinite(u?.relayOverflowGracePct)
+      ? u.relayOverflowGracePct
+      : Number.isFinite(tierDef.overflowGracePct)
+        ? tierDef.overflowGracePct
+        : 0;
+    const graceLimitBytes = Math.floor(quota * (1 + Math.max(0, overflowGracePct) / 100));
+    const graceRemainingBytes = Math.max(0, graceLimitBytes - used);
+    const graceExceededBytes = Math.max(0, used - quota);
+    const { ratio: usageRatio, status: usageStatus } = computeUsageStatus(used, quota, warningRatio, criticalRatio);
 
-    return res.status(200).json({ data: { tier, quotaBytes: quota, usedBytes: used, freeBytes: free, ttlSeconds: ttl } });
+    const vaultQuota = Number.isFinite(u?.vaultQuotaBytes) ? u.vaultQuotaBytes : tierDef.vaultQuotaBytes;
+    const vaultUsed = Number.isFinite(u?.vaultUsedBytes) ? u.vaultUsedBytes : 0;
+    const vaultFree = Math.max(0, vaultQuota - vaultUsed);
+    const vaultTtl = Number.isFinite(u?.vaultTTLSeconds) ? u.vaultTTLSeconds : tierDef.vaultTtlSeconds;
+    const { ratio: vaultUsageRatio, status: vaultUsageStatus } = computeUsageStatus(
+      vaultUsed,
+      vaultQuota,
+      warningRatio,
+      criticalRatio,
+    );
+
+    const relayOverflow = used > quota;
+    const vaultOverflow = vaultUsed > vaultQuota;
+    const isInGrace = relayOverflow || vaultOverflow;
+    const graceReason = !isInGrace
+      ? 'none'
+      : relayOverflow && vaultOverflow
+        ? 'both'
+        : relayOverflow
+          ? 'relay'
+          : 'vault';
+
+    return res.status(200).json({
+      data: {
+        tier,
+        quotaBytes: quota,
+        usedBytes: used,
+        freeBytes: free,
+        ttlSeconds: ttl,
+        usageRatio,
+        usageStatus,
+        warningRatio,
+        criticalRatio,
+        grace: {
+          enabled: overflowGracePct > 0,
+          percentage: overflowGracePct,
+          limitBytes: graceLimitBytes,
+          remainingBytes: graceRemainingBytes,
+          exceededBytes: graceExceededBytes,
+          isInGrace,
+          reason: graceReason,
+          vaultOverflowBytes: Math.max(0, vaultUsed - vaultQuota),
+        },
+        vault: {
+          quotaBytes: vaultQuota,
+          usedBytes: vaultUsed,
+          freeBytes: vaultFree,
+          ttlSeconds: vaultTtl,
+          usageRatio: vaultUsageRatio,
+          usageStatus: vaultUsageStatus,
+        },
+      },
+    });
   } catch (error) {
     return res.status(500).json({ error: "FAILED_TO_GET_USAGE", details: error.message });
   }
@@ -522,28 +840,88 @@ export const purgeRelayMailbox = async (req, res) => {
     const wallet = req.user?.wallet;
     if (!wallet) return res.status(401).json({ error: "unauthorized" });
 
+    const target = normalizePurgeTarget(req.body?.target);
+    const fraction = normalizePurgeFraction(req.body?.fraction);
+
     const relayStore = getRelayStore();
-    const purgeResult = await relayStore.purgeMailbox(wallet);
-    const remainBytes = await relayStore.recalcUsage(wallet);
-    await User.updateOne({ wallet }, { $set: { relayUsedBytes: remainBytes } });
+    const response = {
+      target,
+      fraction,
+      relay: null,
+      vault: null,
+    };
+
+    if (target === 'relay' || target === 'both') {
+      response.relay = await purgeRelayPortion(relayStore, wallet, fraction);
+    }
+
+    if (target === 'vault' || target === 'both') {
+      response.vault = await purgeVaultPortion(wallet, fraction);
+    }
 
     try {
       await safeLog(wallet, 'relay_purged_manual', {
-        count: purgeResult.deleted,
-        freedBytes: purgeResult.freedBytes,
+        target,
+        fraction,
+        relayDeleted: response.relay?.messagesDeleted ?? 0,
+        relayFreedBytes: response.relay?.bytesFreed ?? 0,
+        vaultFreedBytes: response.vault?.freedBytes ?? 0,
       });
     } catch {}
 
     return res.status(200).json({
-      data: {
-        ok: true,
-        messagesDeleted: purgeResult.deleted,
-        bytesFreed: purgeResult.freedBytes,
-        usedBytesNow: remainBytes,
-      },
+      data: response,
     });
   } catch (error) {
     return res.status(500).json({ error: "FAILED_TO_PURGE", details: error.message });
+  }
+};
+
+/* ───────────────────────── Admin endpoints ───────────────────────── */
+
+export const listRelayAbuseFlags = async (req, res) => {
+  try {
+    const snapshot = getAbuseSnapshot();
+    return res.status(200).json({
+      data: snapshot.map((entry) => ({
+        scope: entry.scope,
+        id: entry.id,
+        block: entry.block
+          ? {
+              reason: entry.block.reason,
+              until: entry.block.until,
+            }
+          : null,
+        reasons: entry.reasons,
+      })),
+    });
+  } catch (error) {
+    log.error('relay_abuse_snapshot_failed', { error: error?.message || error });
+    return res.status(500).json({ error: 'failed_to_list_abuse_flags' });
+  }
+};
+
+export const unblockRelayEntity = async (req, res) => {
+  try {
+    const scope = (req.body?.scope || 'wallet').trim().toLowerCase();
+    const id = typeof req.body?.id === 'string' ? req.body.id.trim() : null;
+    if (!id) {
+      return res.status(400).json({ error: 'invalid_payload', detail: 'id_required' });
+    }
+    const validScope = scope === 'ip' ? 'ip' : 'wallet';
+    const removed = unblockEntity({ scope: validScope, id });
+    if (!removed) {
+      return res.status(404).json({ error: 'not_found' });
+    }
+    log.info('relay_abuse_manual_unblock', {
+      admin: req.user?.wallet || null,
+      scope: validScope,
+      id,
+    });
+    return res.status(200).json({ status: 'ok' });
+  } catch (error) {
+    log.error('relay_abuse_unblock_failed', { error: error?.message || error });
+    return res.status(500).json({ error: 'failed_to_unblock' });
   }
 };
 

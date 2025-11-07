@@ -18,6 +18,7 @@ import { createDebugLogger } from "@shared/utils/debug.js";
 import { buildAAD } from "@shared/e2e/aad.js";
 import { createAgreement } from "@features/messaging/services/agreementService.js";
 import { assertAllowed } from "@features/messaging/config/blinkSecurity.js";
+import { syncRtcMessageToHistory } from "@features/messaging/services/historySyncClient.js";
 // 🔧 REMOVED: import { fetchIceServers } from "@features/messaging/clients/iceApi.js"; // no existe
 
 // ---- pequeña ayuda para suscribirse al store (con cleanup correcto)
@@ -156,6 +157,7 @@ export default function useMessaging({
   const sendText = useCallback(async (text, { prefer = "auto", timeoutMs } = {}) => {
     const clientId = (globalThis?.crypto?.randomUUID?.() || `m_${Date.now()}`);
     const openTimeoutMs = Number.isFinite(timeoutMs) ? timeoutMs : (MESSAGING.RTC_OPEN_TIMEOUT_MS || 2300);
+    const createdAt = Date.now();
 
     const cryptoKey = convKey;
     if (!cryptoKey) {
@@ -185,12 +187,13 @@ export default function useMessaging({
       type: "text",
       sender: "me",
       status: "pending",
-      sentAt: Date.now(),
+      sentAt: createdAt,
+      createdAt,
       text,
       envelope,
       aad,
     }, selfWallet);
-    registerRecent({ text, timestamp: Date.now() });
+    registerRecent({ text, timestamp: createdAt });
 
     try {
       const wsConnected = socketClient.isConnected();
@@ -225,13 +228,23 @@ export default function useMessaging({
         if (rtcClient) {
           const opened = await rtcClient.waitForChatOpen(openTimeoutMs);
           if (opened) {
+            const historyMeta = {
+              kind: "text",
+              convId,
+              from: selfWallet,
+              to: peerWallet,
+              aad,
+            };
+            const rtcEnvelope = { ...envelope, aad };
             const payload = {
               kind: "text",
-              envelope: { ...envelope, aad },
+              envelope: rtcEnvelope,
               from: selfWallet,
               to: peerWallet,
               convId,
-              aad,
+              meta: historyMeta,
+              createdAt,
+              clientId,
             };
             const ok = rtcClient.sendChat(payload);
             if (ok) {
@@ -246,6 +259,23 @@ export default function useMessaging({
                   clientId,
                 });
               } catch {}
+
+              void syncRtcMessageToHistory({
+                convId,
+                sender: selfWallet,
+                recipient: peerWallet,
+                envelope: rtcEnvelope,
+                meta: historyMeta,
+                messageId: clientId,
+                clientMsgId: clientId,
+                createdAt,
+                messageType: "text",
+              }).then(({ ok, error }) => {
+                if (!ok && error) {
+                  console.warn("[rtc] history sync failed", { convId, clientId, error: error.message });
+                }
+              });
+
               return { ok: true, via: "rtc", clientId };
             }
           } else {
@@ -665,7 +695,9 @@ export default function useMessaging({
       return { ok: false, reason: "encrypt-failed" };
     }
 
+    let initialSentAt = null;
     try {
+      initialSentAt = Date.now();
       actions.upsertMessage?.(convId, {
         clientId: localId,
         from: selfWallet,
@@ -673,7 +705,8 @@ export default function useMessaging({
         kind: kind || "media-inline",
         type: "file",
         status: "pending",
-        sentAt: Date.now(),
+        sentAt: initialSentAt,
+        createdAt: initialSentAt,
         base64,
         mime,
         w,
@@ -682,7 +715,7 @@ export default function useMessaging({
         envelope: { iv, cipher, aad: mediaAad },
         aad: mediaAad,
       }, selfWallet);
-      registerRecent({ text: kind || "media", timestamp: Date.now() });
+      registerRecent({ text: kind || "media", timestamp: initialSentAt });
 
       const res = await relay.enqueue({
         to: peerWallet,
@@ -720,16 +753,32 @@ export default function useMessaging({
         const rtcClient = getRtc(peerWallet);
         const opened = await rtcClient?.waitForChatOpen?.(1500);
         if (opened) {
-          const ok = rtcClient.sendChat({
-            kind: kind || "media-inline",
-            envelope: { iv, cipher, aad: mediaAad },
+          const historyMeta = {
+            kind: kind || "media",
+            convId,
+            from: selfWallet,
+            to: peerWallet,
             mime,
             w,
             h,
             durMs,
-            meta: { convId },
+            aad: mediaAad,
+          };
+          const rtcEnvelope = { iv, cipher, aad: mediaAad };
+          const rtcCreatedAt = initialSentAt || Date.now();
+          const ok = rtcClient.sendChat({
+            kind: kind || "media-inline",
+            envelope: rtcEnvelope,
+            mime,
+            w,
+            h,
+            durMs,
+            meta: historyMeta,
             from: selfWallet,
             to: peerWallet,
+            convId,
+            createdAt: rtcCreatedAt,
+            clientId: localId,
           });
           if (ok) {
             actions.upsertMessage?.(convId, { clientId: localId, status: "sent", via: "rtc-fallback", aad: mediaAad }, selfWallet);
@@ -742,6 +791,21 @@ export default function useMessaging({
                 note: 'fallback-rtc',
               });
             } catch {}
+            void syncRtcMessageToHistory({
+              convId,
+              sender: selfWallet,
+              recipient: peerWallet,
+              envelope: rtcEnvelope,
+              meta: historyMeta,
+              messageId: localId,
+              clientMsgId: localId,
+              createdAt: rtcCreatedAt,
+              messageType: historyMeta.kind || "media",
+            }).then(({ ok, error }) => {
+              if (!ok && error) {
+                console.warn("[rtc] history sync failed (media)", { convId, clientId: localId, error: error.message });
+              }
+            });
             return { ok: true, via: "rtc-fallback" };
           }
         }

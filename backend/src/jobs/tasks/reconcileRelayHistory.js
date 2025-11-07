@@ -33,7 +33,12 @@ export async function reconcileRelayHistory({
 
   for await (const msg of cursor) {
     stats.checked += 1;
-    const exists = await ConversationMessage.exists({ relayMessageId: msg._id });
+    const exists = await ConversationMessage.exists({
+      $or: [
+        { relayMessageId: msg._id },
+        { source: 'relay', messageId: msg._id },
+      ],
+    });
     if (!exists) {
       stats.missingInHistory += 1;
       if (repair) {
@@ -43,6 +48,8 @@ export async function reconcileRelayHistory({
             participants: [msg.from, msg.to],
             sender: msg.from,
             relayMessageId: msg._id,
+            source: 'relay',
+            messageId: msg._id,
             clientMsgId: msg.meta?.clientId,
             box: msg.box,
             boxSize: msg.boxSize,
@@ -71,12 +78,14 @@ export async function reconcileRelayHistory({
   if (checkHistory) {
     let checkedHistory = 0;
     const historyCursor = ConversationMessage.find(
-      { relayMessageId: { $exists: true } },
-      { relayMessageId: 1 },
+      { $or: [{ relayMessageId: { $exists: true } }, { messageId: { $exists: true } }] },
+      { relayMessageId: 1, messageId: 1, source: 1 },
       { lean: true }
     ).cursor();
     for await (const record of historyCursor) {
-      const existsInRelay = await RelayMessage.exists({ _id: record.relayMessageId });
+      const relayId = record.relayMessageId || (record.source === 'relay' ? record.messageId : null);
+      if (!relayId) continue;
+      const existsInRelay = await RelayMessage.exists({ _id: relayId });
       if (!existsInRelay) {
         stats.missingInRelay += 1;
       }

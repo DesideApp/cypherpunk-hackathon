@@ -16,6 +16,8 @@ const log = createModuleLogger({ module: 'relay.quotaService' });
  * @typedef {Object} QuotaContext
  * @property {string} wallet
  * @property {number} incomingBytes
+ * @property {string} tier
+ * @property {string} rawTier
  * @property {number} quotaBytes
  * @property {number} usedBytes
  * @property {number} gracePct
@@ -70,6 +72,8 @@ export async function resolveQuota({ wallet, incomingBytes, deltaBytes = undefin
     wallet,
     incomingBytes,
     deltaBytes: typeof deltaBytes === 'number' ? deltaBytes : incomingBytes,
+    tier: tierKey,
+    rawTier,
     quotaBytes,
     usedBytes,
     gracePct,

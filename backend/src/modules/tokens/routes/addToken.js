@@ -177,11 +177,6 @@ router.post('/add', async (req, res) => {
     });
     
   } catch (error) {
-      mint: result.tokenData?.mint,
-      code: result.tokenData?.code,
-    });
-    
-  } catch (error) {
     logger.error('❌ [tokens] Error adding token (unified)', {
       error: error.message,
       stack: error.stack 

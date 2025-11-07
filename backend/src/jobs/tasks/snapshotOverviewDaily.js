@@ -4,6 +4,7 @@ import path from 'path';
 import { gzip as _gzip, gunzip as _gunzip } from 'zlib';
 import { promisify } from 'util';
 import { fileURLToPath } from 'url';
+import { readSnapshot, saveSnapshot } from '#shared/services/snapshotStorage.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -43,16 +44,20 @@ export async function snapshotOverviewDaily() {
 
   for (let h = 0; h < 24; h += 1) {
     const hh = String(h).padStart(2, '0');
+    const relativKey = `overview/${yyyy}/${mm}/${dd}/${hh}.json.gz`;
     const gzFile = path.join(baseDir, 'overview', yyyy, mm, dd, `${hh}.json.gz`);
     const jsonFile = path.join(baseDir, 'overview', yyyy, mm, dd, `${hh}.json`);
     try {
       let raw;
       try {
         const gunzip = promisify(_gunzip);
-        const gz = await fs.readFile(gzFile);
-        raw = (await gunzip(gz)).toString('utf8');
+        const gzBuffer = await readSnapshot({ key: relativKey, localPath: gzFile });
+        if (!gzBuffer) throw new Error('not found');
+        raw = (await gunzip(gzBuffer)).toString('utf8');
       } catch {
-        raw = await fs.readFile(jsonFile, 'utf8');
+        const fileBuffer = await readSnapshot({ key: relativKey.replace(/\.gz$/, ''), localPath: jsonFile });
+        if (!fileBuffer) throw new Error('snapshot not found');
+        raw = fileBuffer.toString('utf8');
       }
       const snap = JSON.parse(raw);
       msgTotal += Number(snap?.messages?.count || 0);
@@ -95,6 +100,7 @@ export async function snapshotOverviewDaily() {
   const outFile = path.join(outDir, `${dd}.json.gz`);
   const gzip = promisify(_gzip);
   const buf = await gzip(Buffer.from(JSON.stringify(payload)));
-  await fs.writeFile(outFile, buf);
-  return { file: outFile };
+  const key = `overview-daily/${yyyy}/${mm}/${dd}.json.gz`;
+  const result = await saveSnapshot({ key, buffer: buf, localPath: outFile });
+  return { file: result.location };
 }

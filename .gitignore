@@ -113,3 +113,5 @@ STYLE_REPORT.md
 TELEGRAM_BOT_FINAL.md
 TELEGRAM_BOT_SUMMARY.md
 test.txt
+/keys/jwtRS256.key
+/keys/jwtRS256.key.pub

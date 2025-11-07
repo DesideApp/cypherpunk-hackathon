@@ -9,13 +9,21 @@ const memberSchema = new mongoose.Schema({
   mutedUntil: { type: Date, default: null },
 }, { _id: false });
 
+const lastMessageTimestampsSchema = new mongoose.Schema({
+  deliveredAt: { type: Date, default: null },
+  acknowledgedAt: { type: Date, default: null },
+}, { _id: false });
+
 const lastMessageSchema = new mongoose.Schema({
   seq: { type: Number, required: true },
   sender: { type: String, required: true, trim: true },
-  relayMessageId: { type: String, required: true, trim: true },
+  source: { type: String, default: 'relay', trim: true },
+  relayMessageId: { type: String, trim: true },
+  messageId: { type: String, trim: true },
   messageType: { type: String, default: 'text', trim: true },
   boxSize: { type: Number, default: 0 },
   createdAt: { type: Date, default: () => new Date() },
+  timestamps: { type: lastMessageTimestampsSchema, default: undefined },
 }, { _id: false });
 
 const conversationSchema = new mongoose.Schema({

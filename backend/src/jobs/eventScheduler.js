@@ -4,6 +4,7 @@ import { pullActivityEvents } from '#jobs/tasks/pullActivityEvents.js';
 import { snapshotOverviewHourly } from '#jobs/tasks/snapshotOverview.js';
 import { snapshotOverviewDaily } from '#jobs/tasks/snapshotOverviewDaily.js';
 import { reconcileRelayHistory } from '#jobs/tasks/reconcileRelayHistory.js';
+import cleanupAttachments from '#jobs/tasks/cleanupAttachments.js';
 import {
   recordJobStart,
   recordJobSuccess,
@@ -15,6 +16,7 @@ import { createModuleLogger } from '#config/logger.js';
 const log = createModuleLogger({ module: 'jobs.scheduler' });
 
 const RELAY_CLEANUP_CRON = (process.env.RELAY_CLEANUP_CRON || config?.relayCleanupCron || '5 3 * * *').trim();
+const ATTACHMENT_CLEANUP_CRON = String(process.env.ATTACHMENT_CLEANUP_CRON || '15 3 * * *').trim();
 const ACTIVITY_PULL_CRON = String(process.env.ACTIVITY_PULL_CRON || '').trim();
 const ACTIVITY_PULL_LIMIT = Number.parseInt(process.env.ACTIVITY_PULL_LIMIT ?? '100', 10);
 const ACTIVITY_PULL_DRY_RUN = String(process.env.ACTIVITY_PULL_DRY_RUN ?? 'true').toLowerCase() === 'true';
@@ -58,6 +60,27 @@ try {
 }
 
 log.info('cron_cleanup_scheduled', { cronExpr: RELAY_CLEANUP_CRON });
+
+try {
+  cron.schedule(ATTACHMENT_CLEANUP_CRON, async () => {
+    log.info('cron_attachment_cleanup_start', { cronExpr: ATTACHMENT_CLEANUP_CRON });
+    recordJobStart('cleanupAttachments', { cronExpr: ATTACHMENT_CLEANUP_CRON });
+    try {
+      const res = await cleanupAttachments({ dryRun: false });
+      log.info('cron_attachment_cleanup_success', { ...res });
+      recordJobSuccess('cleanupAttachments', res);
+    } catch (error) {
+      log.error('cron_attachment_cleanup_error', {
+        error: error?.stack || error?.message || error,
+      });
+      recordJobError('cleanupAttachments', error);
+    }
+  });
+  log.info('cron_attachment_cleanup_scheduled', { cronExpr: ATTACHMENT_CLEANUP_CRON });
+} catch (error) {
+  log.error('cron_attachment_cleanup_schedule_error', { error: error?.message || error });
+  recordJobError('cleanupAttachments', error);
+}
 
 // Snapshots: cada hora a :05 tomamos snapshot de la hora anterior
 try {

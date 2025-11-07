@@ -164,6 +164,42 @@ class MongoRelayStore extends RelayStore {
     };
   }
 
+  async purgeMailboxFraction(wallet, fraction, session) {
+    const safeFraction = Number.isFinite(fraction) ? Math.min(Math.max(fraction, 0), 1) : 1;
+    if (safeFraction >= 0.999) {
+      return this.purgeMailbox(wallet, session);
+    }
+
+    const countQuery = RelayMessage.countDocuments({ to: wallet });
+    if (session) countQuery.session(session);
+    const totalCount = await countQuery;
+    if (!totalCount) {
+      return { deleted: 0, freedBytes: 0 };
+    }
+
+    const limit = Math.max(1, Math.floor(totalCount * safeFraction));
+    const findQuery = RelayMessage.find({ to: wallet }, { _id: 1, boxSize: 1 })
+      .sort({ createdAt: 1, _id: 1 })
+      .limit(limit);
+    if (session) findQuery.session(session);
+    const docs = await findQuery.lean();
+    if (!docs.length) {
+      return { deleted: 0, freedBytes: 0 };
+    }
+
+    const ids = docs.map((doc) => doc._id);
+    const freedBytes = docs.reduce((sum, doc) => sum + (doc.boxSize || 0), 0);
+
+    const deleteQuery = RelayMessage.deleteMany({ _id: { $in: ids }, to: wallet });
+    if (session) deleteQuery.session(session);
+    const result = await deleteQuery;
+
+    return {
+      deleted: result?.deletedCount ?? docs.length,
+      freedBytes,
+    };
+  }
+
   async recalcUsage(wallet, session) {
     const pipeline = [
       { $match: { to: wallet } },

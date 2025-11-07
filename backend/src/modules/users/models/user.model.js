@@ -54,6 +54,11 @@ const userSchema = new mongoose.Schema({
   relayOverflowGracePct:{ type: Number, default: 0 },
   relayAutoPurge:       { type: Boolean, default: false },
 
+  // Vault de adjuntos
+  vaultQuotaBytes:      { type: Number, default: 500 * 1024 * 1024 },
+  vaultUsedBytes:       { type: Number, default: 0, min: 0 },
+  vaultTTLSeconds:      { type: Number, default: 30 * 24 * 60 * 60 },
+
   // Role
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
 }, {

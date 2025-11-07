@@ -1,6 +1,14 @@
 import Conversation from '../models/conversation.model.js';
 import ConversationMessage from '../models/message.model.js';
-import { createModuleLogger } from '#config/logger.js';
+import User from '#modules/users/models/user.model.js';
+import config from '#config/appConfig.js';
+import logger, { createModuleLogger } from '#config/logger.js';
+import { vaultUsageGauge } from '#modules/attachments/services/attachmentMetrics.js';
+import {
+  recordMessageWritten,
+  recordMessageDuplicate,
+  recordMessageFailed,
+} from './historyMetrics.js';
 
 const log = createModuleLogger({ module: 'history.service' });
 
@@ -46,15 +54,19 @@ export async function appendMessageToHistory({
   sender,
   relayMessageId,
   clientMsgId,
+  source = 'relay',
+  messageId,
   box,
   boxSize,
   iv,
   messageType = 'text',
   meta,
   createdAt = new Date(),
+  timestamps,
+  attachments,
 }) {
-  if (!relayMessageId) {
-    throw new Error('appendMessageToHistory requires relayMessageId');
+  if (!relayMessageId && !(typeof messageId === 'string' && messageId.trim())) {
+    throw new Error('appendMessageToHistory requires relayMessageId or messageId');
   }
   const normalizedParticipants = normalizeParticipants(participants);
   if (normalizedParticipants.length < 2) {
@@ -67,8 +79,25 @@ export async function appendMessageToHistory({
 
   const conversationId = convId || computeConversationId(normalizedParticipants);
 
-  const existing = await ConversationMessage.findOne({ relayMessageId }).lean();
+  const normalizedSource = typeof source === 'string' && source.trim() ? source.trim().toLowerCase() : 'relay';
+  const normalizedMessageId = typeof messageId === 'string' && messageId.trim() ? messageId.trim() : null;
+
+  let existing = null;
+  if (normalizedSource && normalizedMessageId) {
+    existing = await ConversationMessage.findOne({ source: normalizedSource, messageId: normalizedMessageId }).lean();
+  }
+  if (!existing) {
+    existing = await ConversationMessage.findOne({ relayMessageId }).lean();
+  }
   if (existing) {
+    logger.debug('[history] duplicate append skipped', {
+      convId: existing.convId,
+      seq: existing.seq,
+      source: existing.source || normalizedSource || 'relay',
+      relayMessageId,
+      messageId: normalizedMessageId,
+    });
+    recordMessageDuplicate(existing.source || normalizedSource || 'relay');
     return { convId: existing.convId, seq: existing.seq, existing: true };
   }
 
@@ -124,10 +153,43 @@ export async function appendMessageToHistory({
     );
   }
 
+  let normalizedAttachments = undefined;
+  if (Array.isArray(attachments) && attachments.length) {
+    normalizedAttachments = attachments
+      .map(att => {
+        const key = typeof att?.key === 'string' ? att.key.trim() : '';
+        const bucket = typeof att?.bucket === 'string' && att.bucket.trim()
+          ? att.bucket.trim()
+          : config.attachmentVault.bucket;
+        const mimeType = typeof att?.mimeType === 'string' && att.mimeType.trim()
+          ? att.mimeType.trim()
+          : 'application/octet-stream';
+        const sizeBytes = Number.isFinite(att?.sizeBytes) ? att.sizeBytes : parseInt(att?.sizeBytes ?? 0, 10) || 0;
+        if (!key || !bucket) return null;
+        const normalized = {
+          key,
+          bucket,
+          mimeType,
+          sizeBytes: Math.max(0, sizeBytes),
+          hash: typeof att?.hash === 'string' && att.hash.trim() ? att.hash.trim() : null,
+          thumbnailKey: typeof att?.thumbnailKey === 'string' && att.thumbnailKey.trim() ? att.thumbnailKey.trim() : null,
+          expiresAt: att?.expiresAt ? new Date(att.expiresAt) : null,
+          createdAt: att?.createdAt ? new Date(att.createdAt) : now,
+        };
+        return normalized;
+      })
+      .filter(Boolean);
+    if (!normalizedAttachments.length) {
+      normalizedAttachments = undefined;
+    }
+  }
+
   const messagePayload = {
     convId: conversationId,
     seq,
     sender,
+    source: normalizedSource,
+    messageId: normalizedMessageId,
     participants: normalizedParticipants,
     relayMessageId,
     box,
@@ -139,11 +201,66 @@ export async function appendMessageToHistory({
     updatedAt: now,
   };
   if (clientMsgId) messagePayload.clientMsgId = clientMsgId;
+  if (timestamps && typeof timestamps === 'object') {
+    messagePayload.timestamps = {};
+    if (timestamps.deliveredAt) {
+      messagePayload.timestamps.deliveredAt = timestamps.deliveredAt instanceof Date
+        ? timestamps.deliveredAt
+        : new Date(timestamps.deliveredAt);
+    }
+    if (timestamps.acknowledgedAt) {
+      messagePayload.timestamps.acknowledgedAt = timestamps.acknowledgedAt instanceof Date
+        ? timestamps.acknowledgedAt
+        : new Date(timestamps.acknowledgedAt);
+    }
+    if (!Object.keys(messagePayload.timestamps).length) {
+      delete messagePayload.timestamps;
+    }
+  }
+  if (normalizedAttachments) messagePayload.attachments = normalizedAttachments;
 
   try {
     await ConversationMessage.create(messagePayload);
+    logger.debug('[history] message appended', {
+      convId: conversationId,
+      seq,
+      source: normalizedSource,
+      relayMessageId,
+      messageId: normalizedMessageId,
+    });
+    recordMessageWritten(normalizedSource || 'relay');
+    if (normalizedAttachments?.length) {
+      const totalAttachmentBytes = normalizedAttachments.reduce((sum, att) => sum + (att.sizeBytes || 0), 0);
+      if (totalAttachmentBytes > 0) {
+        const updatedUser = await User.findOneAndUpdate(
+          { wallet: sender },
+          { $inc: { vaultUsedBytes: totalAttachmentBytes } },
+          { new: true }
+        ).lean().catch(err => {
+          log.warn('history_vault_usage_update_failed', {
+            wallet: sender,
+            bytes: totalAttachmentBytes,
+            error: err?.message || err,
+          });
+          return null;
+        });
+
+        if (updatedUser) {
+          const usage = Math.max(0, Number(updatedUser.vaultUsedBytes) || 0);
+          try {
+            vaultUsageGauge.labels(sender).set(usage);
+          } catch (metricErr) {
+            log.warn('history_vault_usage_metric_failed', {
+              wallet: sender,
+              error: metricErr?.message || metricErr,
+            });
+          }
+        }
+      }
+    }
   } catch (err) {
     if (err?.code === 11000) {
+      recordMessageDuplicate(normalizedSource || 'relay');
       return { convId: conversationId, seq, existing: true };
     }
     // revert counters if insert fails
@@ -161,6 +278,7 @@ export async function appendMessageToHistory({
       relayMessageId,
       error: err?.message || err,
     });
+    recordMessageFailed(normalizedSource || 'relay', err?.code || err?.name || 'write_error');
     throw err;
   }
 
@@ -172,9 +290,12 @@ export async function appendMessageToHistory({
           seq,
           sender,
           relayMessageId,
+          source: normalizedSource,
+          messageId: normalizedMessageId,
           messageType,
           boxSize,
           createdAt: now,
+          ...(messagePayload.timestamps ? { timestamps: messagePayload.timestamps } : {}),
         },
         updatedAt: now,
       },
@@ -224,11 +345,15 @@ export async function listConversationsForUser({ wallet, limit = 20, cursor }) {
 
   const normalized = items.map(conv => {
     const member = conv.members?.find(m => m.wallet === wallet) || {};
+    const lastMessage = conv.lastMessage || null;
+    if (lastMessage && !lastMessage.relayMessageId && lastMessage.messageId) {
+      lastMessage.relayMessageId = lastMessage.messageId;
+    }
     const unread = Math.max(0, (conv.seqMax || 0) - (member.lastReadSeq || 0));
     return {
       convId: conv._id,
       participants: conv.participants,
-      lastMessage: conv.lastMessage,
+      lastMessage,
       updatedAt: conv.updatedAt,
       createdAt: conv.createdAt,
       unread,
@@ -269,8 +394,15 @@ export async function listMessagesForConversation({ wallet, convId, limit = 50, 
   const items = hasMore ? messages.slice(0, safeLimit) : messages;
   const nextCursor = hasMore ? String(items[items.length - 1].seq) : null;
 
+  const normalizedItems = items.map((msg) => {
+    if (!msg.relayMessageId && msg.messageId) {
+      msg.relayMessageId = msg.messageId;
+    }
+    return msg;
+  });
+
   return {
-    items,
+    items: normalizedItems,
     nextCursor,
     hasMore,
   };

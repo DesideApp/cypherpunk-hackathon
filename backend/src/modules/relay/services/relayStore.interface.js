@@ -150,6 +150,18 @@ export class RelayStore {
   }
 
   /**
+   * Purga la fracción solicitada (mensajes más antiguos).
+   * @param {string} _wallet
+   * @param {number} _fraction
+   * @param {import('mongoose').ClientSession=} _session
+   * @returns {Promise<RelayPurgeResult>}
+   */
+  // eslint-disable-next-line class-methods-use-this
+  async purgeMailboxFraction(_wallet, _fraction, _session) {
+    throw new Error('purgeMailboxFraction not implemented');
+  }
+
+  /**
    * Recalcula el uso real (sum boxSize) y lo devuelve.
    * @param {string} _wallet
    * @param {import('mongoose').ClientSession=} _session
