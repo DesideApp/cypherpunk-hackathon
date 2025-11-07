@@ -270,7 +270,7 @@ export default function Users() {
   }, [filteredUsers, sortBy, sortOrder]);
 
   const statsConnections = stats?.connections ?? {};
-  const statsMessages = stats?.messages ?? {};
+  const statsMessages = stats?.messages ?? { total: 0, history: [] };
   const product = stats?.productInsights ?? {
     tokens: { total: 0, last24h: 0 },
     blinks: { executes24h: 0, successRate24h: null },
@@ -459,7 +459,7 @@ export default function Users() {
                 accent="#0ea5e9"
                 subtitle={returningRate != null ? formatPct(returningRate) : "—"}
               />
-              <SummaryCard title="Messages (period)" value={statsMessages.total} accent="#6366f1" />
+              <SummaryCard title="Messages (period)" value={statsMessages?.total ?? 0} accent="#6366f1" />
             <SummaryCard
               title="Avg per bucket"
               value={typeof statsMessages.avgPerBucket === 'number'
