@@ -9,6 +9,8 @@ Scripts de mantenimiento operativo para gestionar **índices**, **TTL** y **oper
 | `ensure-indexes.js` | Sincronizar todos los índices de modelos | Post-deploy, cambios de esquema |
 | `update-ttl.js` | Actualizar TTL del relay | Cambiar retención de mensajes |
 | `verify-indexes.js` | Verificar índices del relay | Debug, validación |
+| `backfill-history.mjs` | Normalizar historial (source/messageId) | Migraciones del módulo History |
+| `backup-mongo.mjs` | Generar dump gzip y subirlo a R2 | Backups diarios |
 
 ## 🛠️ Requisitos generales
 
@@ -113,6 +115,83 @@ node scripts/ops/verify-indexes.js
   }
 ]
 ```
+
+---
+
+## 🗂️ `backfill-history.mjs` - Normalizar historial existente
+
+**Propósito:** Completar los campos introducidos en el módulo History (`source`, `messageId`) para mensajes creados antes de habilitar el contrato unificado de sincronización.
+
+**Qué hace:**
+- Recorre `conversationmessages` y, cuando faltan datos:
+  - `source` → `'relay'`.
+  - `messageId` → `relayMessageId`.
+- Actualiza `conversations.lastMessage` con los mismos valores.
+
+**Cuándo usar:**
+- ✅ Después de desplegar los cambios del historial que soportan `source/messageId`.
+- ✅ Antes de habilitar ingestión RTC u otras fuentes distintas a relay.
+
+**Ejecutar:**
+```bash
+# Local / staging
+MONGO_URI="mongodb://..." node scripts/ops/backfill-history.mjs
+
+# Con base específica
+MONGO_URI="mongodb://..." MONGO_DB_NAME=deside node scripts/ops/backfill-history.mjs
+```
+
+**Parámetros opcionales:**
+- `HISTORY_BACKFILL_BATCH` → limita la cantidad de documentos procesados por ejecución (default `1000`).
+
+**Salida esperada:**
+```
+{"level":"info","module":"ops.backfillHistory","message":"Connected to MongoDB"}
+{"level":"info","module":"ops.backfillHistory","message":"Backfill messages completed","metadata":{"processed":1200,"updated":1180}}
+{"level":"info","module":"ops.backfillHistory","message":"Backfill lastMessage completed","metadata":{"processed":450,"updated":420}}
+{"level":"info","module":"ops.backfillHistory","message":"History backfill finished"}
+```
+
+**Post-proceso obligatorio:**
+```bash
+# Sincronizar índices tras la migración
+node scripts/ops/ensure-indexes.js
+```
+
+> ⚠️ **Importante:** Respalda la base antes de ejecutar en producción. Si hay muchos registros, puedes dividir en varias corridas usando `HISTORY_BACKFILL_BATCH`.
+
+---
+
+## 💾 `backup-mongo.mjs` - Dump gzip a Cloudflare R2
+
+**Propósito:** Generar un `mongodump --archive --gzip` y subirlo directamente al bucket R2 (`deside-data`). Útil para cron jobs diarios o workflows en CI.
+
+**Requisitos:**
+- `MONGO_URI` (obligatorio), opcional `MONGO_DB_NAME` y `MONGODUMP_ARGS`.
+- Credenciales R2: `R2_BUCKET`, `R2_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`.
+
+**Ejecutar:**
+```bash
+MONGO_URI="mongodb+srv://..." \
+R2_BUCKET=deside-data \
+R2_ENDPOINT="https://<account>.r2.cloudflarestorage.com" \
+R2_ACCESS_KEY_ID=xxx \
+R2_SECRET_ACCESS_KEY=yyy \
+node scripts/ops/backup-mongo.mjs
+```
+
+**Variables opcionales:**
+- `BACKUP_ENV`: prefijo (prod/staging/dev). Default `NODE_ENV` o `dev`.
+- `BACKUP_RETENTION_DAYS`: borra dumps más antiguos que N días.
+- `MONGODUMP_ARGS`: flags extra (`"--oplog"`, `"--collection=foo"`, etc.).
+
+**Salida esperada:**
+```
+{"level":"info","module":"ops.backupMongo","message":"mongodump_start", ...}
+{"level":"info","module":"ops.backupMongo","message":"backup_uploaded","metadata":{"key":"backups/prod/mongo/..."}}
+```
+
+> Consejo: usa `npm run backup:mongo` y agenda este comando en Render cron o GitHub Actions.
 
 ---
 
@@ -436,4 +515,3 @@ Sembrar/limpiar datos de prueba.
 
 perm-check.js (opcional)
 Comprueba si el database user tiene permiso para collMod, createIndex, dropIndex e informa.
-

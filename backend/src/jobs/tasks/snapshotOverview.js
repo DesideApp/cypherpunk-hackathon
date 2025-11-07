@@ -2,9 +2,10 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { computeStatsOverview } from '#modules/stats/services/metrics.service.js';
 import { gzip as _gzip } from 'zlib';
 import { promisify } from 'util';
+import { computeStatsOverview } from '#modules/stats/services/metrics.service.js';
+import { saveSnapshot } from '#shared/services/snapshotStorage.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,10 +14,6 @@ function alignToHour(d) {
   const x = new Date(d);
   x.setMinutes(0, 0, 0);
   return x;
-}
-
-async function ensureDir(dir) {
-  await fs.mkdir(dir, { recursive: true }).catch(() => {});
 }
 
 export async function snapshotOverviewHourly(opts = {}) {
@@ -42,7 +39,13 @@ export async function snapshotOverviewHourly(opts = {}) {
       ackP50: overview?.messages?.ackLatencyP50 ?? null,
       ackRate: overview?.messages?.ackRate ?? null,
     },
-    connections: { count: connCount, unique: overview?.connections?.uniqueParticipants ?? 0 },
+    connections: {
+      count: connCount,
+      unique: overview?.connections?.uniqueParticipants ?? 0,
+      new: overview?.connections?.newParticipants ?? null,
+      returning: overview?.connections?.returningParticipants ?? null,
+      returningRate: overview?.connections?.returningRate ?? null,
+    },
     rtc: overview?.rtc ?? {},
   };
 
@@ -52,9 +55,9 @@ export async function snapshotOverviewHourly(opts = {}) {
   const hh = String(rangeStart.getHours()).padStart(2, '0');
   const dir = path.join(baseDir, 'overview', yyyy, mm, dd);
   const file = path.join(dir, `${hh}.json.gz`);
-  await ensureDir(dir);
   const gzip = promisify(_gzip);
   const buf = await gzip(Buffer.from(JSON.stringify(payload)));
-  await fs.writeFile(file, buf);
-  return { file };
+  const key = `overview/${yyyy}/${mm}/${dd}/${hh}.json.gz`;
+  const result = await saveSnapshot({ key, buffer: buf, localPath: file });
+  return { file: result.location };
 }

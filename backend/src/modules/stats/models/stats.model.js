@@ -19,6 +19,10 @@ const StatsSchema = new mongoose.Schema({
   dmStarted: { type: Number, default: 0 },
   dmAccepted: { type: Number, default: 0 },
   relayMessages: { type: Number, default: 0 },
+  actionsSend: { type: Number, default: 0 },
+  actionsRequests: { type: Number, default: 0 },
+  actionsBuy: { type: Number, default: 0 },
+  actionsAgreements: { type: Number, default: 0 },
   events: [
     {
       type: { type: String, required: true },

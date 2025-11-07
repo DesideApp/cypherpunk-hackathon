@@ -25,6 +25,7 @@
     "indexes:verify": "node scripts/ops/verify-indexes.mjs",
     "ttl:update": "node scripts/ops/update-ttl.mjs",
     "apm:ttl:update": "node scripts/ops/update-apm-ttl.mjs",
+    "history:backfill": "node scripts/ops/backfill-history.mjs",
     "db:purge:dryrun": "node scripts/ops/purge-unmanaged-collections.mjs",
     "db:purge:apply": "node scripts/ops/purge-unmanaged-collections.mjs --apply"
   },
@@ -32,6 +33,10 @@
     "node": "20.x"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.922.0",
+    "@aws-sdk/credential-providers": "^3.925.0",
+    "@aws-sdk/lib-storage": "^3.922.0",
+    "@aws-sdk/s3-request-presigner": "^3.925.0",
     "@solana/web3.js": "^1.98.4",
     "axios": "^1.7.9",
     "bs58": "^5.0.0",
@@ -52,6 +57,7 @@
     "node-cache": "^5.1.2",
     "node-cron": "^3.0.3",
     "node-fetch": "^3.3.2",
+    "prom-client": "^15.1.3",
     "simple-peer": "^9.11.1",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",

@@ -47,6 +47,18 @@ export async function fetchRelayUsage({ sortBy = 'ratio', sortOrder = 'desc', li
   return res; // { data: [...] }
 }
 
+export async function fetchRelayCapacity(params = {}) {
+  const query = new URLSearchParams();
+  if (params.warning != null) query.set('warning', String(params.warning));
+  if (params.critical != null) query.set('critical', String(params.critical));
+  if (params.limit != null) query.set('limit', String(params.limit));
+  const qs = query.toString();
+  const url = `/api/v1/stats/admin/relay/capacity${qs ? `?${qs}` : ''}`;
+  const res = await apiRequest(url, { method: 'GET' });
+  if (!res || res.error) throw new Error(res?.message || 'Failed to load relay capacity');
+  return res;
+}
+
 export async function fetchRecentLogins({ limit = 20, search = '' } = {}) {
   const params = new URLSearchParams();
   if (limit) params.set('limit', String(limit));
@@ -114,5 +126,33 @@ export async function fetchAdoptionFunnel({ windowDays = 1, period = '30d' } = {
   const url = `/api/v1/stats/adoption/funnel?${params.toString()}`;
   const res = await apiRequest(url, { method: 'GET' });
   if (!res || res.error) throw new Error(res?.message || 'Failed to load funnel');
+  return res;
+}
+
+export async function fetchJobStatuses() {
+  const url = `/api/v1/stats/admin/jobs/status`;
+  const res = await apiRequest(url, { method: 'GET' });
+  if (!res || res.error) throw new Error(res?.message || 'Failed to load job statuses');
+  return res;
+}
+
+export async function fetchRelayErrors({ limit = 20 } = {}) {
+  const params = new URLSearchParams();
+  if (limit) params.set('limit', String(limit));
+  const url = `/api/v1/stats/admin/relay/errors${params.toString() ? `?${params.toString()}` : ''}`;
+  const res = await apiRequest(url, { method: 'GET' });
+  if (!res || res.error) throw new Error(res?.message || 'Failed to load relay errors');
+  return res;
+}
+
+export async function fetchActionsOverview({ period = '1d', from, to, limit = 10 } = {}) {
+  const params = new URLSearchParams();
+  if (from) params.set('from', typeof from === 'string' ? from : new Date(from).toISOString());
+  if (to) params.set('to', typeof to === 'string' ? to : new Date(to).toISOString());
+  if (!from && !to && period) params.set('period', String(period));
+  if (limit) params.set('limit', String(limit));
+  const url = `/api/v1/stats/admin/actions/overview?${params.toString()}`;
+  const res = await apiRequest(url, { method: 'GET' });
+  if (!res || res.error) throw new Error(res?.message || 'Failed to load actions overview');
   return res;
 }

@@ -1,6 +1,7 @@
 import RelayMessage from '#modules/relay/models/relayMessage.model.js';
 import User from '#modules/users/models/user.model.js';
 import Stats from '#modules/stats/models/stats.model.js';
+import { getRelayStore } from '#modules/relay/services/relayStoreProvider.js';
 
 const DEFAULT_BUCKET_MINUTES = 5;
 const DEFAULT_BUCKET_COUNT = 12;
@@ -100,22 +101,8 @@ const percentileValue = (historyArr, percentile) => {
 
 const aggregateMessageHistory = async (startDate, endDate, bucketMinutes) => {
   const match = buildCreatedAtFilter(startDate, endDate);
-  const bucketsRaw = await RelayMessage.aggregate([
-    { $match: match },
-    {
-      $group: {
-        _id: {
-          $dateTrunc: {
-            date: '$createdAt',
-            unit: 'minute',
-            binSize: bucketMinutes
-          }
-        },
-        count: { $sum: 1 }
-      }
-    },
-    { $sort: { _id: 1 } }
-  ]);
+  const store = getRelayStore();
+  const bucketsRaw = await store.aggregateMessageHistory(match, bucketMinutes);
 
   const map = new Map();
   for (const bucket of bucketsRaw) {
@@ -127,37 +114,8 @@ const aggregateMessageHistory = async (startDate, endDate, bucketMinutes) => {
 
 const aggregateConnectionHistory = async (startDate, endDate, bucketMinutes) => {
   const match = buildCreatedAtFilter(startDate, endDate);
-  const bucketsRaw = await RelayMessage.aggregate([
-    { $match: match },
-    {
-      $project: {
-        bucket: {
-          $dateTrunc: {
-            date: '$createdAt',
-            unit: 'minute',
-            binSize: bucketMinutes
-          }
-        },
-        participants: ['$from', '$to']
-      }
-    },
-    { $unwind: '$participants' },
-    {
-      $group: {
-        _id: {
-          bucket: '$bucket',
-          wallet: '$participants'
-        }
-      }
-    },
-    {
-      $group: {
-        _id: '$_id.bucket',
-        count: { $sum: 1 }
-      }
-    },
-    { $sort: { _id: 1 } }
-  ]);
+  const store = getRelayStore();
+  const bucketsRaw = await store.aggregateConnectionHistory(match, bucketMinutes);
 
   const map = new Map();
   for (const bucket of bucketsRaw) {
@@ -169,9 +127,10 @@ const aggregateConnectionHistory = async (startDate, endDate, bucketMinutes) => 
 
 const countParticipantsSince = async (fromDate, toDate) => {
   const filter = buildCreatedAtFilter(fromDate, toDate);
+  const store = getRelayStore();
   const [senders, receivers] = await Promise.all([
-    RelayMessage.distinct('from', filter),
-    RelayMessage.distinct('to', filter)
+    store.distinct('from', filter),
+    store.distinct('to', filter)
   ]);
 
   const set = new Set();
@@ -252,7 +211,11 @@ const aggregateCounters = async () => {
         naturalCommandsFailed: { $sum: '$naturalCommandsFailed' },
         dmStarted: { $sum: '$dmStarted' },
         dmAccepted: { $sum: '$dmAccepted' },
-        relayMessages: { $sum: '$relayMessages' }
+        relayMessages: { $sum: '$relayMessages' },
+        actionsSend: { $sum: '$actionsSend' },
+        actionsRequests: { $sum: '$actionsRequests' },
+        actionsBuy: { $sum: '$actionsBuy' },
+        actionsAgreements: { $sum: '$actionsAgreements' },
       }
     }
   ]);
@@ -267,7 +230,11 @@ const aggregateCounters = async () => {
     naturalCommandsFailed: 0,
     dmStarted: 0,
     dmAccepted: 0,
-    relayMessages: 0
+    relayMessages: 0,
+    actionsSend: 0,
+    actionsRequests: 0,
+    actionsBuy: 0,
+    actionsAgreements: 0
   };
 };
 
@@ -426,6 +393,15 @@ export const computeStatsOverview = async (options = {}) => {
     dmStarted24h,
     dmAccepted24h,
     relayMessages24h,
+    actionSend24h,
+    actionSendVolume24h,
+    actionRequest24h,
+    actionRequestAmount24h,
+    actionBuy24h,
+    actionBuyVolume24h,
+    actionAgreementCreated24h,
+    actionAgreementSigned24h,
+    actionAgreementSettled24h,
     deliveredCount,
     ackedCount,
     deliveryP50,
@@ -454,17 +430,18 @@ export const computeStatsOverview = async (options = {}) => {
       }
     }),
     aggregateCounters(),
-    countEventsInRange('token_added', last24hStart, rangeEnd),
-    countEventsInRange('blink_metadata_hit', last24hStart, rangeEnd),
-    countEventsInRange('blink_execute', last24hStart, rangeEnd),
-    sumEventFieldInRange('blink_execute', 'volume', last24hStart, rangeEnd),
-    countEventsInRange('natural_command_parsed', last24hStart, rangeEnd),
-    countEventsInRange('natural_command_executed', last24hStart, rangeEnd),
-    countEventsInRange('natural_command_rejected', last24hStart, rangeEnd),
-    countEventsInRange('natural_command_failed', last24hStart, rangeEnd),
     countEventsInRange('dm_started', last24hStart, rangeEnd),
     countEventsInRange('dm_accepted', last24hStart, rangeEnd),
     countEventsInRange('relay_message', last24hStart, rangeEnd),
+    countEventsInRange('action_send', last24hStart, rangeEnd),
+    sumEventFieldInRange('action_send', 'amount', last24hStart, rangeEnd),
+    countEventsInRange('action_request_created', last24hStart, rangeEnd),
+    sumEventFieldInRange('action_request_created', 'amount', last24hStart, rangeEnd),
+    countEventsInRange('action_buy', last24hStart, rangeEnd),
+    sumEventFieldInRange('action_buy', 'volume', last24hStart, rangeEnd),
+    countEventsInRange('action_agreement_created', last24hStart, rangeEnd),
+    countEventsInRange('action_agreement_signed', last24hStart, rangeEnd),
+    countEventsInRange('action_agreement_settled', last24hStart, rangeEnd),
     countEventsInRange('relay_delivered', rangeStart, rangeEnd),
     countEventsInRange('relay_acked', rangeStart, rangeEnd),
     computeLatencyPercentile('relay_delivered', 50, rangeStart, rangeEnd, 'latencyMs'),
@@ -501,13 +478,15 @@ export const computeStatsOverview = async (options = {}) => {
     participantsLastHour,
     newConnectionsToday,
     disconnectedRecently,
-    participantsInRange
+    participantsInRange,
+    newParticipantsInRange
   ] = await Promise.all([
     countParticipantsSince(activeThreshold, rangeEnd),
     countParticipantsSince(hourAgo, rangeEnd),
     countNewParticipantsSince(startOfDay, rangeEnd),
     countParticipantsWithLastSeenBetween(dayAgo, hourAgo),
-    countParticipantsSince(rangeStart, rangeEnd)
+    countParticipantsSince(rangeStart, rangeEnd),
+    countNewParticipantsSince(rangeStart, rangeEnd)
   ]);
 
   const activeConnections = participantsLastFive.size;
@@ -526,17 +505,19 @@ export const computeStatsOverview = async (options = {}) => {
             connectionHistory.length
         );
 
+  const uniqueParticipants = participantsInRange.size;
+  const newParticipants = Number(newParticipantsInRange) || 0;
+  const returningParticipants = Math.max(0, uniqueParticipants - newParticipants);
+  const returningRate = uniqueParticipants > 0
+    ? Number(((returningParticipants / uniqueParticipants) * 100).toFixed(2))
+    : null;
+
   const dau = await User.countDocuments({
     lastLogin: {
       $gte: startOfDay,
       $lte: rangeEnd
     }
   });
-
-  const blinkSuccessRate24h = blinkMetadataHits24h > 0
-    ? Number(((blinkExecutes24h / blinkMetadataHits24h) * 100).toFixed(2))
-    : null;
-  const blinkVolume24hValue = Number(blinkVolume24h) || 0;
 
   // RTC metrics (success rate, time-to-connect, fallback)
   const [
@@ -595,34 +576,38 @@ export const computeStatsOverview = async (options = {}) => {
       peak: peakConnections,
       p95: p95Connections,
       avgPerBucket: avgConnectionsPerBucket,
-      uniqueParticipants: participantsInRange.size,
+      uniqueParticipants,
+      newParticipants,
+      returningParticipants,
+      returningRate,
       totalInteractions: connectionTotal,
       dau,
       history: connectionHistory
     },
     productInsights: {
-      tokens: {
-        total: counters.tokensAdded || 0,
-        last24h: tokensAdded24h
-      },
-      blinks: {
-        metadataHits: counters.blinkMetadataHits || 0,
-        metadataHits24h: blinkMetadataHits24h,
-        executes: counters.blinkExecutes || 0,
-        executes24h: blinkExecutes24h,
-        successRate24h: blinkSuccessRate24h,
-        volumeTotal: counters.blinkVolume || 0,
-        volume24h: Number(blinkVolume24hValue.toFixed(4))
-      },
-      naturalCommands: {
-        parsed: counters.naturalCommandsParsed || 0,
-        executed: counters.naturalCommandsExecuted || 0,
-        rejected: counters.naturalCommandsRejected || 0,
-        failed: counters.naturalCommandsFailed || 0,
-        parsed24h: naturalCommandsParsed24h,
-        executed24h: naturalCommandsExecuted24h,
-        rejected24h: naturalCommandsRejected24h,
-        failed24h: naturalCommandsFailed24h
+      actions: {
+        send: {
+          total: counters.actionsSend || 0,
+          count24h: actionSend24h,
+          volume24h: Number((actionSendVolume24h || 0).toFixed(4))
+        },
+        request: {
+          total: counters.actionsRequests || 0,
+          count24h: actionRequest24h,
+          amount24h: Number((actionRequestAmount24h || 0).toFixed(4))
+        },
+        buy: {
+          total: counters.actionsBuy || 0,
+          count24h: actionBuy24h,
+          volume24h: Number((actionBuyVolume24h || 0).toFixed(4)),
+          volumeTotal: counters.blinkVolume || 0
+        },
+        agreement: {
+          total: counters.actionsAgreements || 0,
+          created24h: actionAgreementCreated24h,
+          signed24h: actionAgreementSigned24h,
+          settled24h: actionAgreementSettled24h
+        }
       },
       messaging: {
         dmStarted: counters.dmStarted || 0,
@@ -632,8 +617,7 @@ export const computeStatsOverview = async (options = {}) => {
         dmAccepted24h,
         relayMessages24h
       }
-    }
-    ,
+    },
     rtc: {
       offers: rtcOffers,
       established: rtcEstablished,

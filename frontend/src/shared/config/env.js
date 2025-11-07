@@ -76,6 +76,7 @@ const RELAY_ACK_PATH    = readEnv('VITE_RELAY_ACK_PATH',    '/api/v1/relay/ack')
 const RELAY_CONFIG_PATH = readEnv('VITE_RELAY_CONFIG_PATH', '/api/v1/relay/config');
 const RELAY_USAGE_PATH  = readEnv('VITE_RELAY_USAGE_PATH',  '/api/v1/relay/usage');
 const RELAY_PURGE_PATH  = readEnv('VITE_RELAY_PURGE_PATH',  '/api/v1/relay/purge');
+const RELAY_HISTORY_RTC_PATH = readEnv('VITE_RELAY_HISTORY_RTC_PATH', '/api/relay/history/rtc');
 
 const ENDPOINTS = {
   SIGNAL: {
@@ -94,6 +95,7 @@ const ENDPOINTS = {
     CONFIG: RELAY_CONFIG_PATH,
     USAGE:  RELAY_USAGE_PATH,
     PURGE:  RELAY_PURGE_PATH,
+    HISTORY_RTC: RELAY_HISTORY_RTC_PATH,
 
   },
 
