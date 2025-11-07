@@ -11,14 +11,30 @@ const wsTTL    = Math.max(24 * 3600, Math.floor(wsDays * 24 * 3600));
 await mongoose.connect(MONGO_URI, DB_NAME ? { dbName: DB_NAME } : {});
 const db = mongoose.connection.db;
 
+async function ensureCollection(collName) {
+  const collections = await db.listCollections({ name: collName }).toArray();
+  if (collections.length === 0) {
+    try {
+      await db.createCollection(collName);
+      console.log(`ℹ️ Colección creada ${collName}`);
+    } catch (e) {
+      if (e?.codeName !== 'NamespaceExists') {
+        console.error(`❌ No se pudo crear la colección ${collName}`, e?.message || e);
+        process.exit(1);
+      }
+    }
+  }
+}
+
 async function ensureTTL(collName, indexName, seconds) {
+  await ensureCollection(collName);
   try {
     const cmd = { collMod: collName, index: { name: indexName, expireAfterSeconds: seconds } };
     const res = await db.command(cmd);
     console.log(`✅ TTL modificado ${collName}.${indexName} → ${seconds}s`, res?.ok === 1 ? 'OK' : res);
   } catch (e) {
     const msg = e?.message || String(e);
-    if (msg.includes('Index not found')) {
+    if (/Index not found|cannot find index/i.test(msg)) {
       const r = await db.collection(collName).createIndex({ ts: 1 }, { expireAfterSeconds: seconds, name: indexName });
       console.log(`ℹ️ Índice creado ${collName}.${indexName} → ${seconds}s`, r);
       return;
@@ -44,4 +60,3 @@ await ensureTTL('apm_ws', 'apm_ws_ttl', wsTTL);
 
 await mongoose.disconnect();
 console.log('✅ APM TTL actualizado');
-

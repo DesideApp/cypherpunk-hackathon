@@ -20,6 +20,9 @@ async function importAllModels(dir) {
 
 await mongoose.connect(MONGO_URI, DB_NAME ? { dbName: DB_NAME } : {});
 await importAllModels(root);
+// Skip apm collections (handled by update-apm-ttl)
+mongoose.deleteModel('APMHttp');
+mongoose.deleteModel('APMWs');
 await Promise.all(mongoose.modelNames().map(n => mongoose.model(n).ensureIndexes()));
 console.log('✅ ensure-indexes OK:', mongoose.modelNames());
 await mongoose.disconnect();
