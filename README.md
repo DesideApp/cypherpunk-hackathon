@@ -10,16 +10,21 @@
 
 This repository contains the **hackathon submission** codebase that was developed for the Cypherpunk Hackathon. While we continue to develop and improve DESIDE privately, this public repository serves as a reference implementation and demonstration of the core features.
 
-### 📝 Note for Developers
+### 📝 Note for Developers & Judges
 
-This repository is maintained as a **public reference** of our hackathon submission. Active development continues in private repositories. 
+This repository is maintained as a **public reference** of our hackathon submission. Active development continues in **private repositories**.
 
 **Important:** Some parts of the codebase have been simplified for the hackathon submission. Specifically:
 - Advanced quota management and abuse detection logic
 - Complex MongoDB aggregations for analytics
 - Production-grade job schedulers and reconciliation tasks
 
-Full production implementations are available in our private repositories. If you're interested in contributing or have questions, please reach out through our website.
+**For Judges:** Full production implementations are available in our private repository (`deside-prod`). To request access for code review:
+
+1. **Create an issue** in this public repository ([GitHub Issues](https://github.com/DesideApp/cypherpunk-hackathon/issues)) requesting access to the private repository
+2. **Or contact us** through [deside.io](https://deside.io) - Use the contact form or reach out directly
+
+We're happy to provide access to the private repository for evaluation purposes. Please include your GitHub username when requesting access.
 
 ---
 
