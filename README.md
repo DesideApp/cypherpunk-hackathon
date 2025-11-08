@@ -18,6 +18,9 @@ This repository is maintained as a **public reference** of our hackathon submiss
 - Advanced quota management and abuse detection logic
 - Complex MongoDB aggregations for analytics
 - Production-grade job schedulers and reconciliation tasks
+- History service deduplication and attachment handling
+- Blockchain transaction parsing and signature verification
+- Activity event aggregations and trend analysis
 
 **For Judges:** Full production implementations are available in our private repository (`deside-prod`). To request access for code review:
 
