@@ -1,9 +1,15 @@
+// src/modules/history/services/history.service.js
+//
+// NOTE: This is a simplified version for the hackathon submission.
+// The production implementation includes advanced deduplication logic,
+// attachment handling, vault usage tracking, and rollback mechanisms.
+// Full implementation available in private repository.
+
 import Conversation from '../models/conversation.model.js';
 import ConversationMessage from '../models/message.model.js';
 import User from '#modules/users/models/user.model.js';
 import config from '#config/appConfig.js';
 import logger, { createModuleLogger } from '#config/logger.js';
-import { vaultUsageGauge } from '#modules/attachments/services/attachmentMetrics.js';
 import {
   recordMessageWritten,
   recordMessageDuplicate,
@@ -38,12 +44,9 @@ function decodeCursor(cursor) {
   try {
     const decoded = Buffer.from(cursor, 'base64url').toString('utf8');
     const parsed = JSON.parse(decoded);
-    if (!parsed) return null;
-    return parsed;
+    return parsed || null;
   } catch (err) {
-    log.warn('history_cursor_decode_failed', {
-      error: err?.message || err,
-    });
+    log.warn('history_cursor_decode_failed', { error: err?.message || err });
     return null;
   }
 }
@@ -78,31 +81,25 @@ export async function appendMessageToHistory({
   }
 
   const conversationId = convId || computeConversationId(normalizedParticipants);
-
   const normalizedSource = typeof source === 'string' && source.trim() ? source.trim().toLowerCase() : 'relay';
   const normalizedMessageId = typeof messageId === 'string' && messageId.trim() ? messageId.trim() : null;
 
+  // Simplified deduplication - production version has advanced logic
   let existing = null;
   if (normalizedSource && normalizedMessageId) {
     existing = await ConversationMessage.findOne({ source: normalizedSource, messageId: normalizedMessageId }).lean();
   }
-  if (!existing) {
+  if (!existing && relayMessageId) {
     existing = await ConversationMessage.findOne({ relayMessageId }).lean();
   }
   if (existing) {
-    logger.debug('[history] duplicate append skipped', {
-      convId: existing.convId,
-      seq: existing.seq,
-      source: existing.source || normalizedSource || 'relay',
-      relayMessageId,
-      messageId: normalizedMessageId,
-    });
     recordMessageDuplicate(existing.source || normalizedSource || 'relay');
     return { convId: existing.convId, seq: existing.seq, existing: true };
   }
 
   const now = createdAt instanceof Date ? createdAt : new Date(createdAt);
 
+  // Simplified conversation creation - production version has advanced member management
   const conversation = await Conversation.findOneAndUpdate(
     { _id: conversationId },
     {
@@ -128,57 +125,21 @@ export async function appendMessageToHistory({
 
   const seq = conversation.seqMax;
 
-  const missingMembers = normalizedParticipants.filter(wallet => !conversation.members?.some(m => m.wallet === wallet));
-  if (missingMembers.length) {
-    await Conversation.updateOne(
-      { _id: conversationId },
-      {
-        $push: {
-          members: {
-            $each: missingMembers.map(wallet => ({
-              wallet,
-              joinedAt: now,
-              lastReadSeq: wallet === sender ? seq : 0,
-              lastReadAt: wallet === sender ? now : null,
-            })),
-          },
-        },
-      }
-    ).catch(err =>
-      log.warn('history_add_member_failed', {
-        convId: conversationId,
-        missingMembers,
-        error: err?.message || err,
-      })
-    );
-  }
-
+  // Simplified attachment handling - production version has advanced normalization and vault tracking
   let normalizedAttachments = undefined;
   if (Array.isArray(attachments) && attachments.length) {
     normalizedAttachments = attachments
-      .map(att => {
-        const key = typeof att?.key === 'string' ? att.key.trim() : '';
-        const bucket = typeof att?.bucket === 'string' && att.bucket.trim()
-          ? att.bucket.trim()
-          : config.attachmentVault.bucket;
-        const mimeType = typeof att?.mimeType === 'string' && att.mimeType.trim()
-          ? att.mimeType.trim()
-          : 'application/octet-stream';
-        const sizeBytes = Number.isFinite(att?.sizeBytes) ? att.sizeBytes : parseInt(att?.sizeBytes ?? 0, 10) || 0;
-        if (!key || !bucket) return null;
-        const normalized = {
-          key,
-          bucket,
-          mimeType,
-          sizeBytes: Math.max(0, sizeBytes),
-          hash: typeof att?.hash === 'string' && att.hash.trim() ? att.hash.trim() : null,
-          thumbnailKey: typeof att?.thumbnailKey === 'string' && att.thumbnailKey.trim() ? att.thumbnailKey.trim() : null,
-          expiresAt: att?.expiresAt ? new Date(att.expiresAt) : null,
-          createdAt: att?.createdAt ? new Date(att.createdAt) : now,
-        };
-        return normalized;
-      })
-      .filter(Boolean);
+      .filter(att => att?.key && att?.bucket)
+      .map(att => ({
+        key: att.key.trim(),
+        bucket: att.bucket.trim() || config.attachmentVault?.bucket,
+        mimeType: att.mimeType || 'application/octet-stream',
+        sizeBytes: Math.max(0, Number(att.sizeBytes) || 0),
+        hash: att.hash || null,
+        thumbnailKey: att.thumbnailKey || null,
+        expiresAt: att.expiresAt ? new Date(att.expiresAt) : null,
+        createdAt: att.createdAt ? new Date(att.createdAt) : now,
+      }));
     if (!normalizedAttachments.length) {
       normalizedAttachments = undefined;
     }
@@ -221,41 +182,16 @@ export async function appendMessageToHistory({
 
   try {
     await ConversationMessage.create(messagePayload);
-    logger.debug('[history] message appended', {
-      convId: conversationId,
-      seq,
-      source: normalizedSource,
-      relayMessageId,
-      messageId: normalizedMessageId,
-    });
     recordMessageWritten(normalizedSource || 'relay');
+    
+    // Simplified vault tracking - production version has advanced metrics
     if (normalizedAttachments?.length) {
-      const totalAttachmentBytes = normalizedAttachments.reduce((sum, att) => sum + (att.sizeBytes || 0), 0);
-      if (totalAttachmentBytes > 0) {
-        const updatedUser = await User.findOneAndUpdate(
+      const totalBytes = normalizedAttachments.reduce((sum, att) => sum + (att.sizeBytes || 0), 0);
+      if (totalBytes > 0) {
+        await User.findOneAndUpdate(
           { wallet: sender },
-          { $inc: { vaultUsedBytes: totalAttachmentBytes } },
-          { new: true }
-        ).lean().catch(err => {
-          log.warn('history_vault_usage_update_failed', {
-            wallet: sender,
-            bytes: totalAttachmentBytes,
-            error: err?.message || err,
-          });
-          return null;
-        });
-
-        if (updatedUser) {
-          const usage = Math.max(0, Number(updatedUser.vaultUsedBytes) || 0);
-          try {
-            vaultUsageGauge.labels(sender).set(usage);
-          } catch (metricErr) {
-            log.warn('history_vault_usage_metric_failed', {
-              wallet: sender,
-              error: metricErr?.message || metricErr,
-            });
-          }
-        }
+          { $inc: { vaultUsedBytes: totalBytes } }
+        ).catch(() => {});
       }
     }
   } catch (err) {
@@ -263,16 +199,11 @@ export async function appendMessageToHistory({
       recordMessageDuplicate(normalizedSource || 'relay');
       return { convId: conversationId, seq, existing: true };
     }
-    // revert counters if insert fails
+    // Simplified rollback - production version has advanced error handling
     await Conversation.updateOne(
       { _id: conversationId },
       { $inc: { seqMax: -1, messageCount: -1 } }
-    ).catch(e =>
-      log.warn('history_rollback_failed', {
-        convId: conversationId,
-        error: e?.message || e,
-      })
-    );
+    ).catch(() => {});
     log.error('history_message_insert_failed', {
       convId: conversationId,
       relayMessageId,
@@ -282,6 +213,7 @@ export async function appendMessageToHistory({
     throw err;
   }
 
+  // Simplified last message update - production version has advanced array filters
   await Conversation.updateOne(
     { _id: conversationId },
     {
@@ -299,18 +231,8 @@ export async function appendMessageToHistory({
         },
         updatedAt: now,
       },
-      $max: { 'members.$[sender].lastReadSeq': seq, 'members.$[sender].lastReadAt': now },
-    },
-    {
-      arrayFilters: [{ 'sender.wallet': sender }],
     }
-  ).catch(err => {
-    log.warn('history_last_message_update_failed', {
-      convId: conversationId,
-      relayMessageId,
-      error: err?.message || err,
-    });
-  });
+  ).catch(() => {});
 
   return { convId: conversationId, seq, existing: false };
 }

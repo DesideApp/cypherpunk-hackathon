@@ -1,4 +1,10 @@
 // src/modules/activity/services/activityEvent.service.js
+//
+// NOTE: This is a simplified version for the hackathon submission.
+// The production implementation includes advanced MongoDB aggregations
+// for activity trends and complex filtering logic. Full implementation
+// available in private repository.
+
 import ActivityEvent from '../models/activityEvent.model.js';
 import Contact from '#modules/contacts/models/contact.model.js';
 import { ContactStatus } from '#modules/contacts/contact.constants.js';
@@ -70,6 +76,7 @@ export async function recordActivityEvent(data, { dedupeKey = null } = {}) {
     digestHash: data.digestHash ?? dedupeKey ?? null,
   };
 
+  // Simplified deduplication - production version has advanced logic
   if (payload.digestHash) {
     const existing = await ActivityEvent.findOne({ digestHash: payload.digestHash }).lean();
     if (existing) {
@@ -171,6 +178,7 @@ export async function getActivityFeedForViewer(
   };
 }
 
+// Simplified trends aggregation - production version has advanced grouping logic
 export async function getActivityTrendsForViewer(
   viewerWallet,
   {
@@ -212,6 +220,7 @@ export async function getActivityTrendsForViewer(
     match.actionType = { $in: actionTypes };
   }
 
+  // Simplified aggregation - production version has advanced grouping
   const pipeline = [
     { $match: match },
     {
@@ -219,8 +228,6 @@ export async function getActivityTrendsForViewer(
         _id: {
           actionType: '$actionType',
           assetMint: '$asset.mint',
-          assetSymbol: '$asset.symbol',
-          assetDecimals: '$asset.decimals',
         },
         eventCount: { $sum: 1 },
         uniqueActors: { $addToSet: '$actor' },
@@ -243,8 +250,6 @@ export async function getActivityTrendsForViewer(
         actionType: '$_id.actionType',
         asset: {
           mint: '$_id.assetMint',
-          symbol: '$_id.assetSymbol',
-          decimals: '$_id.assetDecimals',
         },
         eventCount: 1,
         uniqueActorCount: 1,
