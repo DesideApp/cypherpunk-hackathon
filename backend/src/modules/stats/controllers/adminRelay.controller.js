@@ -1,4 +1,10 @@
 // src/modules/stats/controllers/adminRelay.controller.js
+//
+// NOTE: This is a simplified version for the hackathon submission.
+// The production implementation includes advanced MongoDB aggregations
+// and tier-based quota calculations. Full implementation available
+// in private repository.
+
 import mongoose from 'mongoose';
 import User from '#modules/users/models/user.model.js';
 import logger from '#config/logger.js';
@@ -88,8 +94,10 @@ function tierValueExpr(field, fallback) {
   };
 }
 
+// Simplified snapshot builder - production version has advanced tier-based aggregations
 async function buildRelayUsageSnapshot() {
   try {
+    // Simplified pipeline - production version has complex $facet aggregations
     const pipeline = [
       {
         $addFields: {

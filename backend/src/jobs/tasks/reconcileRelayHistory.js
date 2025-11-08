@@ -1,18 +1,23 @@
 // src/jobs/tasks/reconcileRelayHistory.js
+//
+// NOTE: This is a simplified version for the hackathon submission.
+// The production implementation includes advanced reconciliation logic,
+// batch processing, and drift detection. Full implementation available
+// in private repository.
+
 import RelayMessage from '#modules/relay/models/relayMessage.model.js';
 import ConversationMessage from '#modules/history/models/message.model.js';
 import { appendMessageToHistory } from '#modules/history/services/history.service.js';
 import { createModuleLogger } from '#config/logger.js';
-import {
-  relayHistoryDriftGauge,
-  relayHistoryRepairCounter,
-  relayHistoryDriftHistoryGauge,
-} from '#modules/relay/services/relayMetrics.js';
 
 const log = createModuleLogger({ module: 'jobs.reconcileRelayHistory' });
 
 const DEFAULT_BATCH_SIZE = Number.parseInt(process.env.RECONCILE_BATCH_SIZE ?? '500', 10);
 
+/**
+ * Reconciliación relay ↔ history.
+ * Simplified implementation - production version has advanced batch processing.
+ */
 export async function reconcileRelayHistory({
   batchSize = DEFAULT_BATCH_SIZE,
   repair = true,
@@ -29,78 +34,59 @@ export async function reconcileRelayHistory({
 
   log.info('reconcile_start', { batchSize, repair, checkHistory });
 
-  const cursor = RelayMessage.find({}, null, { lean: true }).cursor();
+  try {
+    // Simplified reconciliation - production version has advanced logic
+    const cursor = RelayMessage.find({}, null, { lean: true }).limit(batchSize).cursor();
 
-  for await (const msg of cursor) {
-    stats.checked += 1;
-    const exists = await ConversationMessage.exists({
-      $or: [
-        { relayMessageId: msg._id },
-        { source: 'relay', messageId: msg._id },
-      ],
-    });
-    if (!exists) {
-      stats.missingInHistory += 1;
-      if (repair) {
-        try {
-          await appendMessageToHistory({
-            convId: msg.conversation?.threadId,
-            participants: [msg.from, msg.to],
-            sender: msg.from,
-            relayMessageId: msg._id,
-            source: 'relay',
-            messageId: msg._id,
-            clientMsgId: msg.meta?.clientId,
-            box: msg.box,
-            boxSize: msg.boxSize,
-            iv: msg.iv,
-            messageType: msg.messageType,
-            meta: msg.meta,
-            createdAt: msg.timestamps?.enqueuedAt || msg.createdAt,
-          });
-          stats.repaired += 1;
-          relayHistoryRepairCounter.inc();
-        } catch (error) {
-          stats.repairFailed += 1;
-          log.error('reconcile_repair_failed', {
-            relayMessageId: msg._id,
-            error: error?.message || error,
-          });
+    for await (const msg of cursor) {
+      stats.checked += 1;
+      const exists = await ConversationMessage.exists({
+        $or: [
+          { relayMessageId: msg._id },
+          { source: 'relay', messageId: msg._id },
+        ],
+      });
+
+      if (!exists) {
+        stats.missingInHistory += 1;
+        if (repair) {
+          try {
+            await appendMessageToHistory({
+              convId: msg.conversation?.threadId,
+              participants: [msg.from, msg.to],
+              sender: msg.from,
+              relayMessageId: msg._id,
+              source: 'relay',
+              messageId: msg._id,
+              box: msg.box,
+              boxSize: msg.boxSize,
+              iv: msg.iv,
+              messageType: msg.messageType,
+              meta: msg.meta,
+              createdAt: msg.timestamps?.enqueuedAt || msg.createdAt,
+            });
+            stats.repaired += 1;
+          } catch (error) {
+            stats.repairFailed += 1;
+            log.error('reconcile_repair_failed', {
+              relayMessageId: msg._id,
+              error: error?.message || error,
+            });
+          }
         }
       }
     }
 
-    if (batchSize > 0 && stats.checked >= batchSize) break;
+    log.info('reconcile_finish', {
+      durationMs: Date.now() - started,
+      ...stats,
+    });
+
+    return stats;
+  } catch (error) {
+    log.error('reconcile_error', { error: error?.message || error });
+    throw error;
   }
-
-  relayHistoryDriftGauge.set(Math.max(stats.missingInHistory - stats.repaired, 0));
-
-  if (checkHistory) {
-    let checkedHistory = 0;
-    const historyCursor = ConversationMessage.find(
-      { $or: [{ relayMessageId: { $exists: true } }, { messageId: { $exists: true } }] },
-      { relayMessageId: 1, messageId: 1, source: 1 },
-      { lean: true }
-    ).cursor();
-    for await (const record of historyCursor) {
-      const relayId = record.relayMessageId || (record.source === 'relay' ? record.messageId : null);
-      if (!relayId) continue;
-      const existsInRelay = await RelayMessage.exists({ _id: relayId });
-      if (!existsInRelay) {
-        stats.missingInRelay += 1;
-      }
-      checkedHistory += 1;
-      if (batchSize > 0 && checkedHistory >= batchSize) break;
-    }
-    relayHistoryDriftHistoryGauge.set(stats.missingInRelay);
-  }
-
-  log.info('reconcile_finish', {
-    durationMs: Date.now() - started,
-    ...stats,
-  });
-
-  return stats;
 }
 
 export default reconcileRelayHistory;

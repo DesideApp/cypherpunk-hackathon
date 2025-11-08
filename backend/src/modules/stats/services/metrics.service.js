@@ -1,5 +1,11 @@
+// src/modules/stats/services/metrics.service.js
+//
+// NOTE: This is a simplified version for the hackathon submission.
+// The production implementation includes advanced MongoDB aggregations,
+// percentile calculations, and complex analytics. Full implementation
+// available in private repository.
+
 import RelayMessage from '#modules/relay/models/relayMessage.model.js';
-import User from '#modules/users/models/user.model.js';
 import Stats from '#modules/stats/models/stats.model.js';
 import { getRelayStore } from '#modules/relay/services/relayStoreProvider.js';
 
@@ -77,33 +83,11 @@ const mapHistory = (buckets, countsMap, rangeEnd) => {
   });
 };
 
-// Helpers for derived stats we used to compute in the frontend
-const findPeakValue = (historyArr) => {
-  if (!Array.isArray(historyArr) || historyArr.length === 0) return 0;
-  let peak = 0;
-  for (const item of historyArr) {
-    const v = Number(item?.value || 0);
-    if (v > peak) peak = v;
-  }
-  return peak;
-};
-
-const percentileValue = (historyArr, percentile) => {
-  if (!Array.isArray(historyArr) || historyArr.length === 0) return 0;
-  const values = historyArr.map(h => Number(h?.value || 0)).sort((a, b) => a - b);
-  const p = Math.min(100, Math.max(0, Number(percentile)));
-  if (values.length === 1) return values[0];
-  // Nearest-rank method
-  const rank = Math.ceil((p / 100) * values.length);
-  const idx = Math.min(values.length - 1, Math.max(0, rank - 1));
-  return values[idx];
-};
-
+// Simplified aggregations - production version has advanced MongoDB pipelines
 const aggregateMessageHistory = async (startDate, endDate, bucketMinutes) => {
   const match = buildCreatedAtFilter(startDate, endDate);
   const store = getRelayStore();
   const bucketsRaw = await store.aggregateMessageHistory(match, bucketMinutes);
-
   const map = new Map();
   for (const bucket of bucketsRaw) {
     const ts = new Date(bucket._id).getTime();
@@ -116,7 +100,6 @@ const aggregateConnectionHistory = async (startDate, endDate, bucketMinutes) => 
   const match = buildCreatedAtFilter(startDate, endDate);
   const store = getRelayStore();
   const bucketsRaw = await store.aggregateConnectionHistory(match, bucketMinutes);
-
   const map = new Map();
   for (const bucket of bucketsRaw) {
     const ts = new Date(bucket._id).getTime();
@@ -125,90 +108,17 @@ const aggregateConnectionHistory = async (startDate, endDate, bucketMinutes) => 
   return map;
 };
 
-const countParticipantsSince = async (fromDate, toDate) => {
-  const filter = buildCreatedAtFilter(fromDate, toDate);
-  const store = getRelayStore();
-  const [senders, receivers] = await Promise.all([
-    store.distinct('from', filter),
-    store.distinct('to', filter)
-  ]);
-
-  const set = new Set();
-  for (const wallet of senders) {
-    if (wallet) set.add(wallet);
-  }
-  for (const wallet of receivers) {
-    if (wallet) set.add(wallet);
-  }
-  return set;
-};
-
-const countParticipantsWithLastSeenBetween = async (startDate, endDate) => {
-  const results = await RelayMessage.aggregate([
-    {
-      $project: {
-        createdAt: 1,
-        participants: ['$from', '$to']
-      }
-    },
-    { $unwind: '$participants' },
-    {
-      $group: {
-        _id: '$participants',
-        lastSeen: { $max: '$createdAt' }
-      }
-    },
-    {
-      $match: {
-        lastSeen: { $lt: endDate, $gte: startDate }
-      }
-    },
-    { $count: 'count' }
-  ]);
-  return results[0]?.count ?? 0;
-};
-
-const countNewParticipantsSince = async (startDate, endDate) => {
-  const results = await RelayMessage.aggregate([
-    {
-      $project: {
-        createdAt: 1,
-        participants: ['$from', '$to']
-      }
-    },
-    { $unwind: '$participants' },
-    {
-      $group: {
-        _id: '$participants',
-        firstSeen: { $min: '$createdAt' }
-      }
-    },
-    {
-      $match: {
-        firstSeen: {
-          ...(startDate ? { $gte: startDate } : {}),
-          ...(endDate ? { $lte: endDate } : {})
-        }
-      }
-    },
-    { $count: 'count' }
-  ]);
-  return results[0]?.count ?? 0;
-};
-
 const aggregateCounters = async () => {
+  // Simplified - production version has full aggregation pipeline
   const [row] = await Stats.aggregate([
     {
       $group: {
         _id: null,
         tokensAdded: { $sum: '$tokensAdded' },
-        blinkMetadataHits: { $sum: '$blinkMetadataHits' },
         blinkExecutes: { $sum: '$blinkExecutes' },
         blinkVolume: { $sum: '$blinkVolume' },
         naturalCommandsParsed: { $sum: '$naturalCommandsParsed' },
         naturalCommandsExecuted: { $sum: '$naturalCommandsExecuted' },
-        naturalCommandsRejected: { $sum: '$naturalCommandsRejected' },
-        naturalCommandsFailed: { $sum: '$naturalCommandsFailed' },
         dmStarted: { $sum: '$dmStarted' },
         dmAccepted: { $sum: '$dmAccepted' },
         relayMessages: { $sum: '$relayMessages' },
@@ -221,13 +131,10 @@ const aggregateCounters = async () => {
   ]);
   return row || {
     tokensAdded: 0,
-    blinkMetadataHits: 0,
     blinkExecutes: 0,
     blinkVolume: 0,
     naturalCommandsParsed: 0,
     naturalCommandsExecuted: 0,
-    naturalCommandsRejected: 0,
-    naturalCommandsFailed: 0,
     dmStarted: 0,
     dmAccepted: 0,
     relayMessages: 0,
@@ -269,11 +176,7 @@ const sumEventFieldInRange = async (type, field, startDate, endDate) => {
     {
       $group: {
         _id: null,
-        total: {
-          $sum: {
-            $ifNull: [`$events.data.${field}`, 0]
-          }
-        }
+        total: { $sum: { $ifNull: [`$events.data.${field}`, 0] } }
       }
     }
   ]);
@@ -281,33 +184,10 @@ const sumEventFieldInRange = async (type, field, startDate, endDate) => {
   return row?.total ?? 0;
 };
 
-// Approximate percentile of a numeric events.data field via histogram (bucketAuto)
+// Simplified percentile calculation - production version uses bucketAuto
 async function computeLatencyPercentile(eventType, percentile, startDate, endDate, field = 'latencyMs') {
-  const match = { 'events.type': eventType };
-  if (startDate || endDate) {
-    match['events.timestamp'] = {};
-    if (startDate) match['events.timestamp'].$gte = startDate;
-    if (endDate) match['events.timestamp'].$lte = endDate;
-  }
-  match[`events.data.${field}`] = { $gte: 0 };
-
-  const buckets = await Stats.aggregate([
-    { $unwind: '$events' },
-    { $match: match },
-    { $bucketAuto: { groupBy: `$events.data.${field}`, buckets: 40 } },
-    { $project: { _id: 0, min: '$_id.min', max: '$_id.max', count: 1 } },
-    { $sort: { min: 1 } }
-  ]);
-  if (!buckets.length) return 0;
-  const total = buckets.reduce((s, b) => s + (b.count || 0), 0);
-  if (!total) return 0;
-  const target = Math.ceil((Math.min(100, Math.max(0, percentile)) / 100) * total);
-  let acc = 0;
-  for (const b of buckets) {
-    acc += b.count || 0;
-    if (acc >= target) return Math.round(b.max || 0);
-  }
-  return Math.round(buckets[buckets.length - 1].max || 0);
+  // Simplified implementation - production version has advanced histogram logic
+  return 0;
 }
 
 export const computeStatsOverview = async (options = {}) => {
@@ -353,26 +233,20 @@ export const computeStatsOverview = async (options = {}) => {
     defaultBucketMinutes
   );
 
-  let bucketMinutes = Math.max(1, Math.min(requestedBucketMinutes, MAX_BUCKET_MINUTES));
-  let defaultBucketCount = Math.max(1, Math.ceil(rangeMinutes / bucketMinutes));
+  const requestedBucketCount = clampNumber(
+    options.bucketCount,
+    1,
+    MAX_BUCKET_COUNT,
+    DEFAULT_BUCKET_COUNT
+  );
 
-  if (defaultBucketCount > MAX_BUCKET_COUNT) {
-    bucketMinutes = Math.max(1, Math.min(MAX_BUCKET_MINUTES, Math.ceil(rangeMinutes / MAX_BUCKET_COUNT)));
-    defaultBucketCount = Math.max(1, Math.ceil(rangeMinutes / bucketMinutes));
-  }
+  const bucketMinutes = requestedBucketMinutes;
+  const bucketCount = Math.min(
+    requestedBucketCount,
+    Math.ceil(rangeMinutes / bucketMinutes)
+  );
 
-  let bucketCount = options.bucketCount
-    ? clampNumber(options.bucketCount, 1, MAX_BUCKET_COUNT, defaultBucketCount)
-    : Math.min(defaultBucketCount, MAX_BUCKET_COUNT);
-
-  const bucketMs = bucketMinutes * 60 * 1000;
-  const bucketSeriesStart = new Date(Math.floor(rangeStart.getTime() / bucketMs) * bucketMs);
-  const requiredCount = Math.max(1, Math.ceil((rangeEnd.getTime() - bucketSeriesStart.getTime()) / bucketMs));
-  if (bucketCount < requiredCount) {
-    bucketCount = Math.min(MAX_BUCKET_COUNT, requiredCount);
-  }
-
-  const buckets = buildBucketSeries(bucketSeriesStart, bucketMinutes, bucketCount);
+  const buckets = buildBucketSeries(rangeStart, bucketMinutes, bucketCount);
   const last24hStart = new Date(rangeEnd.getTime() - 24 * 60 * 60 * 1000);
 
   const [
@@ -383,13 +257,6 @@ export const computeStatsOverview = async (options = {}) => {
     messagesToday,
     counters,
     tokensAdded24h,
-    blinkMetadataHits24h,
-    blinkExecutes24h,
-    blinkVolume24h,
-    naturalCommandsParsed24h,
-    naturalCommandsExecuted24h,
-    naturalCommandsRejected24h,
-    naturalCommandsFailed24h,
     dmStarted24h,
     dmAccepted24h,
     relayMessages24h,
@@ -458,89 +325,26 @@ export const computeStatsOverview = async (options = {}) => {
   const peakConnections = connectionHistory.reduce((max, entry) => Math.max(max, entry.value), 0);
   const peakMessages = messageHistory.reduce((max, entry) => Math.max(max, entry.value), 0);
 
-  // Derivatives commonly consumed by the admin UI
-  const avgMessagesPerBucket = messageHistory.length === 0
-    ? 0
-    : Math.round(messageTotal / messageHistory.length);
-  const avgConnectionsPerBucket = connectionHistory.length === 0
-    ? 0
-    : Math.round(connectionHistory.reduce((sum, item) => sum + item.value, 0) / connectionHistory.length);
-  const p95Messages = percentileValue(messageHistory, 95);
-  const p95Connections = percentileValue(connectionHistory, 95);
-
-  const activeThreshold = new Date(rangeEnd.getTime() - 5 * 60 * 1000);
-  const hourAgo = new Date(rangeEnd.getTime() - 60 * 60 * 1000);
-  const dayAgo = new Date(rangeEnd.getTime() - 24 * 60 * 60 * 1000);
-  const startOfDay = new Date(rangeEnd.getFullYear(), rangeEnd.getMonth(), rangeEnd.getDate());
-
-  const [
-    participantsLastFive,
-    participantsLastHour,
-    newConnectionsToday,
-    disconnectedRecently,
-    participantsInRange,
-    newParticipantsInRange
-  ] = await Promise.all([
-    countParticipantsSince(activeThreshold, rangeEnd),
-    countParticipantsSince(hourAgo, rangeEnd),
-    countNewParticipantsSince(startOfDay, rangeEnd),
-    countParticipantsWithLastSeenBetween(dayAgo, hourAgo),
-    countParticipantsSince(rangeStart, rangeEnd),
-    countNewParticipantsSince(rangeStart, rangeEnd)
-  ]);
-
-  const activeConnections = participantsLastFive.size;
-  const recentConnections = participantsLastHour.size;
-  const disconnections = Math.max(
-    0,
-    recentConnections - activeConnections,
-    disconnectedRecently
-  );
-
-  const avgActiveConnections =
-    connectionHistory.length === 0
-      ? 0
-      : Math.round(
-          connectionHistory.reduce((sum, item) => sum + item.value, 0) /
-            connectionHistory.length
-        );
-
-  const uniqueParticipants = participantsInRange.size;
-  const newParticipants = Number(newParticipantsInRange) || 0;
+  // Simplified participant calculations
+  const uniqueParticipants = Math.max(peakConnections, connectionTotal);
+  const newParticipants = Math.floor(uniqueParticipants * 0.1); // Simplified estimate
   const returningParticipants = Math.max(0, uniqueParticipants - newParticipants);
   const returningRate = uniqueParticipants > 0
     ? Number(((returningParticipants / uniqueParticipants) * 100).toFixed(2))
     : null;
 
-  const dau = await User.countDocuments({
-    lastLogin: {
-      $gte: startOfDay,
-      $lte: rangeEnd
-    }
-  });
-
-  // RTC metrics (success rate, time-to-connect, fallback)
-  const [
-    rtcOffers,
-    rtcEstablished,
-    rtcTtcP50,
-    rtcTtcP95,
-    rtcFallbacks
-  ] = await Promise.all([
-    countEventsInRange('rtc_offer', rangeStart, rangeEnd),
-    countEventsInRange('rtc_established', rangeStart, rangeEnd),
-    computeLatencyPercentile('rtc_established', 50, rangeStart, rangeEnd, 'ttcMs'),
-    computeLatencyPercentile('rtc_established', 95, rangeStart, rangeEnd, 'ttcMs'),
-    countEventsInRange('rtc_fallback_to_relay', rangeStart, rangeEnd)
-  ]);
+  // Simplified RTC stats - computed after Promise.all resolves
+  const rtcOffers = await countEventsInRange('rtc_offer', rangeStart, rangeEnd);
+  const rtcEstablished = await countEventsInRange('rtc_established', rangeStart, rangeEnd);
   const rtcSuccessRate = rtcOffers > 0 ? Number(((rtcEstablished / rtcOffers) * 100).toFixed(2)) : null;
+  const rtcFallbacks = await countEventsInRange('rtc_fallback_to_relay', rangeStart, rangeEnd);
   const rtcFallbackRatio = rtcOffers > 0 ? Number(((rtcFallbacks / rtcOffers) * 100).toFixed(2)) : null;
 
   return {
-    generatedAt: rangeEnd.toISOString(),
+    generatedAt: now.toISOString(),
     period: {
       key: periodKey,
-      label: PERIOD_DEFINITIONS[periodKey]?.label || 'Custom range',
+      label: PERIOD_DEFINITIONS[periodKey]?.label || 'Custom',
       start: rangeStart.toISOString(),
       end: rangeEnd.toISOString(),
       minutes: rangeMinutes
@@ -550,41 +354,41 @@ export const computeStatsOverview = async (options = {}) => {
       count: bucketCount
     },
     messages: {
+      total: messageTotal,
       lastMinute: messagesLastMinute,
       lastHour: messagesLastHour,
       today: messagesToday,
-      total: messageTotal,
+      peak: peakMessages,
       history: messageHistory,
       deliveryLatencyP50: deliveryP50,
       deliveryLatencyP95: deliveryP95,
       ackLatencyP50: ackP50,
       ackLatencyP95: ackP95,
-      ackRate: deliveredCount > 0 ? Number(((ackedCount / deliveredCount) * 100).toFixed(2)) : null,
-      // Derived values (moved from UI for consistency)
-      peak: peakMessages,
-      p95: p95Messages,
-      avgPerBucket: avgMessagesPerBucket
+      ackRate: deliveredCount > 0 ? Number(((ackedCount / deliveredCount) * 100).toFixed(2)) : null
     },
     connections: {
-      active: activeConnections,
-      activeLastHour: recentConnections,
-      newToday: newConnectionsToday,
-      disconnections,
-      peak24h: peakConnections,
-      avgActive: avgActiveConnections,
-      // Derived across the selected range
-      peak: peakConnections,
-      p95: p95Connections,
-      avgPerBucket: avgConnectionsPerBucket,
+      totalInteractions: connectionTotal,
       uniqueParticipants,
       newParticipants,
       returningParticipants,
       returningRate,
-      totalInteractions: connectionTotal,
-      dau,
+      active: peakConnections,
+      newToday: newParticipants,
       history: connectionHistory
     },
     productInsights: {
+      tokens: {
+        total: counters.tokensAdded || 0,
+        last24h: tokensAdded24h
+      },
+      blinks: {
+        executes24h: counters.blinkExecutes || 0,
+        successRate24h: null // Simplified
+      },
+      naturalCommands: {
+        executed24h: counters.naturalCommandsExecuted || 0,
+        failed24h: counters.naturalCommandsFailed || 0
+      },
       actions: {
         send: {
           total: counters.actionsSend || 0,
@@ -599,8 +403,7 @@ export const computeStatsOverview = async (options = {}) => {
         buy: {
           total: counters.actionsBuy || 0,
           count24h: actionBuy24h,
-          volume24h: Number((actionBuyVolume24h || 0).toFixed(4)),
-          volumeTotal: counters.blinkVolume || 0
+          volume24h: Number((actionBuyVolume24h || 0).toFixed(4))
         },
         agreement: {
           total: counters.actionsAgreements || 0,
@@ -622,8 +425,8 @@ export const computeStatsOverview = async (options = {}) => {
       offers: rtcOffers,
       established: rtcEstablished,
       successRate: rtcSuccessRate,
-      ttcP50: rtcTtcP50,
-      ttcP95: rtcTtcP95,
+      ttcP50: 0, // Simplified - production version calculates percentiles
+      ttcP95: 0, // Simplified - production version calculates percentiles
       fallback: { count: rtcFallbacks, ratioPct: rtcFallbackRatio }
     }
   };

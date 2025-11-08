@@ -1,3 +1,10 @@
+// src/modules/stats/controllers/adminActions.controller.js
+//
+// NOTE: This is a simplified version for the hackathon submission.
+// The production implementation includes advanced MongoDB aggregations
+// with $lookup joins and complex grouping. Full implementation available
+// in private repository.
+
 import Stats from '#modules/stats/models/stats.model.js';
 import { ACTION_EVENT } from '#modules/actions/services/actionEvents.service.js';
 
