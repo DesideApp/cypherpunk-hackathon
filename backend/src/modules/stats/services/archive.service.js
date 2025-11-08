@@ -2,7 +2,10 @@ import fs from 'fs/promises';
 import path from 'path';
 import { gunzip as _gunzip } from 'zlib';
 import { promisify } from 'util';
+import logger from '#config/logger.js';
 import { readSnapshot } from '#shared/services/snapshotStorage.js';
+
+const gunzip = promisify(_gunzip);
 
 function alignToHour(d) { const x = new Date(d); x.setMinutes(0,0,0); return x; }
 function alignToDay(d) { const x = new Date(d); x.setHours(0,0,0,0); return x; }
@@ -23,6 +26,7 @@ async function readOverviewArchiveHourly(rangeStart, rangeEnd) {
   let newTotal = 0;
   let returningTotal = 0;
   const returningRates = [];
+  const missingSnapshots = [];
   for (let t = start.getTime(); t < end.getTime(); t += 3600000) {
     const d = new Date(t);
     const yyyy = String(d.getFullYear());
@@ -36,7 +40,6 @@ async function readOverviewArchiveHourly(rangeStart, rangeEnd) {
     try {
       let snap;
       try {
-        const gunzip = promisify(_gunzip);
         const gzBuffer = await readSnapshot({ key: keyGz, localPath: fileGz });
         if (!gzBuffer) throw new Error('snapshot not found');
         const raw = await gunzip(gzBuffer);
@@ -59,12 +62,31 @@ async function readOverviewArchiveHourly(rangeStart, rangeEnd) {
       returningTotal += Number(snap?.connections?.returning || 0);
       if (snap?.connections?.returningRate != null) returningRates.push(Number(snap.connections.returningRate));
       out.rtc = snap?.rtc || out.rtc;
-    } catch {}
+    } catch (error) {
+      const details = {
+        timestamp: d.toISOString(),
+        keyGz,
+        keyJson,
+        error: error?.message || error,
+      };
+      missingSnapshots.push(details);
+      logger.warn('[stats:archive] Failed to read hourly snapshot', details);
+    }
   }
   out.connections.uniqueParticipants = uniqueEstimate;
   out.connections.newParticipants = newTotal;
   out.connections.returningParticipants = returningTotal;
   out.connections.returningRate = returningRates.length ? Number((returningRates.reduce((s, v) => s + v, 0) / returningRates.length).toFixed(2)) : null;
+  if (missingSnapshots.length) {
+    const level = missingSnapshots.length === out.bucket.count ? 'error' : 'warn';
+    logger[level]('[stats:archive] Hourly archive range missing data', {
+      rangeStart: start.toISOString(),
+      rangeEnd: end.toISOString(),
+      missingCount: missingSnapshots.length,
+      totalSlots: out.bucket.count,
+      sample: missingSnapshots.slice(0, 5),
+    });
+  }
   return out;
 }
 
@@ -84,6 +106,7 @@ async function readOverviewArchiveDaily(rangeStart, rangeEnd) {
   let newTotal = 0;
   let returningTotal = 0;
   const returningRates = [];
+  const missingSnapshots = [];
   for (let t = start.getTime(); t < end.getTime(); t += 86400000) {
     const d = new Date(t);
     const yyyy = String(d.getFullYear());
@@ -96,7 +119,6 @@ async function readOverviewArchiveDaily(rangeStart, rangeEnd) {
     try {
       let snap;
       try {
-        const gunzip = promisify(_gunzip);
         const gzBuffer = await readSnapshot({ key: keyGz, localPath: fileGz });
         if (!gzBuffer) throw new Error('snapshot not found');
         const raw = await gunzip(gzBuffer);
@@ -120,12 +142,31 @@ async function readOverviewArchiveDaily(rangeStart, rangeEnd) {
       const rate = snap?.connections?.returningRateAvg ?? snap?.connections?.returningRate;
       if (rate != null) returningRates.push(Number(rate));
       out.rtc = snap?.rtc || out.rtc;
-    } catch {}
+    } catch (error) {
+      const details = {
+        timestamp: d.toISOString(),
+        keyGz,
+        keyJson,
+        error: error?.message || error,
+      };
+      missingSnapshots.push(details);
+      logger.warn('[stats:archive] Failed to read daily snapshot', details);
+    }
   }
   out.connections.uniqueParticipants = uniqueEstimate;
   out.connections.newParticipants = newTotal;
   out.connections.returningParticipants = returningTotal;
   out.connections.returningRate = returningRates.length ? Number((returningRates.reduce((s, v) => s + v, 0) / returningRates.length).toFixed(2)) : null;
+  if (missingSnapshots.length) {
+    const level = missingSnapshots.length === out.bucket.count ? 'error' : 'warn';
+    logger[level]('[stats:archive] Daily archive range missing data', {
+      rangeStart: start.toISOString(),
+      rangeEnd: end.toISOString(),
+      missingCount: missingSnapshots.length,
+      totalDays: out.bucket.count,
+      sample: missingSnapshots.slice(0, 5),
+    });
+  }
   return out;
 }
 

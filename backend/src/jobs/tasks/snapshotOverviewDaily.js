@@ -4,6 +4,7 @@ import path from 'path';
 import { gzip as _gzip, gunzip as _gunzip } from 'zlib';
 import { promisify } from 'util';
 import { fileURLToPath } from 'url';
+import logger from '#config/logger.js';
 import { readSnapshot, saveSnapshot } from '#shared/services/snapshotStorage.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -12,6 +13,8 @@ const __dirname = path.dirname(__filename);
 function alignToDay(d) { const x = new Date(d); x.setHours(0,0,0,0); return x; }
 
 async function ensureDir(dir) { await fs.mkdir(dir, { recursive: true }).catch(() => {}); }
+
+const gunzip = promisify(_gunzip);
 
 export async function snapshotOverviewDaily() {
   const baseDir = process.env.SNAPSHOT_DIR || path.resolve(__dirname, '../../../..', 'backups', 'metrics');
@@ -42,6 +45,7 @@ export async function snapshotOverviewDaily() {
     returningRate: [],
   };
 
+  const missingHours = [];
   for (let h = 0; h < 24; h += 1) {
     const hh = String(h).padStart(2, '0');
     const relativKey = `overview/${yyyy}/${mm}/${dd}/${hh}.json.gz`;
@@ -50,7 +54,6 @@ export async function snapshotOverviewDaily() {
     try {
       let raw;
       try {
-        const gunzip = promisify(_gunzip);
         const gzBuffer = await readSnapshot({ key: relativKey, localPath: gzFile });
         if (!gzBuffer) throw new Error('not found');
         raw = (await gunzip(gzBuffer)).toString('utf8');
@@ -77,7 +80,16 @@ export async function snapshotOverviewDaily() {
       if (r.ttcP50 != null) accum.rtcTtcP50.push(Number(r.ttcP50));
       if (r?.fallback?.ratioPct != null) accum.rtcFallback.push(Number(r.fallback.ratioPct));
       if (snap?.connections?.returningRate != null) accum.returningRate.push(Number(snap.connections.returningRate));
-    } catch {}
+    } catch (error) {
+      const details = {
+        day: dayStart.toISOString().slice(0, 10),
+        hour: hh,
+        key: relativKey,
+        error: error?.message || error,
+      };
+      missingHours.push(details);
+      logger.warn('[stats:snapshotDaily] Missing hourly snapshot for aggregation', details);
+    }
   }
 
   const avg = (arr) => arr.length ? Number((arr.reduce((s, v) => s + v, 0) / arr.length).toFixed(2)) : null;
@@ -102,5 +114,18 @@ export async function snapshotOverviewDaily() {
   const buf = await gzip(Buffer.from(JSON.stringify(payload)));
   const key = `overview-daily/${yyyy}/${mm}/${dd}.json.gz`;
   const result = await saveSnapshot({ key, buffer: buf, localPath: outFile });
-  return { file: result.location };
+  if (missingHours.length) {
+    const level = missingHours.length === 24 ? 'error' : 'warn';
+    logger[level]('[stats:snapshotDaily] Incomplete daily aggregation', {
+      day: dayStart.toISOString().slice(0, 10),
+      processedHours: 24 - missingHours.length,
+      missingHours: missingHours.map((item) => item.hour),
+    });
+    if (missingHours.length === 24) {
+      const err = new Error(`No hourly snapshots available for ${dayStart.toISOString().slice(0, 10)}`);
+      err.code = 'SNAPSHOT_DAILY_EMPTY';
+      throw err;
+    }
+  }
+  return { file: result.location, missingHours: missingHours.map((item) => item.hour) };
 }

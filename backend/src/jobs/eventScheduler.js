@@ -113,8 +113,8 @@ try {
     recordJobStart('snapshotOverviewDaily', { cronExpr: '10 0 * * *' });
     try {
       const res = await snapshotOverviewDaily();
-      log.info('cron_snapshot_daily_success', { file: res.file });
-      recordJobSuccess('snapshotOverviewDaily', { file: res.file });
+      log.info('cron_snapshot_daily_success', { file: res.file, missingHours: res?.missingHours || [] });
+      recordJobSuccess('snapshotOverviewDaily', { file: res.file, missingHours: res?.missingHours || [] });
     } catch (err) {
       log.error('cron_snapshot_daily_error', {
         error: err?.stack || err?.message || err,

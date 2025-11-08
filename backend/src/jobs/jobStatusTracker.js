@@ -4,6 +4,19 @@ import { createModuleLogger } from '#config/logger.js';
 const log = createModuleLogger({ module: 'jobs.statusTracker' });
 
 const JOB_STATUS = new Map();
+const JOB_HISTORY = new Map();
+
+const MAX_HISTORY = Number.parseInt(process.env.JOB_HISTORY_LIMIT ?? '25', 10);
+
+function pushHistory(name, payload) {
+  const limit = Number.isFinite(MAX_HISTORY) && MAX_HISTORY > 0 ? MAX_HISTORY : 25;
+  const queue = JOB_HISTORY.get(name) ?? [];
+  queue.push(payload);
+  while (queue.length > limit) {
+    queue.shift();
+  }
+  JOB_HISTORY.set(name, queue);
+}
 
 function serialize(status) {
   if (!status) return null;
@@ -24,15 +37,22 @@ function serialize(status) {
 }
 
 export function recordJobStart(name, meta = {}) {
+  const startedAt = Date.now();
   JOB_STATUS.set(name, {
     status: 'running',
-    startedAt: Date.now(),
+    startedAt,
     finishedAt: null,
     result: null,
     error: null,
     meta,
   });
   log.debug('job_start', { job: name, meta });
+  pushHistory(name, {
+    event: 'start',
+    status: 'running',
+    at: startedAt,
+    meta: meta || null,
+  });
 }
 
 export function recordJobSuccess(name, result = {}) {
@@ -47,6 +67,15 @@ export function recordJobSuccess(name, result = {}) {
     meta: prev.meta || null,
   });
   log.debug('job_success', { job: name, result });
+  pushHistory(name, {
+    event: 'success',
+    status: 'success',
+    at: finishedAt,
+    startedAt: prev.startedAt ?? finishedAt,
+    finishedAt,
+    durationMs: typeof prev.startedAt === 'number' ? finishedAt - prev.startedAt : null,
+    result: result || null,
+  });
 }
 
 export function recordJobError(name, error) {
@@ -62,6 +91,15 @@ export function recordJobError(name, error) {
     meta: prev.meta || null,
   });
   log.error('job_error', { job: name, error: serializedError });
+  pushHistory(name, {
+    event: 'error',
+    status: 'error',
+    at: finishedAt,
+    startedAt: prev.startedAt ?? finishedAt,
+    finishedAt,
+    durationMs: typeof prev.startedAt === 'number' ? finishedAt - prev.startedAt : null,
+    error: serializedError,
+  });
 }
 
 export function getJobStatuses() {
@@ -72,9 +110,20 @@ export function getJobStatuses() {
   return out;
 }
 
+export function getJobHistory(limitPerJob = 10) {
+  const limit = Number.isFinite(limitPerJob) && limitPerJob > 0 ? limitPerJob : 10;
+  const snapshot = {};
+  for (const [name, history] of JOB_HISTORY.entries()) {
+    const sliced = history.slice(-limit).map((entry) => ({ ...entry }));
+    snapshot[name] = sliced.reverse();
+  }
+  return snapshot;
+}
+
 export default {
   recordJobStart,
   recordJobSuccess,
   recordJobError,
   getJobStatuses,
+  getJobHistory,
 };
