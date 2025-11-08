@@ -255,6 +255,8 @@ export default function Dashboard() {
     return entries.map(([name, status]) => ({ name, ...status }));
   }, [jobStatuses]);
 
+  const jobAlerts = jobStatuses?.alerts ?? [];
+
   const product = useMemo(() => overview?.productInsights ?? FALLBACK_PRODUCT, [overview]);
   const actionsProduct = product.actions ?? FALLBACK_PRODUCT.actions;
 
@@ -508,6 +510,24 @@ export default function Dashboard() {
 
       <div className="dashboard-section jobs-section">
         <h3 className="dashboard-section__title">Jobs & alerts</h3>
+        {jobAlerts.length > 0 && (
+          <div className="jobs-status__alerts">
+            {jobAlerts.map((alert) => (
+              <div key={`${alert.job}-${alert.type}-${alert.at}`} className={`jobs-status__alert jobs-status__alert--${alert.type}`}>
+                <div>
+                  <strong>{alert.job}</strong>
+                  <span className="jobs-status__alert-type">{alert.type}</span>
+                </div>
+                <p>{alert.message}</p>
+                {Array.isArray(alert.details) && alert.details.length > 0 && (
+                  <p className="jobs-status__alert-details">
+                    Ejemplos: {alert.details.map((d) => new Date(d).toLocaleString()).join(' • ')}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
         {jobStatusError && <p className="jobs-status__notice jobs-status__notice--error">{jobStatusError}</p>}
         {jobStatusLoading && !jobItems.length ? (
           <div className="stats-panel__loading"><div className="stats-panel__spinner" /><p>Cargando estado de jobs…</p></div>

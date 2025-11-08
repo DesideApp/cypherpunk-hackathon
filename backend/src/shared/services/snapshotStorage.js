@@ -1,5 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
+import logger from '#config/logger.js';
 import { getS3Client, getS3Bucket, uploadObject, getObject } from './objectStorage.js';
 
 const SNAPSHOT_MODE = (process.env.SNAPSHOT_STORAGE || '').toLowerCase();
@@ -46,7 +47,15 @@ export async function readSnapshot({ key, localPath }) {
         chunks.push(chunk);
       }
       return Buffer.concat(chunks);
-    } catch {
+    } catch (error) {
+      const code = error?.name || error?.Code || error?.code;
+      const status = error?.$metadata?.httpStatusCode;
+      const message = error?.message || error;
+      if (code === 'NoSuchKey' || status === 404) {
+        logger.warn('[snapshotStorage] Snapshot not found in R2', { key: finalKey, error: message, code, status });
+      } else {
+        logger.error('[snapshotStorage] Failed to read snapshot from R2', { key: finalKey, error: message, code, status });
+      }
       return null;
     }
   }
@@ -54,7 +63,13 @@ export async function readSnapshot({ key, localPath }) {
   if (!localPath) return null;
   try {
     return await fs.readFile(localPath);
-  } catch {
+  } catch (error) {
+    const message = error?.message || error;
+    if (error?.code === 'ENOENT') {
+      logger.warn('[snapshotStorage] Snapshot file not found on disk', { path: localPath, error: message });
+    } else {
+      logger.error('[snapshotStorage] Failed to read snapshot from disk', { path: localPath, error: message, code: error?.code });
+    }
     return null;
   }
 }
