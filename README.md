@@ -25,7 +25,9 @@ This repository is maintained as a **public reference** of our hackathon submiss
 **For Judges:** Full production implementations are available in our private repository (`deside-prod`). To request access for code review:
 
 1. **Create an issue** in this public repository ([GitHub Issues](https://github.com/DesideApp/cypherpunk-hackathon/issues)) requesting access to the private repository
-2. **Or contact us** through [deside.io](https://deside.io) - Use the contact form or reach out directly
+2. **Or contact us directly:**
+   - **Twitter/X:** [@vderohe](https://twitter.com/vderohe)
+   - **GitHub:** Send a message through GitHub
 
 We're happy to provide access to the private repository for evaluation purposes. Please include your GitHub username when requesting access.
 
