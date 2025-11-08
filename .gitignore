@@ -81,14 +81,16 @@ GIT_GUIDE.txt
 
 # Internal development tools (not part of hackathon features)
 ai-style-agent/
- 
+ai-token-agent/
+
 # Private docs
 docs/telegram-bots-inventory.md
 # Private doc suffix anywhere (keep extended notes out of VCS)
 *.private.md
 
-# Telegram Bot - excluir del deploy
+# Telegram Bot - excluir del deploy (not part of hackathon)
 backend/src/modules/telegram-bot/
+backend/src/middleware/telegramBotGuard.js
 
 # Legacy & Cleanup
 admin-panel/
